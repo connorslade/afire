@@ -1,12 +1,15 @@
+// use std::fmt::Write;
 use std::io::prelude::*;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
 use std::net::TcpListener;
+use std::net::TcpStream;
+use std::str;
 
 fn main() {
     let mut server: Server = Server::new("localhost", 1234);
-    server.get("/", |req, res| {
+    server.get("/", |_req| {
         println!("Hi :P");
         Response::new(200, "Hi :P", vec!["Content-Type: application/json"])
     });
@@ -21,12 +24,12 @@ pub struct Server {
 }
 
 pub struct Route {
-    method: Methood,
+    method: Method,
     path: String,
-    handler: fn(Request, Response) -> Response,
+    handler: fn(Request) -> Response,
 }
 
-pub enum Methood {
+pub enum Method {
     GET,
     POST,
     PUT,
@@ -35,12 +38,13 @@ pub enum Methood {
     HEAD,
     PATCH,
     TRACE,
+    CUSTOM(String),
 }
 
 pub struct Request {
-    pub method: Methood,
+    pub method: Method,
     pub path: String,
-    pub headers: Vec<(String, String)>,
+    pub headers: Vec<String>,
     pub body: Vec<u8>,
 }
 
@@ -89,21 +93,46 @@ impl Server {
         ))
         .unwrap();
 
-        for stream in listener.incoming() {
-            let mut stream = stream.unwrap();
+        for event in listener.incoming() {
+            // Read stream into buffer
+            let mut stream = event.unwrap();
 
-            println!("Connection established!");
-            let mut buffer = [0; 1024];
+            self.handle_connection(&stream);
 
-            stream.read(&mut buffer).unwrap();
+            let contents = "Hello";
 
-            println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                contents.len(),
+                contents
+            );
+
+            stream.write(response.as_bytes()).unwrap();
+            stream.flush().unwrap();
         }
     }
 
-    fn get(&mut self, path: &str, handler: fn(Request, Response) -> Response) {
+    fn handle_connection(&self, mut stream: &TcpStream) {
+        // Init Buffer
+        let mut buffer = [0; 1024];
+
+        stream.read(&mut buffer).unwrap();
+
+        let stream_string = str::from_utf8(&buffer).expect("Error parseing buffer data");
+
+        // Loop through all routes and check if the request matches
+        for route in &self.routes {
+            if &get_request_method(stream_string.to_string()) == &route.method && "/" == route.path
+            {
+                let req = Request::new(Method::GET, "/", Vec::new(), Vec::new());
+                (route.handler)(req);
+            }
+        }
+    }
+
+    fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes.push(Route {
-            method: Methood::GET,
+            method: Method::GET,
             path: path.to_string(),
             handler: handler,
         });
@@ -120,4 +149,44 @@ impl Response {
             headers: new_headers,
         }
     }
+}
+
+impl Request {
+    fn new(method: Method, path: &str, headers: Vec<String>, body: Vec<u8>) -> Request {
+        Request {
+            method,
+            path: path.to_string(),
+            headers,
+            body,
+        }
+    }
+}
+
+impl PartialEq for Method {
+    fn eq(&self, other: &Self) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(other)
+    }
+}
+
+/// Get the request method of a raw HTTP request.
+fn get_request_method(raw_data: String) -> Method {
+    let method_str = raw_data
+        .split(" ")
+        .collect::<Vec<&str>>()
+        .iter()
+        .next()
+        .unwrap()
+        .to_string();
+
+    return match &method_str[..] {
+        "GET" => Method::GET,
+        "POST" => Method::POST,
+        "PUT" => Method::PUT,
+        "DELETE" => Method::DELETE,
+        "OPTIONS" => Method::OPTIONS,
+        "HEAD" => Method::HEAD,
+        "PATCH" => Method::PATCH,
+        "TRACE" => Method::TRACE,
+        _ => Method::CUSTOM(method_str),
+    };
 }
