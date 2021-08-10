@@ -6,40 +6,7 @@ use std::net::TcpListener;
 use std::net::TcpStream;
 use std::str;
 
-fn main() {
-    let mut server: Server = Server::new("localhost", 1234);
-
-    // Define a handler for GET "/"
-    server.get("/", |_req| {
-        Response::new(
-            200,
-            "Hi :P",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
-    });
-
-    // Define a handler for GET "/nose"
-    server.get("/nose", |_req| {
-        Response::new(
-            200,
-            "N O S E",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
-    });
-
-    // Define a handler for ANY "/hi"
-    server.any("/hi", |_req| {
-        Response::new(
-            200,
-            "<h1>Hello, How are you?</h1>",
-            vec![Header::new("Content-Type", "text/html")],
-        )
-    });
-
-    // Start the server
-    server.start();
-}
-
+/// Defines a TCP server.
 pub struct Server {
     pub port: u16,
     pub ip: [u8; 4],
@@ -50,12 +17,14 @@ pub struct Server {
     default_headers: Option<Vec<Header>>,
 }
 
+/// Defines a route.
 pub struct Route {
     method: Method,
     path: String,
     handler: fn(Request) -> Response,
 }
 
+/// Methods for a request
 pub enum Method {
     GET,
     POST,
@@ -71,11 +40,13 @@ pub enum Method {
     ANY,
 }
 
+/// Http header
 pub struct Header {
     name: String,
     value: String,
 }
 
+/// Http Request
 pub struct Request {
     pub method: Method,
     pub path: String,
@@ -83,14 +54,17 @@ pub struct Request {
     pub body: Vec<u8>,
 }
 
+/// Http Responce
 pub struct Response {
     pub status: u16,
     pub data: String,
     pub headers: Vec<Header>,
 }
 
+/// Implamantaions for Server
 impl Server {
-    fn new(mut raw_ip: &str, port: u16) -> Server {
+    /// Creates a new TCP server.
+    pub fn new(mut raw_ip: &str, port: u16) -> Server {
         let mut ip: [u8; 4] = [0; 4];
 
         // If the ip is localhost, use the loopback ip
@@ -117,7 +91,8 @@ impl Server {
         }
     }
 
-    fn start(&self) {
+    /// Start the server.
+    pub fn start(&self) {
         let listener = TcpListener::bind(SocketAddr::new(
             IpAddr::V4(Ipv4Addr::new(
                 self.ip[0], self.ip[1], self.ip[2], self.ip[3],
@@ -159,6 +134,7 @@ impl Server {
         }
     }
 
+    /// Handel a connection to the server
     fn handle_connection(&self, mut stream: &TcpStream) -> Response {
         // Init Buffer
         let mut buffer = [0; 1024];
@@ -190,7 +166,7 @@ impl Server {
     }
 
     /// Run on get requests
-    fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
+    pub fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes.push(Route {
             method: Method::GET,
             path: path.to_string(),
@@ -199,7 +175,7 @@ impl Server {
     }
 
     /// Run for any method
-    fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
+    pub fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes.push(Route {
             method: Method::ANY,
             path: path.to_string(),
@@ -220,7 +196,8 @@ impl Response {
 }
 
 impl Request {
-    fn new(method: Method, path: &str, headers: Vec<Header>, body: Vec<u8>) -> Request {
+    /// Quick and easy way to create a request.
+    pub fn new(method: Method, path: &str, headers: Vec<Header>, body: Vec<u8>) -> Request {
         Request {
             method,
             path: path.to_string(),
@@ -231,31 +208,40 @@ impl Request {
 }
 
 impl PartialEq for Method {
+    /// Allow compatring Method Enums
+    ///
+    /// EX: Method::GET == Method::GET
+    ///
+    /// > True
     fn eq(&self, other: &Self) -> bool {
         std::mem::discriminant(self) == std::mem::discriminant(other)
     }
 }
 
 impl Header {
-    fn new(name: &str, value: &str) -> Header {
+    /// Make a new header
+    pub fn new(name: &str, value: &str) -> Header {
         Header {
             name: name.to_string(),
             value: value.to_string(),
         }
     }
 
-    fn copy(header: &Header) -> Header {
+    /// Convert a header ref to a header
+    pub fn copy(header: &Header) -> Header {
         Header {
             name: header.name.clone(),
             value: header.value.clone(),
         }
     }
 
-    fn to_string(&self) -> String {
+    /// Convert a header to a string
+    pub fn to_string(&self) -> String {
         format!("{}: {}", self.name, self.value)
     }
 
-    fn from_string(header: &str) -> Option<Header> {
+    /// Convert a string to a header
+    pub fn from_string(header: &str) -> Option<Header> {
         let splitted_header: Vec<&str> = header.split(':').collect();
         if splitted_header.len() != 2 {
             return None;
@@ -267,6 +253,7 @@ impl Header {
     }
 }
 
+/// Struingify a Vec of headers
 fn headers_to_string(headers: Vec<Header>) -> String {
     let headers_string: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
     format!("{}", headers_string.join("\n"))
@@ -295,6 +282,7 @@ fn get_request_method(raw_data: String) -> Method {
     };
 }
 
+/// Get the path of a raw HTTP request.
 fn get_request_path(raw_data: String) -> String {
     let path_str = raw_data.split(" ").collect::<Vec<&str>>();
     path_str[1].to_string()

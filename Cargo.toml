@@ -4,6 +4,16 @@ version = "0.1.0"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/Basicprogrammer10/afire"
+documentation = "https://docs.rs/afire"
+description = "🔥 A blazeing fast web framework for Rust"
+keywords = ["Config", "ConfigFile", "ConfigParser", "ini", "iniParseing"]
+categories = ["network-programming", "web-programming::http-server"]
+license = "GNU General Public License v3.0"
+readme = "README.md"
+
+[lib]
+name = "afire"
+path = "lib/lib.rs"
 
 [dependencies]
