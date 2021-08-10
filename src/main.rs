@@ -10,8 +10,8 @@ use std::str;
 fn main() {
     let mut server: Server = Server::new("localhost", 1234);
     server.get("/", |_req| {
-        println!("Hi :P");
-        Response::new(200, "Hi :P", vec!["Content-Type: application/json"])
+        // println!("Hi :P");
+        Response::new(200, "Hi :P", vec!["Content-Type: text/plain"])
     });
     server.start();
 }
@@ -68,7 +68,7 @@ impl Server {
         }
 
         // Parse the ip to an array
-        let splitted_ip: Vec<&str> = raw_ip.split(".").collect();
+        let splitted_ip: Vec<&str> = raw_ip.split('.').collect();
         if splitted_ip.len() != 4 {
             panic!("Invalid Server IP");
         }
@@ -97,14 +97,16 @@ impl Server {
             // Read stream into buffer
             let mut stream = event.unwrap();
 
-            self.handle_connection(&stream);
-
-            let contents = "Hello";
+            // Get the reponse from the handler
+            // Uses the most recently defined route that matches the request
+            let mut res = self.handle_connection(&stream);
+            res.headers.push(format!("Content-Length: {}", res.data.len()));
 
             let response = format!(
-                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                contents.len(),
-                contents
+                "HTTP/1.1 {} OK\n{}\n\n{}",
+                res.status,
+                res.headers.join("\n"),
+                res.data
             );
 
             stream.write(response.as_bytes()).unwrap();
@@ -112,7 +114,7 @@ impl Server {
         }
     }
 
-    fn handle_connection(&self, mut stream: &TcpStream) {
+    fn handle_connection(&self, mut stream: &TcpStream) -> Response {
         // Init Buffer
         let mut buffer = [0; 1024];
 
@@ -121,13 +123,14 @@ impl Server {
         let stream_string = str::from_utf8(&buffer).expect("Error parseing buffer data");
 
         // Loop through all routes and check if the request matches
-        for route in &self.routes {
+        for route in self.routes.iter().rev() {
             if &get_request_method(stream_string.to_string()) == &route.method && "/" == route.path
             {
                 let req = Request::new(Method::GET, "/", Vec::new(), Vec::new());
-                (route.handler)(req);
+                return (route.handler)(req);
             }
         }
+        return Response::new(404, "Not Found", Vec::new());
     }
 
     fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
