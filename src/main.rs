@@ -8,14 +8,35 @@ use std::str;
 
 fn main() {
     let mut server: Server = Server::new("localhost", 1234);
+
+    // Define a handler for GET "/"
     server.get("/", |_req| {
-        // println!("Hi :P");
         Response::new(
             200,
             "Hi :P",
             vec![Header::new("Content-Type", "text/plain")],
         )
     });
+
+    // Define a handler for GET "/nose"
+    server.get("/nose", |_req| {
+        Response::new(
+            200,
+            "N O S E",
+            vec![Header::new("Content-Type", "text/plain")],
+        )
+    });
+
+    // Define a handler for ANY "/hi"
+    server.any("/hi", |_req| {
+        Response::new(
+            200,
+            "<h1>Hello, How are you?</h1>",
+            vec![Header::new("Content-Type", "text/html")],
+        )
+    });
+
+    // Start the server
     server.start();
 }
 
@@ -25,7 +46,7 @@ pub struct Server {
 
     pub routes: Vec<Route>,
 
-    // Optional
+    // Optional stuff
     default_headers: Option<Vec<Header>>,
 }
 
@@ -45,6 +66,9 @@ pub enum Method {
     PATCH,
     TRACE,
     CUSTOM(String),
+
+    // For routes that run on all methods
+    ANY,
 }
 
 pub struct Header {
@@ -109,12 +133,19 @@ impl Server {
             // Get the reponse from the handler
             // Uses the most recently defined route that matches the request
             let mut res = self.handle_connection(&stream);
-            for header in self.default_headers.as_ref().unwrap() {
-                res.headers.push(Header::copy(header));
+
+            // Add default headers to response
+            if self.default_headers.is_some() {
+                for header in self.default_headers.as_ref().unwrap() {
+                    res.headers.push(Header::copy(header));
+                }
             }
+
+            // Add content-length header to response
             res.headers
                 .push(Header::new("Content-Length", &res.data.len().to_string()));
 
+            // Convert the response to a string
             let response = format!(
                 "HTTP/1.1 {} OK\n{}\n\n{}",
                 res.status,
@@ -122,6 +153,7 @@ impl Server {
                 res.data
             );
 
+            // Send the response
             stream.write(response.as_bytes()).unwrap();
             stream.flush().unwrap();
         }
@@ -131,6 +163,7 @@ impl Server {
         // Init Buffer
         let mut buffer = [0; 1024];
 
+        // Read stream into buffer
         stream.read(&mut buffer).unwrap();
 
         // DEBUG
@@ -140,10 +173,12 @@ impl Server {
 
         // Loop through all routes and check if the request matches
         for route in self.routes.iter().rev() {
-            if &get_request_method(stream_string.to_string()) == &route.method
-                && get_request_path(stream_string.to_string()) == route.path
+            let req_method = get_request_method(stream_string.to_string());
+            let req_path = get_request_path(stream_string.to_string());
+            if &req_method == &route.method || route.method == Method::ANY && req_path == route.path
             {
-                let req = Request::new(Method::GET, "/", Vec::new(), Vec::new());
+                // TODO: Send Header and Body here
+                let req = Request::new(req_method, &req_path, Vec::new(), Vec::new());
                 return (route.handler)(req);
             }
         }
@@ -154,9 +189,19 @@ impl Server {
         );
     }
 
+    /// Run on get requests
     fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes.push(Route {
             method: Method::GET,
+            path: path.to_string(),
+            handler: handler,
+        });
+    }
+
+    /// Run for any method
+    fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
+        self.routes.push(Route {
+            method: Method::ANY,
             path: path.to_string(),
             handler: handler,
         });
