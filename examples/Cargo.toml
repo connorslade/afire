@@ -1,0 +1,10 @@
+[package]
+name = "testing"
+version = "0.1.0"
+authors = ["Connor Slade <connor@connorcode.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+afire = { git = "https://github.com/Basicprogrammer10/afire.git", branch = "main" }
