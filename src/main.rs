@@ -1,4 +1,3 @@
-// use std::fmt::Write;
 use std::io::prelude::*;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
@@ -11,7 +10,11 @@ fn main() {
     let mut server: Server = Server::new("localhost", 1234);
     server.get("/", |_req| {
         // println!("Hi :P");
-        Response::new(200, "Hi :P", vec!["Content-Type: text/plain"])
+        Response::new(
+            200,
+            "Hi :P",
+            vec![Header::new("Content-Type", "text/plain")],
+        )
     });
     server.start();
 }
@@ -21,6 +24,9 @@ pub struct Server {
     pub ip: [u8; 4],
 
     pub routes: Vec<Route>,
+
+    // Optional
+    default_headers: Option<Vec<Header>>,
 }
 
 pub struct Route {
@@ -41,38 +47,40 @@ pub enum Method {
     CUSTOM(String),
 }
 
+pub struct Header {
+    name: String,
+    value: String,
+}
+
 pub struct Request {
     pub method: Method,
     pub path: String,
-    pub headers: Vec<String>,
+    pub headers: Vec<Header>,
     pub body: Vec<u8>,
 }
 
 pub struct Response {
     pub status: u16,
     pub data: String,
-    pub headers: Vec<String>,
+    pub headers: Vec<Header>,
 }
 
 impl Server {
-    fn new(raw_ip: &str, port: u16) -> Server {
+    fn new(mut raw_ip: &str, port: u16) -> Server {
         let mut ip: [u8; 4] = [0; 4];
 
         // If the ip is localhost, use the loopback ip
         if raw_ip == "localhost" {
-            return Server {
-                port: port,
-                ip: [127, 0, 0, 1],
-                routes: Vec::new(),
-            };
+            raw_ip = "127.0.0.1";
         }
 
         // Parse the ip to an array
         let splitted_ip: Vec<&str> = raw_ip.split('.').collect();
+
         if splitted_ip.len() != 4 {
             panic!("Invalid Server IP");
         }
-        for i in 0..3 {
+        for i in 0..4 {
             let octet: u8 = splitted_ip[i].parse::<u8>().expect("Invalid Server IP");
             ip[i] = octet;
         }
@@ -81,6 +89,7 @@ impl Server {
             port: port,
             ip: ip,
             routes: Vec::new(),
+            default_headers: Some(vec![Header::new("Powerd-By", "afire")]),
         }
     }
 
@@ -100,12 +109,16 @@ impl Server {
             // Get the reponse from the handler
             // Uses the most recently defined route that matches the request
             let mut res = self.handle_connection(&stream);
-            res.headers.push(format!("Content-Length: {}", res.data.len()));
+            for header in self.default_headers.as_ref().unwrap() {
+                res.headers.push(Header::copy(header));
+            }
+            res.headers
+                .push(Header::new("Content-Length", &res.data.len().to_string()));
 
             let response = format!(
                 "HTTP/1.1 {} OK\n{}\n\n{}",
                 res.status,
-                res.headers.join("\n"),
+                headers_to_string(res.headers),
                 res.data
             );
 
@@ -120,17 +133,25 @@ impl Server {
 
         stream.read(&mut buffer).unwrap();
 
+        // DEBUG
+        println!("{}", String::from_utf8_lossy(&buffer[..]));
+
         let stream_string = str::from_utf8(&buffer).expect("Error parseing buffer data");
 
         // Loop through all routes and check if the request matches
         for route in self.routes.iter().rev() {
-            if &get_request_method(stream_string.to_string()) == &route.method && "/" == route.path
+            if &get_request_method(stream_string.to_string()) == &route.method
+                && get_request_path(stream_string.to_string()) == route.path
             {
                 let req = Request::new(Method::GET, "/", Vec::new(), Vec::new());
                 return (route.handler)(req);
             }
         }
-        return Response::new(404, "Not Found", Vec::new());
+        return Response::new(
+            404,
+            "Not Found",
+            vec![Header::new("Content-Type", "text/plain")],
+        );
     }
 
     fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
@@ -144,18 +165,17 @@ impl Server {
 
 impl Response {
     /// Quick and easy way to create a response.
-    pub fn new(status: u16, data: &str, headers: Vec<&str>) -> Response {
-        let new_headers: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
+    pub fn new(status: u16, data: &str, headers: Vec<Header>) -> Response {
         Response {
             status,
             data: data.to_string(),
-            headers: new_headers,
+            headers: headers,
         }
     }
 }
 
 impl Request {
-    fn new(method: Method, path: &str, headers: Vec<String>, body: Vec<u8>) -> Request {
+    fn new(method: Method, path: &str, headers: Vec<Header>, body: Vec<u8>) -> Request {
         Request {
             method,
             path: path.to_string(),
@@ -169,6 +189,42 @@ impl PartialEq for Method {
     fn eq(&self, other: &Self) -> bool {
         std::mem::discriminant(self) == std::mem::discriminant(other)
     }
+}
+
+impl Header {
+    fn new(name: &str, value: &str) -> Header {
+        Header {
+            name: name.to_string(),
+            value: value.to_string(),
+        }
+    }
+
+    fn copy(header: &Header) -> Header {
+        Header {
+            name: header.name.clone(),
+            value: header.value.clone(),
+        }
+    }
+
+    fn to_string(&self) -> String {
+        format!("{}: {}", self.name, self.value)
+    }
+
+    fn from_string(header: &str) -> Option<Header> {
+        let splitted_header: Vec<&str> = header.split(':').collect();
+        if splitted_header.len() != 2 {
+            return None;
+        }
+        Some(Header {
+            name: splitted_header[0].trim().to_string(),
+            value: splitted_header[1].trim().to_string(),
+        })
+    }
+}
+
+fn headers_to_string(headers: Vec<Header>) -> String {
+    let headers_string: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
+    format!("{}", headers_string.join("\n"))
 }
 
 /// Get the request method of a raw HTTP request.
@@ -192,4 +248,9 @@ fn get_request_method(raw_data: String) -> Method {
         "TRACE" => Method::TRACE,
         _ => Method::CUSTOM(method_str),
     };
+}
+
+fn get_request_path(raw_data: String) -> String {
+    let path_str = raw_data.split(" ").collect::<Vec<&str>>();
+    path_str[1].to_string()
 }
