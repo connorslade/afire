@@ -40,6 +40,22 @@ fn main() {
         )
     });
 
+    // Redirecting to a different URL
+    server.route(Method::GET, "/connorcode", |_req| {
+        Response::new(
+            // Needs a status of 301, 302, 303, 307, 308 to redirect
+            301,
+            // Data is not really important
+            "Hello, Connor",
+            vec![
+                Header::new("Content-Type", "text/plain"),
+                // Needs a Location header
+                // This can be a relative URL or an absolute URL
+                Header::new("Location", "https://connorcode.com"),
+            ],
+        )
+    });
+
     // Start the server
     server.start();
 }

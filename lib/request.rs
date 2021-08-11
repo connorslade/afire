@@ -40,7 +40,7 @@ impl Request {
     ///
     /// ```rust
     /// use afire::{Request, Method};
-    
+
     pub fn compare(&self, other: &Request) -> bool {
         self.method == other.method
             && self.path == other.path

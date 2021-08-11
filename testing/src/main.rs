@@ -51,6 +51,17 @@ fn main() {
         )
     });
 
+    server.route(Method::GET, "/connorcode", |_req| {
+        Response::new(
+            301,
+            "Hello, Connor",
+            vec![
+                Header::new("Content-Type", "text/plain"),
+                Header::new("Location", "http://connorcode.com"),
+            ],
+        )
+    });
+
     server.every(|req| {
         println!("req: {:?}", req);
         None

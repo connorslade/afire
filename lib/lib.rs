@@ -7,14 +7,13 @@ Work in progress :P
 
 mod common;
 
-// HTTP Header relates things
-// Thare is a lot :P
-mod header;
-pub use self::header::Header;
-
 // The main server
 mod server;
 pub use self::server::Server;
+
+// HTTP Header relates things
+mod header;
+pub use self::header::Header;
 
 // Different types of requests e.g. GET, POST, PUT, DELETE
 mod method;

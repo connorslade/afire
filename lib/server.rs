@@ -76,7 +76,7 @@ impl Server {
             ip: ip,
             routes: Vec::new(),
             run: true,
-            default_headers: Some(vec![Header::new("Powered-By", "afire")]),
+            default_headers: Some(vec![Header::new("Server", "afire")]),
             middleware: Vec::new(),
         }
     }
@@ -260,11 +260,8 @@ impl Server {
     /// server.start();
     /// ```
     pub fn all(&mut self, handler: fn(Request) -> Response) {
-        self.routes.push(Route {
-            method: Method::ANY,
-            path: "*".to_string(),
-            handler: handler,
-        });
+        self.routes
+            .push(Route::new(Method::ANY, "*".to_string(), handler));
     }
 
     /// Create a new route for any type of request
@@ -292,11 +289,8 @@ impl Server {
     /// ```
     /// Now you can make any type of request to `/nose` and it will return a 200
     pub fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
-        self.routes.push(Route {
-            method: Method::ANY,
-            path: path.to_string(),
-            handler: handler,
-        });
+        self.routes
+            .push(Route::new(Method::ANY, path.to_string(), handler));
     }
 
     /// Add a new middleware to the server
@@ -354,11 +348,8 @@ impl Server {
     /// server.start();
     /// ```
     pub fn route(&mut self, method: Method, path: &str, handler: fn(Request) -> Response) {
-        self.routes.push(Route {
-            method: method,
-            path: path.to_string(),
-            handler: handler,
-        });
+        self.routes
+            .push(Route::new(method, path.to_string(), handler));
     }
 }
 
