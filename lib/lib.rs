@@ -5,6 +5,8 @@ A blazing fast web framework for Rust
 Work in progress :P
 */
 
+mod common;
+
 // HTTP Header relates things
 // Thare is a lot :P
 mod header;
@@ -14,7 +16,18 @@ pub use self::header::Header;
 mod server;
 pub use self::server::Server;
 
-// Other things like Methods, Routes, Request and Response defanitions
-// Too small to need its own file
-mod other;
-pub use self::other::{Method, Request, Response, Route};
+// Different types of requests e.g. GET, POST, PUT, DELETE
+mod method;
+pub use self::method::Method;
+
+// Routing - the main way of getting things done
+mod route;
+pub use self::route::Route;
+
+// A request object to hold all the information about a request
+mod request;
+pub use self::request::Request;
+
+// A response object that is used to define data to send to the client
+mod response;
+pub use self::response::Response;

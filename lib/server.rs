@@ -9,8 +9,11 @@ use std::str;
 
 // Import local files
 
-use super::header::*;
-use super::other::*;
+use super::header::{headers_to_string, Header};
+use super::method::Method;
+use super::request::Request;
+use super::response::Response;
+use super::route::Route;
 
 /// Defines a server.
 pub struct Server {
@@ -32,11 +35,11 @@ pub struct Server {
     /// Really just for testing.
     run: bool,
 
-    /// Headders automatically added to every response.
+    /// Headers automatically added to every response.
     default_headers: Option<Vec<Header>>,
 }
 
-/// Implamantaions for Server
+/// Implementations for Server
 impl Server {
     /// Creates a new server.
     ///
@@ -73,7 +76,7 @@ impl Server {
             ip: ip,
             routes: Vec::new(),
             run: true,
-            default_headers: Some(vec![Header::new("Powerd-By", "afire")]),
+            default_headers: Some(vec![Header::new("Powered-By", "afire")]),
             middleware: Vec::new(),
         }
     }
@@ -85,13 +88,13 @@ impl Server {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, Response, Header};
+    /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Define a route
-    /// server.get("/", |req| {
+    /// server.route(Method::GET, "/", |req| {
     ///     Response::new(
     ///         200,
     ///         "N O S E",
@@ -130,7 +133,7 @@ impl Server {
             // Add default headers to response
             if self.default_headers.is_some() {
                 for header in self.default_headers.as_ref().unwrap() {
-                    res.headers.push(Header::copy(header));
+                    res.headers.push(header.copy());
                 }
             }
 
@@ -170,7 +173,7 @@ impl Server {
         let req = Request::new(req_method, &req_path, headers, body);
 
         // Use middleware to handle request
-        // If middleware returns a `None`, the request will be handled by the routes
+        // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
         for middleware in self.middleware.iter().rev() {
             match (middleware)(&req) {
                 None => (),
@@ -200,14 +203,62 @@ impl Server {
     /// Only used for testing
     ///
     /// It would be a really dumb idea to use this
+    ///
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Keep the server from starting and blocking the main thread
+    /// server.set_run(false);
+    ///
+    /// // 'Start' the server
+    /// server.start();
+    /// ```
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
     }
 
-    /// Create a new route the runs for all methods
+    /// Create a new route the runs for all methods and paths
     ///
     /// May be useful for a 404 page as the most recently defined route takes priority
     /// so by defining this route first it would trigger if nothing else matches
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Starts a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Define 404 page
+    /// // Because this is defined first, it will take a low priority
+    /// server.all(|req| {
+    ///     Response::new(
+    ///         404,
+    ///         "The page you are looking for does not exist :/",
+    ///         vec![Header::new("Content-Type", "text/plain")],
+    ///     )
+    /// });
+    ///
+    /// // Define a route
+    /// // As this is defined last, it will take a high priority
+    /// server.route(Method::GET, "/nose", |req| {
+    ///     Response::new(
+    ///         200,
+    ///         "N O S E",
+    ///         vec![Header::new("Content-Type", "text/plain")],
+    ///     )
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes.push(Route {
             method: Method::ANY,
@@ -217,6 +268,29 @@ impl Server {
     }
 
     /// Create a new route for any type of request
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header};
+    ///
+    /// // Starts a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Define a route
+    /// server.any("/nose", |req| {
+    ///     Response::new(
+    ///         200,
+    ///         "N O S E",
+    ///         vec![Header::new("Content-Type", "text/plain")],
+    ///     )
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
+    /// Now you can make any type of request to `/nose` and it will return a 200
     pub fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes.push(Route {
             method: Method::ANY,
@@ -227,16 +301,61 @@ impl Server {
 
     /// Add a new middleware to the server
     ///
+    /// Will be executed before any routes are handled
+    ///
     /// You will have access to the request object
     /// But will not be able to access the response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server};
+    ///
+    /// // Starts a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Add some middleware
+    /// server.every(|req| {
+    ///     // Do something with the request
+    ///     // Return a `None` to continue to the next middleware / route
+    ///     // Return a `Some` to send a response
+    ///    None
+    ///});
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
     pub fn every(&mut self, handler: fn(&Request) -> Option<Response>) {
         self.middleware.push(handler);
     }
 
-    /// Create a new route for get requests
-    pub fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
+    /// Create a new route for specified requests
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Define a route
+    /// server.route(Method::GET, "/nose", |req| {
+    ///     Response::new(
+    ///         200,
+    ///         "N O S E",
+    ///         vec![Header::new("Content-Type", "text/plain")],
+    ///     )
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
+    pub fn route(&mut self, method: Method, path: &str, handler: fn(Request) -> Response) {
         self.routes.push(Route {
-            method: Method::GET,
+            method: method,
             path: path.to_string(),
             handler: handler,
         });

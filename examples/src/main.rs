@@ -5,7 +5,7 @@ fn main() {
     let mut server: Server = Server::new("localhost", 1234);
 
     // Define a handler for GET "/"
-    server.get("/", |_req| {
+    server.route(Method::GET, "/", |_req| {
         Response::new(
             200,
             "Hi :P",
@@ -14,7 +14,7 @@ fn main() {
     });
 
     // Define a handler for GET "/nose"
-    server.get("/nose", |_req| {
+    server.route(Method::GET, "/nose", |_req| {
         Response::new(
             200,
             "N O S E",
@@ -23,7 +23,7 @@ fn main() {
     });
 
     // Define a handler for ANY "/hi"
-    server.any("/hi", |_req| {
+    server.route(Method::GET, "/hi", |_req| {
         Response::new(
             200,
             "<h1>Hello, How are you?</h1>",
@@ -32,7 +32,7 @@ fn main() {
     });
 
     // Serve a file
-    server.get("/pi", |_req| {
+    server.route(Method::GET, "/pi", |_req| {
         Response::new(
             200,
             &fs::read_to_string("data/index.txt").unwrap(),

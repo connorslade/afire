@@ -14,8 +14,8 @@ fn main() {
         )
     });
 
-    // Define a handler for GET "/"
-    server.get("/", |_req| {
+    // Define a handler for route "/"
+    server.route(Method::GET, "/", |_req| {
         Response::new(
             200,
             "Hi :P",
@@ -23,8 +23,8 @@ fn main() {
         )
     });
 
-    // Define a handler for GET "/nose"
-    server.get("/nose", |_req| {
+    // Define a handler for route "/nose"
+    server.route(Method::GET, "/nose", |_req| {
         Response::new(
             200,
             "N O S E",
@@ -42,7 +42,7 @@ fn main() {
     });
 
     // Serve a file
-    server.get("/pi", |_req| {
+    server.route(Method::GET, "/pi", |_req| {
         Response::new(
             200,
             // Html stored as txt because yes

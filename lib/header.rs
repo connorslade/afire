@@ -8,6 +8,14 @@ pub struct Header {
 
 impl Header {
     /// Make a new header
+    /// ## Example
+    /// ```rust
+    /// // Import Modules
+    /// use afire::Header;
+    ///
+    /// let header1 = Header::new("Content-Type", "text/html");
+    /// let header2 = Header::new("Access-Control-Allow-Origin", "*");
+    /// ```
     pub fn new(name: &str, value: &str) -> Header {
         Header {
             name: name.to_string(),
@@ -16,16 +24,35 @@ impl Header {
     }
 
     /// Convert a header ref to a header
-    pub fn copy(header: &Header) -> Header {
+    /// ## Example
+    /// ```rust
+    /// // Import Modules
+    /// use afire::Header;
+    ///
+    /// let header1 = &Header::new("Content-Type", "text/html");
+    /// let header2 = Header::new("Content-Type", "text/html");
+    ///
+    /// assert!(header1.copy() == header2);
+    /// ```
+    pub fn copy(&self) -> Header {
         Header {
-            name: header.name.clone(),
-            value: header.value.clone(),
+            name: self.name.clone(),
+            value: self.value.clone(),
         }
     }
 
     /// Convert a header to a string
     ///
-    /// `name: value`
+    /// Im format: `name: value`
+    /// ## Example
+    /// ```rust
+    /// // Import Modules
+    /// use afire::Header;
+    ///
+    /// let header1 = Header::new("Content-Type", "text/html");
+    ///
+    /// assert_eq!(header1.to_string(), "Content-Type: text/html");
+    /// ```
     pub fn to_string(&self) -> String {
         format!("{}: {}", self.name, self.value)
     }
@@ -33,6 +60,15 @@ impl Header {
     /// Convert a string to a header
     ///
     /// String must be in the format `name: value`
+    /// ## Example
+    /// ```rust
+    /// // Import Modules
+    /// use afire::Header;
+    ///
+    /// let header1 = Header::new("Content-Type", "text/html");
+    /// let header2 = Header::from_string("Content-Type: text/html").unwrap();
+    ///
+    /// assert!(header2 == header1);
     pub fn from_string(header: &str) -> Option<Header> {
         let splitted_header: Vec<&str> = header.split(':').collect();
         if splitted_header.len() != 2 {
