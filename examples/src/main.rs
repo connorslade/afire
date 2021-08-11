@@ -1,4 +1,4 @@
-use afire::afire::*;
+use afire::*;
 use std::fs;
 
 fn main() {
