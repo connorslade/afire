@@ -95,7 +95,7 @@ impl Server {
     ///
     /// // Starts the server
     /// // This is blocking
-    /// # // Keep the server from strarting and blocking the main thread
+    /// # // Keep the server from starting and blocking the main thread
     /// # server.set_run(false);
     /// server.start();
     /// ```
@@ -117,7 +117,7 @@ impl Server {
             // Read stream into buffer
             let mut stream = event.unwrap();
 
-            // Get the reponse from the handler
+            // Get the response from the handler
             // Uses the most recently defined route that matches the request
             let mut res = self.handle_connection(&stream);
 
@@ -160,7 +160,8 @@ impl Server {
         for route in self.routes.iter().rev() {
             let req_method = get_request_method(stream_string.to_string());
             let req_path = get_request_path(stream_string.to_string());
-            if &req_method == &route.method || route.method == Method::ANY && req_path == route.path
+            if (&req_method == &route.method || route.method == Method::ANY)
+                && (req_path == route.path || req_path == "*")
             {
                 // TODO: Send Header and Body here
                 let req = Request::new(req_method, &req_path, Vec::new(), Vec::new());
@@ -188,6 +189,18 @@ impl Server {
         self.routes.push(Route {
             method: Method::GET,
             path: path.to_string(),
+            handler: handler,
+        });
+    }
+
+    /// Create a new route the runs for all methods
+    ///
+    /// May be useful for a 404 page as the most recently defined route takes priority
+    /// so by defining this route first it would trigger if nothing else matches
+    pub fn all(&mut self, handler: fn(Request) -> Response) {
+        self.routes.push(Route {
+            method: Method::ANY,
+            path: "*".to_string(),
             handler: handler,
         });
     }

@@ -35,9 +35,9 @@ fn main() {
     server.get("/pi", |_req| {
         Response::new(
             200,
-            &fs::read_to_string("data/index.html").unwrap(),
+            &fs::read_to_string("data/index.txt").unwrap(),
             vec![Header::new("Content-Type", "text/html")],
-        )   
+        )
     });
 
     // Start the server

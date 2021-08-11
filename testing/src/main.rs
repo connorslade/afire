@@ -1,8 +1,18 @@
-use afire::afire::*;
+use afire::*;
 use std::fs;
 
 fn main() {
     let mut server: Server = Server::new("localhost", 1234);
+
+    // Define a catch-all handler
+    // This will be called when no other handlers match
+    server.all(|_req| {
+        Response::new(
+            404,
+            "Not Found",
+            vec![Header::new("Content-Type", "text/plain")],
+        )
+    });
 
     // Define a handler for GET "/"
     server.get("/", |_req| {
@@ -38,7 +48,7 @@ fn main() {
             // Html stored as txt because yes
             &fs::read_to_string("data/index.txt").unwrap(),
             vec![Header::new("Content-Type", "text/html")],
-        )   
+        )
     });
 
     // Start the server
