@@ -51,6 +51,11 @@ fn main() {
         )
     });
 
+    server.every(|req| {
+        println!("req: {:?}", req);
+        None
+    });
+
     // Start the server
     server.start();
 }

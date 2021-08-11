@@ -23,8 +23,13 @@ pub struct Server {
     /// Routes to handle.
     pub routes: Vec<Route>,
 
-    // Optional stuff
+    // Other stuff
+    /// Middleware
+    pub middleware: Vec<fn(&Request) -> Option<Response>>,
+
     /// Run server
+    ///
+    /// Really just for testing.
     run: bool,
 
     /// Headders automatically added to every response.
@@ -69,6 +74,7 @@ impl Server {
             routes: Vec::new(),
             run: true,
             default_headers: Some(vec![Header::new("Powerd-By", "afire")]),
+            middleware: Vec::new(),
         }
     }
 
@@ -154,20 +160,34 @@ impl Server {
         // Read stream into buffer
         stream.read(&mut buffer).unwrap();
 
-        let stream_string = str::from_utf8(&buffer).expect("Error parseing buffer data");
+        let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
+
+        // Make Request Object
+        let req_method = get_request_method(stream_string.to_string());
+        let req_path = get_request_path(stream_string.to_string());
+        let body = get_request_body(stream_string.to_string());
+        let headers = get_request_headers(stream_string.to_string());
+        let req = Request::new(req_method, &req_path, headers, body);
+
+        // Use middleware to handle request
+        // If middleware returns a `None`, the request will be handled by the routes
+        for middleware in self.middleware.iter().rev() {
+            match (middleware)(&req) {
+                None => (),
+                Some(res) => return res,
+            }
+        }
 
         // Loop through all routes and check if the request matches
         for route in self.routes.iter().rev() {
-            let req_method = get_request_method(stream_string.to_string());
-            let req_path = get_request_path(stream_string.to_string());
-            if (&req_method == &route.method || route.method == Method::ANY)
-                && (req_path == route.path || req_path == "*")
+            if (&req.method == &route.method || route.method == Method::ANY)
+                && (req.path == route.path || req_path == "*")
             {
-                // TODO: Send Header and Body here
-                let req = Request::new(req_method, &req_path, Vec::new(), Vec::new());
                 return (route.handler)(req);
             }
         }
+
+        // If no route was found, return a default 404
         return Response::new(
             404,
             "Not Found",
@@ -179,18 +199,9 @@ impl Server {
     ///
     /// Only used for testing
     ///
-    /// It would be a really dumb idea to use
+    /// It would be a really dumb idea to use this
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
-    }
-
-    /// Create a new route for get requests
-    pub fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
-        self.routes.push(Route {
-            method: Method::GET,
-            path: path.to_string(),
-            handler: handler,
-        });
     }
 
     /// Create a new route the runs for all methods
@@ -213,12 +224,29 @@ impl Server {
             handler: handler,
         });
     }
+
+    /// Add a new middleware to the server
+    ///
+    /// You will have access to the request object
+    /// But will not be able to access the response
+    pub fn every(&mut self, handler: fn(&Request) -> Option<Response>) {
+        self.middleware.push(handler);
+    }
+
+    /// Create a new route for get requests
+    pub fn get(&mut self, path: &str, handler: fn(Request) -> Response) {
+        self.routes.push(Route {
+            method: Method::GET,
+            path: path.to_string(),
+            handler: handler,
+        });
+    }
 }
 
 /// Get the request method of a raw HTTP request.
 fn get_request_method(raw_data: String) -> Method {
     let method_str = raw_data
-        .split(" ")
+        .split(' ')
         .collect::<Vec<&str>>()
         .iter()
         .next()
@@ -242,4 +270,30 @@ fn get_request_method(raw_data: String) -> Method {
 fn get_request_path(raw_data: String) -> String {
     let path_str = raw_data.split(" ").collect::<Vec<&str>>();
     path_str[1].to_string()
+}
+
+/// Get the body of a raw HTTP request.
+fn get_request_body(raw_data: String) -> String {
+    raw_data
+        .split("\r\n\r\n")
+        .collect::<Vec<&str>>()
+        .iter()
+        .next()
+        .unwrap()
+        .to_string()
+}
+
+/// Get the headers of a raw HTTP request.
+fn get_request_headers(raw_data: String) -> Vec<Header> {
+    let mut headers = Vec::new();
+    let raw_headers = raw_data.split("\r\n").collect::<Vec<&str>>();
+
+    for header in raw_headers {
+        match Header::from_string(header) {
+            Some(header) => headers.push(header),
+            None => (),
+        }
+    }
+
+    headers
 }
