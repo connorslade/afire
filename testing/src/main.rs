@@ -2,7 +2,7 @@ use afire::*;
 use std::fs;
 
 fn main() {
-    let mut server: Server = Server::new("localhost", 1234);
+    let mut server: Server = Server::new("0.0.0.0", 1234);
 
     // Define a catch-all handler
     // This will be called when no other handlers match
@@ -68,5 +68,6 @@ fn main() {
     });
 
     // Start the server
+    println!("[*] Serving on {}:{}", server.ip_string(), server.port);
     server.start();
 }

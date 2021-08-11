@@ -222,6 +222,25 @@ impl Server {
         self.run = run;
     }
 
+    /// Get the ip a server is listening on as a string
+    ///
+    /// For example, "127.0.0.1"
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Get the ip a server is listening on as a string
+    /// assert_eq!("127.0.0.1", server.ip_string());
+    /// ```
+    pub fn ip_string(&self) -> String {
+        let ip = self.ip;
+        format!("{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
+    }
+
     /// Create a new route the runs for all methods and paths
     ///
     /// May be useful for a 404 page as the most recently defined route takes priority
