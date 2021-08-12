@@ -6,10 +6,23 @@ use super::method::Method;
 
 /// Http Request
 pub struct Request {
+    /// Request method
     pub method: Method,
+
+    /// Request path
     pub path: String,
+
+    /// Request headers
     pub headers: Vec<Header>,
+
+    /// Request body
     pub body: String,
+
+    /// Client address
+    pub address: String,
+
+    /// Raw Http Request
+    pub raw_data: String,
 }
 
 impl Request {
@@ -23,16 +36,26 @@ impl Request {
     ///    path: "/".to_string(),
     ///    headers: vec![],
     ///    body: "".to_string(),
+    ///    address: "127.0.0.1:8080".to_string(),
     /// };
     ///
-    /// assert!(request.compare(&Request::new(Method::GET, "/", vec![], "".to_string())));
+    /// assert!(request.compare(&Request::new(Method::GET, "/", vec![], "".to_string(), "127.0.0.1:8080".to_string())));
     /// ```
-    pub fn new(method: Method, path: &str, headers: Vec<Header>, body: String) -> Request {
+    pub fn new(
+        method: Method,
+        path: &str,
+        headers: Vec<Header>,
+        body: String,
+        address: String,
+        raw_data: String,
+    ) -> Request {
         Request {
             method,
             path: path.to_string(),
             headers,
             body,
+            address,
+            raw_data,
         }
     }
 
@@ -46,6 +69,7 @@ impl Request {
             && self.path == other.path
             && cmp_vec(&self.headers, &other.headers)
             && self.body == other.body
+            && self.address == other.address
     }
 }
 
@@ -60,6 +84,7 @@ impl fmt::Debug for Request {
         f.debug_struct("Request")
             .field("method", &self.method)
             .field("path", &self.path)
+            .field("address", &self.address)
             .field("headers", &headers)
             .field("body", &self.body)
             .finish()

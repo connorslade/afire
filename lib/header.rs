@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Http header
 ///
 /// Has a name and a value.
@@ -95,4 +97,13 @@ impl PartialEq for Header {
 pub fn headers_to_string(headers: Vec<Header>) -> String {
     let headers_string: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
     format!("{}", headers_string.join("\r\n"))
+}
+
+impl fmt::Debug for Header {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Header")
+            .field("name", &self.name)
+            .field("value", &self.value)
+            .finish()
+    }
 }

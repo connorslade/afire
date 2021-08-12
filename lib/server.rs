@@ -157,8 +157,10 @@ impl Server {
 
     /// Handel a connection to the server
     fn handle_connection(&self, mut stream: &TcpStream) -> Response {
+        // TODO: Use Content Length to size the buffer
+
         // Init Buffer
-        let mut buffer = [0; 1024];
+        let mut buffer = [0; 2048];
 
         // Read stream into buffer
         stream.read(&mut buffer).unwrap();
@@ -170,7 +172,14 @@ impl Server {
         let req_path = get_request_path(stream_string.to_string());
         let body = get_request_body(stream_string.to_string());
         let headers = get_request_headers(stream_string.to_string());
-        let req = Request::new(req_method, &req_path, headers, body);
+        let req = Request::new(
+            req_method,
+            &req_path,
+            headers,
+            body,
+            stream.peer_addr().unwrap().to_string(),
+            stream_string.to_string(),
+        );
 
         // Use middleware to handle request
         // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
@@ -398,27 +407,30 @@ fn get_request_method(raw_data: String) -> Method {
 /// Get the path of a raw HTTP request.
 fn get_request_path(raw_data: String) -> String {
     let path_str = raw_data.split(" ").collect::<Vec<&str>>();
-    path_str[1].to_string()
+    if path_str.len() > 1 {
+        return path_str[1].to_string();
+    }
+    "".to_string()
 }
 
 /// Get the body of a raw HTTP request.
 fn get_request_body(raw_data: String) -> String {
-    raw_data
-        .split("\r\n\r\n")
-        .collect::<Vec<&str>>()
-        .iter()
-        .next()
-        .unwrap()
-        .to_string()
+    let data = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
+
+    if data.len() >= 2 {
+        return data[1].to_string().trim_matches(char::from(0)).to_string();
+    }
+    "".to_string()
 }
 
 /// Get the headers of a raw HTTP request.
 fn get_request_headers(raw_data: String) -> Vec<Header> {
     let mut headers = Vec::new();
-    let raw_headers = raw_data.split("\r\n").collect::<Vec<&str>>();
+    let spilt = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
+    let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();
 
     for header in raw_headers {
-        match Header::from_string(header) {
+        match Header::from_string(header.trim_matches(char::from(0))) {
             Some(header) => headers.push(header),
             None => (),
         }
