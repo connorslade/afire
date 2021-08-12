@@ -61,25 +61,25 @@ impl Server {
     pub fn new(mut raw_ip: &str, port: u16) -> Server {
         let mut ip: [u8; 4] = [0; 4];
 
-        // If the ip is localhost, use the loopback ip
+        // If the ip is localhost, use the loop back ip
         if raw_ip == "localhost" {
             raw_ip = "127.0.0.1";
         }
 
         // Parse the ip to an array
-        let splitted_ip: Vec<&str> = raw_ip.split('.').collect();
+        let split_ip: Vec<&str> = raw_ip.split('.').collect();
 
-        if splitted_ip.len() != 4 {
+        if split_ip.len() != 4 {
             panic!("Invalid Server IP");
         }
         for i in 0..4 {
-            let octet: u8 = splitted_ip[i].parse::<u8>().expect("Invalid Server IP");
+            let octet: u8 = split_ip[i].parse::<u8>().expect("Invalid Server IP");
             ip[i] = octet;
         }
 
         Server {
-            port: port,
-            ip: ip,
+            port,
+            ip,
             routes: Vec::new(),
             run: true,
             default_headers: Some(vec![Header::new("Server", "afire")]),
@@ -192,7 +192,6 @@ impl Server {
         }
 
         let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
-        println!("Merge: {}", stream_string);
 
         // Make Request Object
         let req_method = get_request_method(stream_string.to_string());
