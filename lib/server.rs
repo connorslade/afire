@@ -15,6 +15,12 @@ use super::request::Request;
 use super::response::Response;
 use super::route::Route;
 
+/// Default Buffer Size
+///
+/// Needs to be big enough to hold a the request headers
+/// in order to read the content length (1024 seams to work)
+const BUFF_SIZE: usize = 1024;
+
 /// Defines a server.
 pub struct Server {
     /// Port to listen on.
@@ -157,15 +163,36 @@ impl Server {
 
     /// Handel a connection to the server
     fn handle_connection(&self, mut stream: &TcpStream) -> Response {
-        // TODO: Use Content Length to size the buffer
-
-        // Init Buffer
-        let mut buffer = [0; 2048];
+        // Init (first) Buffer
+        let mut buffer = vec![0; BUFF_SIZE];
 
         // Read stream into buffer
         stream.read(&mut buffer).unwrap();
 
+        // Get buffer as string
+        let buffer_clone = buffer.clone();
+        let stream_string = str::from_utf8(&buffer_clone).expect("Error parsing buffer data");
+
+        // Get Content-Length header
+        // If header shows thar more space is needed,
+        // make a new buffer read the rest of the stream and add it to the first buffer
+        for i in get_request_headers(stream_string.to_string()) {
+            if i.name != "Content-Length" {
+                continue;
+            }
+            let header_size = get_header_size(stream_string.to_string());
+            let content_length = i.value.parse::<usize>().unwrap_or(0);
+            let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
+            if new_buffer_size > 0 {
+                let mut new_buffer = vec![0; new_buffer_size as usize];
+                stream.read(&mut new_buffer).unwrap();
+                buffer.append(&mut new_buffer);
+            }
+            break;
+        }
+
         let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
+        println!("Merge: {}", stream_string);
 
         // Make Request Object
         let req_method = get_request_method(stream_string.to_string());
@@ -437,4 +464,10 @@ fn get_request_headers(raw_data: String) -> Vec<Header> {
     }
 
     headers
+}
+
+/// Get the byte size of the headers of a raw HTTP request.
+fn get_header_size(raw_data: String) -> usize {
+    let headers = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
+    headers[0].len() + 4
 }
