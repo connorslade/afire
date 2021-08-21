@@ -192,7 +192,6 @@ impl Server {
         }
 
         let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
-        println!("Merge: {}", stream_string);
 
         // Make Request Object
         let req_method = get_request_method(stream_string.to_string());
