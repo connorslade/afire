@@ -9,7 +9,7 @@ documentation = "https://docs.rs/afire"
 description = "🔥 A blazeing fast web framework for Rust"
 keywords = ["Config", "ConfigFile", "ConfigParser", "ini", "iniParseing"]
 categories = ["network-programming", "web-programming::http-server"]
-license = "GNU General Public License v3.0"
+license = "GPL-3.0"
 readme = "README.md"
 
 [lib]
