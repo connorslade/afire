@@ -108,4 +108,4 @@ mod extensions;
 pub use extensions::RateLimiter;
 
 #[cfg(feature = "logging")]
-pub use extensions::{Logger, Level};
+pub use extensions::{Level, Logger};

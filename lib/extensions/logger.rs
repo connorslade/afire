@@ -14,7 +14,7 @@ pub enum Level {
     Debug,
 
     /// Give a reasonable amount of information on what's going on.
-    /// 
+    ///
     /// So IP, Method and Path
     Info,
 }

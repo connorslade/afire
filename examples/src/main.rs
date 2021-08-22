@@ -1,5 +1,5 @@
-use std::fs;
 use afire::*;
+use std::fs;
 
 fn main() {
     let mut server: Server = Server::new("localhost", 1234);
@@ -8,7 +8,10 @@ fn main() {
     RateLimiter::attach(&mut server, 10, 10);
 
     // Enable Logging
-    Logger::attach(&mut server, Logger::new(Level::Debug, Some("nose.txt"), true));
+    Logger::attach(
+        &mut server,
+        Logger::new(Level::Debug, Some("nose.txt"), true),
+    );
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
