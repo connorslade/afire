@@ -11,7 +11,7 @@ afire = "0.1.0"
 ```
 
 ## 📄 Info
-This is kinda like express.js for rust. It is not *that* complicated but it still makes development of apis / servers much easier.
+This is kinda like express.js for rust. It is not *that* complicated but it still makes development of apis / servers much easier. It supports Middleware and comes with some built in for Logging and Rate limiting.
 
 For more information on this lib check the docs [here](https://crates.io/crates/afire)
 
@@ -71,6 +71,39 @@ server.route(Method::GET, "/hello", |req| {
 // This is blocking
 # server.set_run(false);
 server.start();
+```
+
+## 📦 Middleware
+afire comes with some builtin extensions in the form of middleware.
+### • ⛓️ Rate-limit
+This will use the client ip to limit the amount of requests that will be processed. You can configure the request limit and the reset period.
+```rust
+// Import Stuff
+use afire::{Server, RateLimiter};
+
+// Make server
+let mut server: Server = Server::new("localhost", 8080);
+
+// Enable Rate Limiting
+// This will limit the requests per ip to 5 every 10 sec
+RateLimiter::attach(&mut server, 5, 10);
+```
+### • 📜 Logger
+This will log all requests to a file or stdout or bolth. You can pick a log level that will determine if headers and body will be logged.
+```rust
+// Import Stuff
+use afire::{Server, Logger, Level};
+
+// Make server again
+let mut server: Server = Server::new("localhost", 8080);
+
+// Enable Logger
+// Level::Debug has headers and body
+// Level::Info does not
+Logger::attach(
+    &mut server,
+    Logger::new(Level::Debug, Some("log.log"), true),
+);
 ```
 */
 
