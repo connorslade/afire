@@ -21,28 +21,6 @@ pub enum Method {
 }
 
 impl Method {
-    /// Returns the string representation of the method.
-    ///
-    /// ```rust
-    /// use afire::{Method};
-    ///
-    /// assert_eq!("GET", Method::GET.to_string());
-    /// ```
-    pub fn to_string(&self) -> String {
-        match self {
-            Method::GET => "GET".to_string(),
-            Method::POST => "POST".to_string(),
-            Method::PUT => "PUT".to_string(),
-            Method::DELETE => "DELETE".to_string(),
-            Method::OPTIONS => "OPTIONS".to_string(),
-            Method::HEAD => "HEAD".to_string(),
-            Method::PATCH => "PATCH".to_string(),
-            Method::TRACE => "TRACE".to_string(),
-            Method::CUSTOM(t) => format!("CUSTOM({})", t),
-            Method::ANY => "ANY".to_string(),
-        }
-    }
-
     /// Convert a string to a method.
     ///
     /// If the string is not a valid method, `Method::CUSTOM(s)` is returned.
@@ -73,6 +51,30 @@ impl Method {
             "TRACE" => Method::TRACE,
             "ANY" => Method::ANY,
             _ => Method::CUSTOM(upper_s),
+        }
+    }
+}
+
+impl fmt::Display for Method {
+    /// Returns the string representation of the method.
+    ///
+    /// ```rust
+    /// use afire::{Method};
+    ///
+    /// assert_eq!("GET", Method::GET.to_string());
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Method::GET => write!(f, "GET"),
+            Method::POST => write!(f, "POST"),
+            Method::PUT => write!(f, "PUT"),
+            Method::DELETE => write!(f, "DELETE"),
+            Method::OPTIONS => write!(f, "OPTIONS"),
+            Method::HEAD => write!(f, "HEAD"),
+            Method::PATCH => write!(f, "PATCH"),
+            Method::TRACE => write!(f, "TRACE"),
+            Method::CUSTOM(ref s) => write!(f, "CUSTOM({})", s),
+            Method::ANY => write!(f, "ANY"),
         }
     }
 }

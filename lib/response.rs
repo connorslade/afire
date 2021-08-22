@@ -20,7 +20,7 @@ impl Response {
         Response {
             status,
             data: data.to_string(),
-            headers: headers,
+            headers,
         }
     }
 
@@ -38,7 +38,7 @@ impl Response {
     /// assert!(response == response2);
     /// ```
     pub fn ok(data: &str, headers: Option<Vec<Header>>) -> Response {
-        Response::new(200, data, headers.unwrap_or(vec![]))
+        Response::new(200, data, headers.unwrap_or_default())
     }
 }
 

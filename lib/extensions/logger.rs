@@ -97,7 +97,7 @@ impl Logger {
             println!("{}", data);
         }
 
-        if !self.file.is_none() {
+        if self.file.is_some() {
             let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -105,7 +105,7 @@ impl Logger {
                 .open(self.file.unwrap())
                 .unwrap();
 
-            if let Err(_) = writeln!(file, "{}", data) {
+            if writeln!(file, "{}", data).is_err() {
                 println!("[-] Erm... Error writhing to file '{}", self.file.unwrap())
             }
         }
@@ -146,9 +146,8 @@ impl Logger {
 /// Remove the port from an address
 ///
 /// '192.168.1.26:1234' -> '192.168.1.26'
-fn remove_address_port(address: &String) -> String {
+fn remove_address_port(address: &str) -> String {
     address
-        .clone()
         .split(':')
         .collect::<Vec<&str>>()
         .first()

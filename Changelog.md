@@ -7,3 +7,5 @@
 - Update Keywords in Cargo.toml
 - Update Version number in Cargo.toml
 - Make a function to add default headers to a server
+- Dont let Logger Crash in debug mode if there are no headers
+- Code Cleanup

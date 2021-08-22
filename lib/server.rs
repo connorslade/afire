@@ -79,8 +79,8 @@ impl Server {
         }
 
         Server {
-            port: port,
-            ip: ip,
+            port,
+            ip,
             routes: Vec::new(),
             run: true,
             default_headers: Some(vec![Header::new("Server", "afire")]),
@@ -157,7 +157,7 @@ impl Server {
             );
 
             // Send the response
-            stream.write(response.as_bytes()).unwrap();
+            stream.write_all(response.as_bytes()).unwrap();
             stream.flush().unwrap();
         }
     }
@@ -169,7 +169,7 @@ impl Server {
         let mut buffer = vec![0; BUFF_SIZE];
 
         // Read stream into buffer
-        stream.read(&mut buffer).unwrap();
+        let _ = stream.read(&mut buffer).unwrap();
 
         // Get buffer as string
         let buffer_clone = buffer.clone();
@@ -187,7 +187,7 @@ impl Server {
             let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
             if new_buffer_size > 0 {
                 let mut new_buffer = vec![0; new_buffer_size as usize];
-                stream.read(&mut new_buffer).unwrap();
+                let _ = stream.read(&mut new_buffer).unwrap();
                 buffer.append(&mut new_buffer);
             }
             break;
@@ -220,7 +220,7 @@ impl Server {
 
         // Loop through all routes and check if the request matches
         for route in self.routes.iter().rev() {
-            if (&req.method == &route.method || route.method == Method::ANY)
+            if (req.method == route.method || route.method == Method::ANY)
                 && (req.path == route.path || req_path == "*")
             {
                 return (route.handler)(req);
@@ -228,11 +228,11 @@ impl Server {
         }
 
         // If no route was found, return a default 404
-        return Response::new(
+        Response::new(
             404,
             "Not Found",
             vec![Header::new("Content-Type", "text/plain")],
-        );
+        )
     }
 
     /// Keep a server from starting
@@ -440,12 +440,11 @@ fn get_request_method(raw_data: String) -> Method {
     let method_str = raw_data
         .split(' ')
         .collect::<Vec<&str>>()
-        .iter()
-        .next()
+        .get(0)
         .unwrap()
         .to_string();
 
-    return match &method_str[..] {
+    match &method_str[..] {
         "GET" => Method::GET,
         "POST" => Method::POST,
         "PUT" => Method::PUT,
@@ -455,12 +454,12 @@ fn get_request_method(raw_data: String) -> Method {
         "PATCH" => Method::PATCH,
         "TRACE" => Method::TRACE,
         _ => Method::CUSTOM(method_str),
-    };
+    }
 }
 
 /// Get the path of a raw HTTP request.
 fn get_request_path(raw_data: String) -> String {
-    let path_str = raw_data.split(" ").collect::<Vec<&str>>();
+    let path_str = raw_data.split(' ').collect::<Vec<&str>>();
     if path_str.len() > 1 {
         return path_str[1].to_string();
     }
@@ -484,9 +483,8 @@ fn get_request_headers(raw_data: String) -> Vec<Header> {
     let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();
 
     for header in raw_headers {
-        match Header::from_string(header.trim_matches(char::from(0))) {
-            Some(header) => headers.push(header),
-            None => (),
+        if let Some(header) = Header::from_string(header.trim_matches(char::from(0))) {
+            headers.push(header)
         }
     }
 
