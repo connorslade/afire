@@ -16,3 +16,14 @@ jobs:
 
       - name: Test
         run: cargo test
+
+  fossa:
+    runs-on: ubuntu-latest
+    steps:
+      - with:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+
+      - uses: actions/checkout@v2
+      - run: "sudo curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash"
+      - run: fossa init
+      - run: FOSSA_API_KEY="$FOSSA_API_KEY" fossa analyze
