@@ -5,3 +5,4 @@
 - Add internal docs to Ratelimit
 - Add Optional Logger
 - Update Keywords in Cargo.toml
+- Update Version number in Cargo.toml

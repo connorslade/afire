@@ -19,7 +19,7 @@ pub enum Level {
     Info,
 }
 
-/// 🌳 Logger
+/// Logger
 pub struct Logger {
     /// Is Logger enabled
     enabled: bool,
