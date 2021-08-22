@@ -276,6 +276,32 @@ impl Server {
         format!("{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
     }
 
+    /// Add a new default header to the response
+    ///
+    /// This will be added to every response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Header};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Add a default header to the response
+    /// server.add_default_header(Header::new("Content-Type", "text/plain"));
+    ///
+    /// // Start the server
+    /// // As always, this is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
+    pub fn add_default_header(&mut self, header: Header) {
+        self.default_headers
+            .as_mut()
+            .unwrap_or(&mut Vec::<Header>::new())
+            .push(header);
+    }
+
     /// Create a new route the runs for all methods and paths
     ///
     /// May be useful for a 404 page as the most recently defined route takes priority
