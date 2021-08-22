@@ -36,7 +36,7 @@ server.route(Method::GET, "/", |_req| {
 
 // Start the server
 // This is blocking
-
+# server.set_run(false);
 server.start();
 ```
 You can add as many routes as you want. The most recently defined route will always take priority. So you can make a 404 page like this:
@@ -69,6 +69,7 @@ server.route(Method::GET, "/hello", |req| {
 
 // Starts the server
 // This is blocking
+# server.set_run(false);
 server.start();
 ```
 */
