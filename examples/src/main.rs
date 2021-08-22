@@ -7,6 +7,9 @@ fn main() {
     // Enable Rate Limiting
     RateLimiter::attach(&mut server, 10, 10);
 
+    // Enable Logging
+    Logger::attach(&mut server, Logger::new(Level::Debug, Some("nose.txt"), true));
+
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
         Response::new(

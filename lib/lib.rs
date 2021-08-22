@@ -45,3 +45,6 @@ mod extensions;
 // Basic Rate Limiter
 #[cfg(feature = "rate_limit")]
 pub use extensions::RateLimiter;
+
+#[cfg(feature = "logging")]
+pub use extensions::{Logger, Level};

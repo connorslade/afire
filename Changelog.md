@@ -3,3 +3,5 @@
 - Update readme abit
 - Copy new readme to lib.rs
 - Add internal docs to Ratelimit
+- Add Optional Logger
+- Update Keywords in Cargo.toml
