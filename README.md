@@ -1,5 +1,4 @@
 # 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="https://www.codefactor.io/repository/github/basicprogrammer10/watertemp"><a href="#"><img src="https://img.shields.io/tokei/lines/github/Basicprogrammer10/afire?label=Total%20Lines"></a> <a href="https://crates.io/crates/afire"><img src="https://img.shields.io/crates/d/afire"></a>
-<a href="https://app.fossa.com/projects/git%2Bgithub.com%2FBasicprogrammer10%2Fafire?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FBasicprogrammer10%2Fafire.svg?type=shield"/></a>
 A blazing fast web framework for Rust
 
 ## 💠 Install
@@ -71,6 +70,3 @@ server.route(Method::GET, "/hello", |req| {
 // This is blocking
 server.start();
 ```
-
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBasicprogrammer10%2Fafire.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBasicprogrammer10%2Fafire?ref=badge_large)
