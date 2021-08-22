@@ -1,8 +1,6 @@
-use std::{
-    collections::HashMap,
-    fmt,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::collections::HashMap;
+use std::fmt;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{Header, Response, Server};
 
@@ -10,16 +8,23 @@ static mut LIMITER: Option<RateLimiter> = None;
 static mut REQ_LIMIT: Option<u64> = None;
 static mut REQ_TIMEOUT: Option<u64> = None;
 
-/// Limit the ammo of requests handled by the server.
+/// Limit the amount of requests handled by the server.
 pub struct RateLimiter {
+    /// Requests Per Req_Timeout
     req_limit: u64,
+
+    /// Time of last reset
     last_reset: u64,
+
+    /// How often to reset the counters
     req_timeout: u64,
 
+    /// Table of requests per IP
     requests: HashMap<String, u64>,
 }
 
 impl RateLimiter {
+    /// Make a new RateLimiter.
     fn new(req_limit: u64, req_timeout: u64) -> RateLimiter {
         RateLimiter {
             req_limit,
@@ -29,11 +34,13 @@ impl RateLimiter {
         }
     }
 
+    /// Count a request.
     fn add_request(&mut self, ip: String) {
         self.requests
             .insert(ip.clone(), self.requests.get(&ip).unwrap_or(&0) + 1);
     }
 
+    /// Check if request table needs to be cleared.
     fn check_reset(&mut self) {
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -45,15 +52,16 @@ impl RateLimiter {
         }
     }
 
+    /// Check if the request limit has been reached for an ip.
     fn is_over_limit(&self, ip: String) -> bool {
         self.requests.get(&ip).unwrap_or(&0) >= &self.req_limit
     }
 
-    /// Attach the rate limiter to the server.
+    /// Attach the rate limiter to a server.
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::{Server, RateLimiter}; 
+    /// use afire::{Server, RateLimiter};
     ///
     /// // Create a new server
     /// let mut server: Server = Server::new("localhost", 1234);
@@ -82,6 +90,7 @@ impl RateLimiter {
                 .first()
                 .unwrap_or(&"null")
                 .to_string();
+
             unsafe {
                 // Init Limiter if not already
                 if LIMITER.is_none() {
@@ -107,12 +116,14 @@ impl RateLimiter {
     }
 }
 
+// Allow printing of RateLimiter for debugging
 impl fmt::Debug for RateLimiter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "RateLimiter {{ req_limit: {}, last_reset: {}, req_timeout: {}, requests: {:?} }}",
-            self.req_limit, self.last_reset, self.req_timeout, self.requests
-        )
+        f.debug_struct("RateLimiter")
+            .field("req_limit", &self.req_limit)
+            .field("req_timeout", &self.req_timeout)
+            .field("last_reset", &self.last_reset)
+            .field("requests", &self.requests)
+            .finish()
     }
 }
