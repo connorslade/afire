@@ -21,9 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - with:
-          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
 
       - run: "sudo curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash"
       - run: fossa init
-      - run: FOSSA_API_KEY="$FOSSA_API_KEY" fossa analyze
+      - with:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+          run: FOSSA_API_KEY="$FOSSA_API_KEY" fossa analyze
