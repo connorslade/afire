@@ -30,3 +30,10 @@ pub use self::request::Request;
 // A response object that is used to define data to send to the client
 mod response;
 pub use self::response::Response;
+
+// Extra Features
+mod extensions;
+
+// Basic Rate Limiter
+// #[cfg(feature = "rate_limit")]
+pub use extensions::RateLimiter;

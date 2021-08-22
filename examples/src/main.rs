@@ -1,8 +1,16 @@
+use core::fmt;
+use std::{
+    collections::HashMap,
+    fs,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use afire::*;
-use std::fs;
 
 fn main() {
     let mut server: Server = Server::new("localhost", 1234);
+
+    // Enable Rate Limiting
+    afire::RateLimiter::attach(&mut server, 10, 10);
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {

@@ -34,7 +34,7 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<fn(&Request) -> Option<Response>>,
+    pub middleware: Vec<Box<dyn Fn(&Request) -> Option<Response>>>,
 
     /// Run server
     ///
@@ -374,7 +374,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start();
     /// ```
-    pub fn every(&mut self, handler: fn(&Request) -> Option<Response>) {
+    pub fn every(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
         self.middleware.push(handler);
     }
 

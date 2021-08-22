@@ -16,4 +16,5 @@ readme = "README.md"
 name = "afire"
 path = "lib/lib.rs"
 
-[dependencies]
+[features]
+rate_limit = []
