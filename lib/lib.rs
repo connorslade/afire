@@ -35,5 +35,5 @@ pub use self::response::Response;
 mod extensions;
 
 // Basic Rate Limiter
-// #[cfg(feature = "rate_limit")]
+#[cfg(feature = "rate_limit")]
 pub use extensions::RateLimiter;

@@ -352,7 +352,7 @@ impl Server {
     /// Will be executed before any routes are handled
     ///
     /// You will have access to the request object
-    /// But will not be able to access the response
+    /// You can send a response but it will keep normal routes from being handled
     /// ## Example
     /// ```rust
     /// // Import Library
@@ -362,12 +362,12 @@ impl Server {
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Add some middleware
-    /// server.every(|req| {
+    /// server.every(Box::new(|req| {
     ///     // Do something with the request
     ///     // Return a `None` to continue to the next middleware / route
     ///     // Return a `Some` to send a response
     ///    None
-    ///});
+    ///}));
     ///
     /// // Starts the server
     /// // This is blocking

@@ -17,4 +17,5 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
+default = ["rate_limit"]
 rate_limit = []

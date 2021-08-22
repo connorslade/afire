@@ -10,6 +10,7 @@ static mut LIMITER: Option<RateLimiter> = None;
 static mut REQ_LIMIT: Option<u64> = None;
 static mut REQ_TIMEOUT: Option<u64> = None;
 
+/// Limit the ammo of requests handled by the server.
 pub struct RateLimiter {
     req_limit: u64,
     last_reset: u64,
@@ -48,6 +49,24 @@ impl RateLimiter {
         self.requests.get(&ip).unwrap_or(&0) >= &self.req_limit
     }
 
+    /// Attach the rate limiter to the server.
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Server, RateLimiter}; 
+    ///
+    /// // Create a new server
+    /// let mut server: Server = Server::new("localhost", 1234);
+    ///
+    /// // Enable Rate Limiting
+    /// // This will limit the number of requests per IP to 5 per 10 seconds
+    /// RateLimiter::attach(&mut server, 5, 10);
+    ///
+    /// // Start Server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
     pub fn attach(server: &mut Server, req_limit: u64, req_timeout: u64) {
         unsafe {
             REQ_LIMIT = Some(req_limit);
