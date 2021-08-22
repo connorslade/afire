@@ -163,6 +163,7 @@ impl Server {
     }
 
     /// Handel a connection to the server
+    // TODO: Try just expanding buffer if full and not relinging on content length
     fn handle_connection(&self, mut stream: &TcpStream) -> Response {
         // Init (first) Buffer
         let mut buffer = vec![0; BUFF_SIZE];

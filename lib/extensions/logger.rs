@@ -63,11 +63,15 @@ impl Logger {
         match self.level {
             // Add Headers and Body to this one
             Level::Debug => {
+                // Format headers as strings
                 let mut headers = "".to_string();
                 for i in &req.headers {
                     headers += &format!("{}: {}, ", i.name, i.value);
                 }
-                headers = headers[0..headers.len() - 2].to_string();
+                if headers.len() >= 2 {
+                    headers = headers[0..headers.len() - 2].to_string()
+                }
+
                 self.send_log(format!(
                     "[{}] {} {} ({}) {{{}}}",
                     remove_address_port(&req.address),
