@@ -1,5 +1,6 @@
 // Import STD libraries
-use std::io::prelude::*;
+use std::io::Read;
+use std::io::Write;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
@@ -34,7 +35,7 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<fn(&Request) -> Option<Response>>,
+    pub middleware: Vec<Box<dyn Fn(&Request) -> Option<Response>>>,
 
     /// Run server
     ///
@@ -156,18 +157,19 @@ impl Server {
             );
 
             // Send the response
-            stream.write(response.as_bytes()).unwrap();
+            stream.write_all(response.as_bytes()).unwrap();
             stream.flush().unwrap();
         }
     }
 
     /// Handel a connection to the server
+    // TODO: Try just expanding buffer if full and not relinging on content length
     fn handle_connection(&self, mut stream: &TcpStream) -> Response {
         // Init (first) Buffer
         let mut buffer = vec![0; BUFF_SIZE];
 
         // Read stream into buffer
-        stream.read(&mut buffer).unwrap();
+        let _ = stream.read(&mut buffer).unwrap();
 
         // Get buffer as string
         let buffer_clone = buffer.clone();
@@ -185,7 +187,7 @@ impl Server {
             let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
             if new_buffer_size > 0 {
                 let mut new_buffer = vec![0; new_buffer_size as usize];
-                stream.read(&mut new_buffer).unwrap();
+                let _ = stream.read(&mut new_buffer).unwrap();
                 buffer.append(&mut new_buffer);
             }
             break;
@@ -218,7 +220,7 @@ impl Server {
 
         // Loop through all routes and check if the request matches
         for route in self.routes.iter().rev() {
-            if (&req.method == &route.method || route.method == Method::ANY)
+            if (req.method == route.method || route.method == Method::ANY)
                 && (req.path == route.path || req_path == "*")
             {
                 return (route.handler)(req);
@@ -226,11 +228,11 @@ impl Server {
         }
 
         // If no route was found, return a default 404
-        return Response::new(
+        Response::new(
             404,
             "Not Found",
             vec![Header::new("Content-Type", "text/plain")],
-        );
+        )
     }
 
     /// Keep a server from starting
@@ -274,6 +276,32 @@ impl Server {
     pub fn ip_string(&self) -> String {
         let ip = self.ip;
         format!("{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
+    }
+
+    /// Add a new default header to the response
+    ///
+    /// This will be added to every response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Header};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Add a default header to the response
+    /// server.add_default_header(Header::new("Content-Type", "text/plain"));
+    ///
+    /// // Start the server
+    /// // As always, this is blocking
+    /// # server.set_run(false);
+    /// server.start();
+    /// ```
+    pub fn add_default_header(&mut self, header: Header) {
+        self.default_headers
+            .as_mut()
+            .unwrap_or(&mut Vec::<Header>::new())
+            .push(header);
     }
 
     /// Create a new route the runs for all methods and paths
@@ -352,7 +380,7 @@ impl Server {
     /// Will be executed before any routes are handled
     ///
     /// You will have access to the request object
-    /// But will not be able to access the response
+    /// You can send a response but it will keep normal routes from being handled
     /// ## Example
     /// ```rust
     /// // Import Library
@@ -362,19 +390,19 @@ impl Server {
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Add some middleware
-    /// server.every(|req| {
+    /// server.every(Box::new(|req| {
     ///     // Do something with the request
     ///     // Return a `None` to continue to the next middleware / route
     ///     // Return a `Some` to send a response
     ///    None
-    ///});
+    ///}));
     ///
     /// // Starts the server
     /// // This is blocking
     /// # server.set_run(false);
     /// server.start();
     /// ```
-    pub fn every(&mut self, handler: fn(&Request) -> Option<Response>) {
+    pub fn every(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
         self.middleware.push(handler);
     }
 
@@ -412,12 +440,11 @@ fn get_request_method(raw_data: String) -> Method {
     let method_str = raw_data
         .split(' ')
         .collect::<Vec<&str>>()
-        .iter()
-        .next()
+        .get(0)
         .unwrap()
         .to_string();
 
-    return match &method_str[..] {
+    match &method_str[..] {
         "GET" => Method::GET,
         "POST" => Method::POST,
         "PUT" => Method::PUT,
@@ -427,12 +454,12 @@ fn get_request_method(raw_data: String) -> Method {
         "PATCH" => Method::PATCH,
         "TRACE" => Method::TRACE,
         _ => Method::CUSTOM(method_str),
-    };
+    }
 }
 
 /// Get the path of a raw HTTP request.
 fn get_request_path(raw_data: String) -> String {
-    let path_str = raw_data.split(" ").collect::<Vec<&str>>();
+    let path_str = raw_data.split(' ').collect::<Vec<&str>>();
     if path_str.len() > 1 {
         return path_str[1].to_string();
     }
@@ -456,9 +483,8 @@ fn get_request_headers(raw_data: String) -> Vec<Header> {
     let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();
 
     for header in raw_headers {
-        match Header::from_string(header.trim_matches(char::from(0))) {
-            Some(header) => headers.push(header),
-            None => (),
+        if let Some(header) = Header::from_string(header.trim_matches(char::from(0))) {
+            headers.push(header)
         }
     }
 

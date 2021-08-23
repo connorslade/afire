@@ -1,5 +1,5 @@
 /// Compares two Vectors
-pub(crate) fn cmp_vec<T: std::cmp::PartialEq>(vec: &Vec<T>, vec2: &Vec<T>) -> bool {
+pub(crate) fn cmp_vec<T: std::cmp::PartialEq>(vec: &[T], vec2: &[T]) -> bool {
     if vec.len() != vec2.len() {
         return false;
     }
@@ -9,5 +9,5 @@ pub(crate) fn cmp_vec<T: std::cmp::PartialEq>(vec: &Vec<T>, vec2: &Vec<T>) -> bo
             return false;
         }
     }
-    return true;
+    true
 }

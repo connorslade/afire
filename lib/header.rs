@@ -43,22 +43,6 @@ impl Header {
         }
     }
 
-    /// Convert a header to a string
-    ///
-    /// Im format: `name: value`
-    /// ## Example
-    /// ```rust
-    /// // Import Modules
-    /// use afire::Header;
-    ///
-    /// let header1 = Header::new("Content-Type", "text/html");
-    ///
-    /// assert_eq!(header1.to_string(), "Content-Type: text/html");
-    /// ```
-    pub fn to_string(&self) -> String {
-        format!("{}: {}", self.name, self.value)
-    }
-
     /// Convert a string to a header
     ///
     /// String must be in the format `name: value`
@@ -83,6 +67,24 @@ impl Header {
     }
 }
 
+impl fmt::Display for Header {
+    /// Convert a header to a string
+    ///
+    /// Im format: `name: value`
+    /// ## Example
+    /// ```rust
+    /// // Import Modules
+    /// use afire::Header;
+    ///
+    /// let header1 = Header::new("Content-Type", "text/html");
+    ///
+    /// assert_eq!(header1.to_string(), "Content-Type: text/html");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.name, self.value)
+    }
+}
+
 impl PartialEq for Header {
     fn eq(&self, other: &Header) -> bool {
         self.name == other.name && self.value == other.value
@@ -96,7 +98,7 @@ impl PartialEq for Header {
 /// Every header is separated by a newline (`\r\n`)
 pub fn headers_to_string(headers: Vec<Header>) -> String {
     let headers_string: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
-    format!("{}", headers_string.join("\r\n"))
+    headers_string.join("\r\n")
 }
 
 impl fmt::Debug for Header {

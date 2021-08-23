@@ -1,8 +1,52 @@
 use afire::*;
 use std::fs;
 
+const ITER: u32 = 1_000_000;
+
 fn main() {
+    bencher("Create Server", ITER, || {
+        let _ = Server::new("127.0.0.1", 8080);
+    });
+
+    bencher("Add Rate limiter", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        RateLimiter::attach(&mut server, 10, 10);
+    });
+
+    bencher("Add Logger", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        Logger::attach(
+            &mut server,
+            Logger::new(Level::Debug, Some("nose.txt"), true),
+        );
+    });
+
+    bencher("Add Simple Route", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        server.route(Method::GET, "/", |_| {
+            Response::new(
+                200,
+                "Hello World",
+                vec![Header::new("Content-Type", "text/plain")],
+            )
+        });
+    });
+
+    bencher("Add Middleware", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        server.every(Box::new(|_| None));
+    });
+
     let mut server: Server = Server::new("localhost", 1234);
+
+    // Enable Rate Limiting
+    RateLimiter::attach(&mut server, 10, 10);
+
+    // Enable Logging
+    Logger::attach(
+        &mut server,
+        Logger::new(Level::Debug, Some("nose.txt"), true),
+    );
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
@@ -58,4 +102,16 @@ fn main() {
 
     // Start the server
     server.start();
+}
+
+fn bencher(name: &str, iter: u32, f: fn() -> ()) {
+    let mut avg_time: u128 = 0;
+    for _ in 0..iter {
+        let start = std::time::Instant::now();
+        f();
+        avg_time += start.elapsed().as_nanos();
+    }
+    println!("[*] Bench: {} ({})", name, iter);
+    println!(" ├─ Total: {}ns", avg_time);
+    println!(" └─ AVG: {}ns\n", avg_time / iter as u128);
 }
