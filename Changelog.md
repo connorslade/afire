@@ -1,3 +1,5 @@
+# 0.1.2
+
 # 0.1.1
 - Add Optional Rate limiter *beta*
 - Update readme abit
