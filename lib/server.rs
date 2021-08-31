@@ -221,7 +221,7 @@ impl Server {
         // Loop through all routes and check if the request matches
         for route in self.routes.iter().rev() {
             if (req.method == route.method || route.method == Method::ANY)
-                && (req.path == route.path || req_path == "*")
+                && (req.path == route.path || route.path == "*")
             {
                 return (route.handler)(req);
             }
