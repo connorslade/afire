@@ -1,4 +1,5 @@
 # 0.1.2
+- Fix a bug where '.any' routes were not working
 
 # 0.1.1
 - Add Optional Rate limiter *beta*
