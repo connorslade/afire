@@ -1,6 +1,9 @@
+# 0.1.3
+- Add Support for query strings in paths
+- Add More docs for Query
+
 # 0.1.2
 - Fix a bug where '.any' routes were not working
-- Add Support for query strings in paths
 
 # 0.1.1
 - Add Optional Rate limiter *beta*
