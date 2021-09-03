@@ -72,11 +72,21 @@ impl Logger {
                     headers = headers[0..headers.len() - 2].to_string()
                 }
 
+                // Format Query as string
+                let mut query = "".to_string();
+                for i in &req.query.data {
+                    query += &format!("{}: {}, ", i[0], i[1]);
+                }
+                if query.len() >= 2 {
+                    query = query[0..query.len() - 2].to_string()
+                }
+
                 self.send_log(format!(
-                    "[{}] {} {} ({}) {{{}}}",
+                    "[{}] {} {} [{}] ({}) {{{}}}",
                     remove_address_port(&req.address),
                     req.method.to_string(),
                     req.path,
+                    query,
                     headers,
                     req.body.replace('\n', "\\n")
                 ))

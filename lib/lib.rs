@@ -133,6 +133,10 @@ pub use self::request::Request;
 mod response;
 pub use self::response::Response;
 
+// Query string stuff
+mod query;
+pub use self::query::Query;
+
 // Extra Features
 mod extensions;
 

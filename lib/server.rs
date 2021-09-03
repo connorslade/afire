@@ -12,6 +12,7 @@ use std::str;
 
 use super::header::{headers_to_string, Header};
 use super::method::Method;
+use super::query::Query;
 use super::request::Request;
 use super::response::Response;
 use super::route::Route;
@@ -198,11 +199,13 @@ impl Server {
         // Make Request Object
         let req_method = get_request_method(stream_string.to_string());
         let req_path = get_request_path(stream_string.to_string());
+        let req_query = get_request_query(stream_string.to_string());
         let body = get_request_body(stream_string.to_string());
         let headers = get_request_headers(stream_string.to_string());
         let req = Request::new(
             req_method,
             &req_path,
+            req_query,
             headers,
             body,
             stream.peer_addr().unwrap().to_string(),
@@ -461,9 +464,26 @@ fn get_request_method(raw_data: String) -> Method {
 fn get_request_path(raw_data: String) -> String {
     let path_str = raw_data.split(' ').collect::<Vec<&str>>();
     if path_str.len() > 1 {
-        return path_str[1].to_string();
+        let path = path_str[1].to_string();
+        let path = path.split('?').collect::<Vec<&str>>();
+        return path[0].to_string();
     }
     "".to_string()
+}
+
+// Get The Query Data of a raw HTTP request.
+fn get_request_query(raw_data: String) -> Query {
+    let path_str = raw_data.split(' ').collect::<Vec<&str>>();
+    if path_str.len() > 1 {
+        let path = path_str[1].to_string();
+        let path = path.split('?').collect::<Vec<&str>>();
+
+        if path.len() <= 1 {
+            return Query::new_empty();
+        }
+        return Query::new(&path[1]);
+    }
+    Query::new_empty()
 }
 
 /// Get the body of a raw HTTP request.
