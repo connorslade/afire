@@ -7,7 +7,7 @@ A blazing fast web framework for Rust
 Just add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-afire = "0.1.3"
+afire = "0.1.4"
 ```
 
 ## 📄 Info

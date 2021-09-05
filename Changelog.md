@@ -1,3 +1,7 @@
+# 0.1.4
+- Allow responding with bytes not just strings
+- Add Serving Favoricon as example thing
+
 # 0.1.3
 - Add Support for query strings in paths
 - Add More docs for Query

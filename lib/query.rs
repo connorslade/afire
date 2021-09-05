@@ -63,7 +63,7 @@ impl Query {
     /// ```
     /// use afire::Query;
     /// let query = Query::new("?foo=bar&nose=dog");
-    /// 
+    ///
     /// assert_eq!(query.get("foo"), Some("bar".to_string()));
     /// ```
     pub fn get(&self, key: &str) -> Option<String> {

@@ -150,15 +150,19 @@ impl Server {
                 .push(Header::new("Content-Length", &res.data.len().to_string()));
 
             // Convert the response to a string
-            let response = format!(
-                "HTTP/1.1 {} OK\r\n{}\r\n\r\n{}",
+            let mut response = format!(
+                "HTTP/1.1 {} OK\r\n{}\r\n\r\n",
                 res.status,
-                headers_to_string(res.headers),
-                res.data
-            );
+                headers_to_string(res.headers)
+            )
+            .as_bytes()
+            .to_vec();
+
+            // Add Bytes of data to response
+            response.append(&mut res.data);
 
             // Send the response
-            stream.write_all(response.as_bytes()).unwrap();
+            stream.write_all(&response).unwrap();
             stream.flush().unwrap();
         }
     }

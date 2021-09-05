@@ -1,7 +1,8 @@
 use afire::*;
 use std::fs;
 
-const ITER: u32 = 1_000_000;
+const ITER: u32 = 1_000;
+const BENCH: bool = false;
 
 fn main() {
     bencher("Create Server", ITER, || {
@@ -100,11 +101,26 @@ fn main() {
         )
     });
 
+    // Serve an image
+    server.route(Method::GET, "/favicon.ico", |_req| {
+        let bytes = &fs::read("data/favicon.ico").unwrap();
+
+        Response::new_raw(
+            200,
+            bytes.to_vec(),
+            vec![Header::new("Content-Type", "image/x-icon")],
+        )
+    });
+
     // Start the server
     server.start();
 }
 
 fn bencher(name: &str, iter: u32, f: fn() -> ()) {
+    if !BENCH {
+        return;
+    }
+
     let mut avg_time: u128 = 0;
     for _ in 0..iter {
         let start = std::time::Instant::now();

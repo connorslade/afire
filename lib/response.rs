@@ -2,8 +2,13 @@ use super::header::Header;
 
 /// Http Response
 pub struct Response {
+    /// Response status code
     pub status: u16,
-    pub data: String,
+
+    /// Response Data as Bytes
+    pub data: Vec<u8>,
+
+    /// Response Headers
     pub headers: Vec<Header>,
 }
 
@@ -19,7 +24,24 @@ impl Response {
     pub fn new(status: u16, data: &str, headers: Vec<Header>) -> Response {
         Response {
             status,
-            data: data.to_string(),
+            data: data.as_bytes().to_vec(),
+            headers,
+        }
+    }
+
+    /// Create a response from a byte Vec.
+    /// ## Examples
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Response, Header};
+    ///
+    /// // Create Response
+    /// let mut response = Response::new_raw(200, vec![72, 101, 108, 108, 111], vec![Header::new("Content-Type", "text/plain")]);
+    /// ```
+    pub fn new_raw(status: u16, data: Vec<u8>, headers: Vec<Header>) -> Response {
+        Response {
+            status,
+            data,
             headers,
         }
     }
