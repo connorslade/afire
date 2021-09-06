@@ -84,9 +84,7 @@ For these you will need to enable the feature.
 
 To use these extra features enable them like this:
 
-```
-afire = { version = "0.1.4", features = ["rate_limit", "logging"] }
-```
+`afire = { version = "0.1.4", features = ["rate_limit", "logging"] }`
 
 ### • ⛓️ Rate-limit
 This will use the client ip to limit the amount of requests that will be processed. You can configure the request limit and the reset period.
