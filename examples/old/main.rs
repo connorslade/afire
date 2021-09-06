@@ -5,38 +5,7 @@ const ITER: u32 = 1_000;
 const BENCH: bool = false;
 
 fn main() {
-    // bencher("Create Server", ITER, || {
-    //     let _ = Server::new("127.0.0.1", 8080);
-    // });
-
-    // bencher("Add Rate limiter", ITER, || {
-    //     let mut server = Server::new("127.0.0.1", 8080);
-    //     RateLimiter::attach(&mut server, 10, 10);
-    // });
-
-    // bencher("Add Logger", ITER, || {
-    //     let mut server = Server::new("127.0.0.1", 8080);
-    //     Logger::attach(
-    //         &mut server,
-    //         Logger::new(Level::Debug, Some("nose.txt"), true),
-    //     );
-    // });
-
-    // bencher("Add Simple Route", ITER, || {
-    //     let mut server = Server::new("127.0.0.1", 8080);
-    //     server.route(Method::GET, "/", |_| {
-    //         Response::new(
-    //             200,
-    //             "Hello World",
-    //             vec![Header::new("Content-Type", "text/plain")],
-    //         )
-    //     });
-    // });
-
-    // bencher("Add Middleware", ITER, || {
-    //     let mut server = Server::new("127.0.0.1", 8080);
-    //     server.every(Box::new(|_| None));
-    // });
+    benches();
 
     let mut server: Server = Server::new("localhost", 1234);
 
@@ -112,10 +81,14 @@ fn main() {
         )
     });
 
+    // Crash the server
+    // yes, thare is a reason for this
     server.route(Method::GET, "/crash", |_req| {
         panic!("CRASH!");
     });
 
+    // Set a function to be called when a route panics
+    // If not set the default is to return 500 "Internal Server Error"
     server.set_error_handler(|_req| {
         Response::new(
             500,
@@ -126,6 +99,41 @@ fn main() {
 
     // Start the server
     server.start();
+}
+
+fn benches() {
+    bencher("Create Server", ITER, || {
+        let _ = Server::new("127.0.0.1", 8080);
+    });
+
+    bencher("Add Rate limiter", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        RateLimiter::attach(&mut server, 10, 10);
+    });
+
+    bencher("Add Logger", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        Logger::attach(
+            &mut server,
+            Logger::new(Level::Debug, Some("nose.txt"), true),
+        );
+    });
+
+    bencher("Add Simple Route", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        server.route(Method::GET, "/", |_| {
+            Response::new(
+                200,
+                "Hello World",
+                vec![Header::new("Content-Type", "text/plain")],
+            )
+        });
+    });
+
+    bencher("Add Middleware", ITER, || {
+        let mut server = Server::new("127.0.0.1", 8080);
+        server.every(Box::new(|_| None));
+    });
 }
 
 fn bencher(name: &str, iter: u32, f: fn() -> ()) {
