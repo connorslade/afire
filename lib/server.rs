@@ -248,7 +248,7 @@ impl Server {
                 #[cfg(feature = "panic_handler")]
                 {
                     let result = panic::catch_unwind(|| (route.handler)(req.clone()));
-                    return result.ok().unwrap_or((self.error_handler)(req));
+                    return result.ok().unwrap_or_else(|| (self.error_handler)(req));
                 }
 
                 #[cfg(not(feature = "panic_handler"))]
@@ -296,7 +296,7 @@ impl Server {
     /// Default response is 500 "Internal Server Error :/"
     ///
     /// This is only available if the `panic_handler` feature is enabled
-    /// 
+    ///
     /// Make sure that this wont panic because then the thread will crash
     /// ## Example
     /// ```rust
