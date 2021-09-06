@@ -301,18 +301,18 @@ impl Server {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::Server;
+    /// use afire::{Server, Response};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Set the panic handler response
-    /// server.set_panic_handler(|_req| {
+    /// server.set_error_handler(|_req| {
     ///    Response::new(500, "Internal Server Error", vec![])
     /// });
     ///
     /// // Start the server
-    /// #server.set_run(false);
+    /// # server.set_run(false);
     /// server.start();
     /// ```
     pub fn set_error_handler(&mut self, res: fn(Request) -> Response) {
