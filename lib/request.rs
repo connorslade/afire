@@ -81,6 +81,21 @@ impl Request {
     }
 }
 
+// Impl Clone for Request
+impl Clone for Request {
+    fn clone(&self) -> Request {
+        Request {
+            method: self.method.clone(),
+            path: self.path.clone(),
+            query: self.query.clone(),
+            headers: self.headers.clone(),
+            body: self.body.clone(),
+            address: self.address.clone(),
+            raw_data: self.raw_data.clone(),
+        }
+    }
+}
+
 impl fmt::Debug for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut headers = String::new();

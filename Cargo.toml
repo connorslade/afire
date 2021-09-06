@@ -17,6 +17,7 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = ["rate_limit", "logging"]
+default = ["rate_limit", "logging", "panic_handler"]
 rate_limit = []
 logging = []
+panic_handler = []

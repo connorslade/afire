@@ -101,6 +101,16 @@ pub fn headers_to_string(headers: Vec<Header>) -> String {
     headers_string.join("\r\n")
 }
 
+// Impl clone for Header
+impl Clone for Header {
+    fn clone(&self) -> Header {
+        Header {
+            name: self.name.clone(),
+            value: self.value.clone(),
+        }
+    }
+}
+
 impl fmt::Debug for Header {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Header")

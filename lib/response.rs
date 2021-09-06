@@ -64,6 +64,17 @@ impl Response {
     }
 }
 
+// Impl Clone for Response
+impl Clone for Response {
+    fn clone(&self) -> Response {
+        Response {
+            status: self.status,
+            data: self.data.clone(),
+            headers: self.headers.clone(),
+        }
+    }
+}
+
 impl PartialEq for Response {
     /// Allow comparing Responses
     fn eq(&self, other: &Self) -> bool {

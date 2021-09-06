@@ -79,6 +79,24 @@ impl fmt::Display for Method {
     }
 }
 
+// Impl Clone for Method
+impl Clone for Method {
+    fn clone(&self) -> Method {
+        match *self {
+            Method::GET => Method::GET,
+            Method::POST => Method::POST,
+            Method::PUT => Method::PUT,
+            Method::DELETE => Method::DELETE,
+            Method::OPTIONS => Method::OPTIONS,
+            Method::HEAD => Method::HEAD,
+            Method::PATCH => Method::PATCH,
+            Method::TRACE => Method::TRACE,
+            Method::CUSTOM(ref s) => Method::CUSTOM(s.clone()),
+            Method::ANY => Method::ANY,
+        }
+    }
+}
+
 impl fmt::Debug for Method {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Method")

@@ -8,6 +8,9 @@ use std::net::TcpListener;
 use std::net::TcpStream;
 use std::str;
 
+#[cfg(feature = "panic_handler")]
+use std::panic;
+
 // Import local files
 
 use super::header::{headers_to_string, Header};
@@ -43,6 +46,9 @@ pub struct Server {
     /// Really just for testing.
     run: bool,
 
+    /// Default response for internal server errors
+    #[cfg(feature = "panic_handler")]
+    error_handler: fn(Request) -> Response,
     /// Headers automatically added to every response.
     default_headers: Option<Vec<Header>>,
 }
@@ -83,9 +89,17 @@ impl Server {
             port,
             ip,
             routes: Vec::new(),
-            run: true,
-            default_headers: Some(vec![Header::new("Server", "afire")]),
             middleware: Vec::new(),
+            run: true,
+            #[cfg(feature = "panic_handler")]
+            error_handler: |_| {
+                Response::new(
+                    500,
+                    "Internal Server Error :/",
+                    vec![Header::new("Content-Type", "text/plain")],
+                )
+            },
+            default_headers: Some(vec![Header::new("Server", "afire")]),
         }
     }
 
@@ -230,7 +244,17 @@ impl Server {
             if (req.method == route.method || route.method == Method::ANY)
                 && (req.path == route.path || route.path == "*")
             {
-                return (route.handler)(req);
+                // Optionally enable automatic panic handling
+                #[cfg(feature = "panic_handler")]
+                {
+                    let result = panic::catch_unwind(|| (route.handler)(req.clone()));
+                    return result.ok().unwrap_or((self.error_handler)(req));
+                }
+
+                #[cfg(not(feature = "panic_handler"))]
+                {
+                    return (route.handler)(req);
+                }
             }
         }
 
@@ -264,6 +288,35 @@ impl Server {
     /// ```
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
+    }
+
+    #[cfg(feature = "panic_handler")]
+    /// Set the panic handler response
+    ///
+    /// Default response is 500 "Internal Server Error :/"
+    ///
+    /// This is only available if the `panic_handler` feature is enabled
+    /// 
+    /// Make sure that this wont panic because then the thread will crash
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Set the panic handler response
+    /// server.set_panic_handler(|_req| {
+    ///    Response::new(500, "Internal Server Error", vec![])
+    /// });
+    ///
+    /// // Start the server
+    /// #server.set_run(false);
+    /// server.start();
+    /// ```
+    pub fn set_error_handler(&mut self, res: fn(Request) -> Response) {
+        self.error_handler = res;
     }
 
     /// Get the ip a server is listening on as a string

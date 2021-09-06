@@ -76,6 +76,15 @@ impl Query {
     }
 }
 
+// Impl Clone for Query
+impl Clone for Query {
+    fn clone(&self) -> Query {
+        Query {
+            data: self.data.clone(),
+        }
+    }
+}
+
 /// Implement the fmt::Display trait for Query
 impl fmt::Debug for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
