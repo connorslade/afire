@@ -19,7 +19,7 @@ fn main() {
                 Response::new_raw(200, content, vec![Header::new("Content-Type", "text/html")])
             }
 
-            // If not send 404.html
+            // If not send a 404 error
             Err(_) => Response::new(
                 404,
                 "Not Found :/",

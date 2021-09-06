@@ -2,6 +2,8 @@
 - Add a route error handler
 - Add `set_error_handler` fn to set the error handler
 - Implement clone for more structs
+- Add More Examples
+- Put default headers after route headers
 
 # 0.1.4
 - Allow responding with bytes not just strings

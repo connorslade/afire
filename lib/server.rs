@@ -153,21 +153,17 @@ impl Server {
             let mut res = self.handle_connection(&stream);
 
             // Add default headers to response
-            if self.default_headers.is_some() {
-                for header in self.default_headers.as_ref().unwrap() {
-                    res.headers.push(header.copy());
-                }
-            }
+            let mut headers = res.headers;
+            headers.append(&mut self.default_headers.clone().unwrap_or(Vec::new()));
 
             // Add content-length header to response
-            res.headers
-                .push(Header::new("Content-Length", &res.data.len().to_string()));
+            headers.push(Header::new("Content-Length", &res.data.len().to_string()));
 
             // Convert the response to a string
             let mut response = format!(
                 "HTTP/1.1 {} OK\r\n{}\r\n\r\n",
                 res.status,
-                headers_to_string(res.headers)
+                headers_to_string(headers)
             )
             .as_bytes()
             .to_vec();

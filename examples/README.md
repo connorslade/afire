@@ -12,6 +12,5 @@
 
 ### TODO
 - Middleware
-- Default Headders
 - Logger
 - Ratelimater
