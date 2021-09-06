@@ -17,6 +17,9 @@ For more information on this lib check the docs [here](https://crates.io/crates/
 
 ## 💥 Examples
 
+These are some very basic examples.
+For more examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
+
 Make a simple server:
 ```rust
 // Import Lib
@@ -74,25 +77,40 @@ server.start();
 ```
 
 ## 📦 Middleware
+
 afire comes with some builtin extensions in the form of middleware.
+
+For these you will need to enable the feature.
+
+To use these extra features enable them like this:
+
+```
+afire = { version = "0.1.4", features = ["rate_limit", "logging"] }
+```
+
 ### • ⛓️ Rate-limit
 This will use the client ip to limit the amount of requests that will be processed. You can configure the request limit and the reset period.
 ```rust
 // Import Stuff
+# #[cfg(feature = "rate_limit")]
 use afire::{Server, RateLimiter};
+# use afire::Server;
 
 // Make server
 let mut server: Server = Server::new("localhost", 8080);
 
 // Enable Rate Limiting
 // This will limit the requests per ip to 5 every 10 sec
+# #[cfg(feature = "rate_limit")]
 RateLimiter::attach(&mut server, 5, 10);
 ```
 ### • 📜 Logger
 This will log all requests to a file or stdout or bolth. You can pick a log level that will determine if headers and body will be logged.
 ```rust
 // Import Stuff
+# #[cfg(feature = "logging")]
 use afire::{Server, Logger, Level};
+# use afire::Server;
 
 // Make server again
 let mut server: Server = Server::new("localhost", 8080);
@@ -100,6 +118,7 @@ let mut server: Server = Server::new("localhost", 8080);
 // Enable Logger
 // Level::Debug has headers and body
 // Level::Info does not
+# #[cfg(feature = "logging")]
 Logger::attach(
     &mut server,
     Logger::new(Level::Debug, Some("log.log"), true),
@@ -142,7 +161,7 @@ mod extensions;
 
 // Basic Rate Limiter
 #[cfg(feature = "rate_limit")]
-pub use extensions::RateLimiter;
+pub use extensions::ratelimit::RateLimiter;
 
 #[cfg(feature = "logging")]
-pub use extensions::{Level, Logger};
+pub use extensions::logger::{Level, Logger};

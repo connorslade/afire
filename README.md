@@ -19,6 +19,9 @@ For more information on this lib check the docs [here](https://crates.io/crates/
 
 ## 💥 Examples
 
+These are some very basic examples.
+For more examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
+
 Make a simple server:
 
 ```rust
@@ -80,6 +83,14 @@ server.start();
 ## 📦 Middleware
 
 afire comes with some builtin extensions in the form of middleware.
+
+For these you will need to enable the feature.
+
+To use these extra features enable them like this:
+
+```
+afire = { version = "0.1.4", features = ["rate_limit", "logging"] }
+```
 
 ### • ⛓️ Rate-limit
 

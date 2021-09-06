@@ -1,5 +1,5 @@
-mod ratelimit;
-pub use ratelimit::RateLimiter;
+#[cfg(feature = "rate_limit")]
+pub mod ratelimit;
 
-mod logger;
-pub use logger::{Level, Logger};
+#[cfg(feature = "logging")]
+pub mod logger;
