@@ -4,6 +4,7 @@
 - Implement clone for more structs
 - Add More Examples
 - Put default headers after route headers
+- Auto decode url encoded Querys
 
 # 0.1.4
 - Allow responding with bytes not just strings

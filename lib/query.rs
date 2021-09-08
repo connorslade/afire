@@ -1,3 +1,4 @@
+use crate::common;
 use std::fmt;
 
 /// Struct for holding query data
@@ -20,7 +21,8 @@ impl Query {
             body = body.split_off(1);
         }
 
-        Query::from_body(body)
+        // Decode the query string and split it into key/value pairs
+        Query::from_body(common::decode_url(body))
     }
 
     /// Create a new Query from a Form POST body
