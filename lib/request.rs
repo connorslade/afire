@@ -1,6 +1,7 @@
 use std::fmt;
 
 use super::common::cmp_vec;
+use super::cookie::Cookie;
 use super::header::Header;
 use super::method::Method;
 use super::query::Query;
@@ -18,6 +19,9 @@ pub struct Request {
 
     /// Request headers
     pub headers: Vec<Header>,
+
+    /// Request Cookies
+    pub cookies: Vec<Cookie>,
 
     /// Request body
     pub body: String,
@@ -52,6 +56,7 @@ impl Request {
         path: &str,
         query: Query,
         headers: Vec<Header>,
+        cookies: Vec<Cookie>,
         body: String,
         address: String,
         raw_data: String,
@@ -61,6 +66,7 @@ impl Request {
             path: path.to_string(),
             query,
             headers,
+            cookies,
             body,
             address,
             raw_data,
@@ -89,6 +95,7 @@ impl Clone for Request {
             path: self.path.clone(),
             query: self.query.clone(),
             headers: self.headers.clone(),
+            cookies: self.cookies.clone(),
             body: self.body.clone(),
             address: self.address.clone(),
             raw_data: self.raw_data.clone(),
@@ -110,6 +117,7 @@ impl fmt::Debug for Request {
             .field("query", &self.query)
             .field("address", &self.address)
             .field("headers", &headers)
+            .field("cookies", &self.cookies)
             .field("body", &self.body)
             .finish()
     }

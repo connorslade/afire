@@ -154,6 +154,10 @@ pub use self::response::Response;
 mod query;
 pub use self::query::Query;
 
+// Cookies 🍪
+mod cookie;
+pub use self::cookie::Cookie;
+
 // Extra Features
 mod extensions;
 
