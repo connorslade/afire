@@ -1,6 +1,7 @@
 use afire::{Header, Method, Response, Server, SetCookie};
 
-// Send data to server with a Query String and Form Data
+// Get cookies from the client and format them as a HTML table
+// Also allow setting cookies
 
 fn main() {
     // Create a new Server instance on localhost port 8080
@@ -49,7 +50,7 @@ fn main() {
     });
 
     // Now goto http://localhost:8080/set?name=hello&value=world
-    // Then goto http://localhost:8080/ and you should see a table with the cookie
+    // Then goto http://localhost:8080 and you should see a table with the cookie
 
     println!(
         "[09] Listening on http://{}:{}",
