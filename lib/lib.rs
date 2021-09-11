@@ -156,8 +156,8 @@ pub use self::query::Query;
 
 // Cookies 🍪
 mod cookie;
-pub use self::cookie::Cookie;
-pub use self::cookie::SetCookie;
+#[cfg(feature = "cookies")]
+pub use self::cookie::{Cookie, SetCookie};
 
 // Extra Features
 mod extensions;

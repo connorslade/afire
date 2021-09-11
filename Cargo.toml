@@ -17,7 +17,12 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = ["panic_handler"]
+default = ["panic_handler", "cookies"]
+
+# Extions
 rate_limit = []
 logging = []
+
+# Default On
 panic_handler = []
+cookies = []

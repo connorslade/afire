@@ -537,7 +537,7 @@ fn get_request_query(raw_data: String) -> Query {
         if path.len() <= 1 {
             return Query::new_empty();
         }
-        return Query::new(&path[1]);
+        return Query::new(path[1]);
     }
     Query::new_empty()
 }
