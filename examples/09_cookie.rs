@@ -1,4 +1,4 @@
-use afire::{Header, Method, Query, Response, Server};
+use afire::{Header, Method, Response, Server};
 
 // Send data to server with a Query String and Form Data
 
@@ -6,13 +6,13 @@ fn main() {
     // Create a new Server instance on localhost port 8080
     let mut server: Server = Server::new("localhost", 9191);
 
-    // Define a route to handel query string
-    // This will try to find a name value pair in the query string
+    // Define a route to show request cookies as a table
     server.route(Method::GET, "/", |req| {
         // Return all cookies in a html table
         let mut html = String::new();
         html.push_str("<style>table, th, td {border:1px solid black;}</style>");
         html.push_str("<table>");
+        html.push_str("<tr><th>Name</th><th>Value</th></tr>");
         for cookie in req.cookies {
             html.push_str("<tr><td>");
             html.push_str(&cookie.name);

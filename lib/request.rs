@@ -44,12 +44,13 @@ impl Request {
     ///    path: "/".to_string(),
     ///    query: Query::new_empty(),
     ///    headers: vec![],
+    ///    cookies: vec![],
     ///    body: "".to_string(),
     ///    address: "127.0.0.1:8080".to_string(),
     ///    raw_data: "".to_string(),
     /// };
     ///
-    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], "".to_string(), "127.0.0.1:8080".to_string(), "".to_string())));
+    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], vec![], "".to_string(), "127.0.0.1:8080".to_string(), "".to_string())));
     /// ```
     pub fn new(
         method: Method,
