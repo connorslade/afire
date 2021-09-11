@@ -13,6 +13,7 @@ use std::panic;
 
 // Import local files
 
+#[cfg(feature = "cookies")]
 use super::cookie::Cookie;
 use super::header::{headers_to_string, Header};
 use super::method::Method;
@@ -217,12 +218,14 @@ impl Server {
         let req_query = get_request_query(stream_string.to_string());
         let body = get_request_body(stream_string.to_string());
         let headers = get_request_headers(stream_string.to_string());
+        #[cfg(feature = "cookies")]
         let cookies = get_request_cookies(stream_string.to_string());
         let req = Request::new(
             req_method,
             &req_path,
             req_query,
             headers,
+            #[cfg(feature = "cookies")]
             cookies,
             body,
             stream.peer_addr().unwrap().to_string(),
@@ -568,6 +571,7 @@ fn get_request_headers(raw_data: String) -> Vec<Header> {
 }
 
 /// Get Cookies of a raw HTTP request.
+#[cfg(feature = "cookies")]
 pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
     let spilt = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
     let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();

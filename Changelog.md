@@ -8,6 +8,7 @@
 - Update Readme
 - Proper Spelling In Description
 - Add support for Request Cookies
+- Add Cookies to a Feature
 
 
 # 0.1.4

@@ -155,6 +155,7 @@ mod query;
 pub use self::query::Query;
 
 // Cookies 🍪
+#[cfg(feature = "cookies")]
 mod cookie;
 #[cfg(feature = "cookies")]
 pub use self::cookie::{Cookie, SetCookie};
