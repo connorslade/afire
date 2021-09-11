@@ -1,10 +1,13 @@
-# 0.1.5
+# 0.1.5*
 - Add a route error handler
 - Add `set_error_handler` fn to set the error handler
 - Implement clone for more structs
 - Add More Examples
 - Put default headers after route headers
 - Auto decode url encoded Querys
+- Update Readme
+- Proper Spelling In Description
+
 
 # 0.1.4
 - Allow responding with bytes not just strings
