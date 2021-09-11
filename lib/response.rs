@@ -66,16 +66,20 @@ impl Response {
     }
 
     #[cfg(feature = "cookies")]
-    pub fn add_cookie(&mut self, cookie: SetCookie) {
+    pub fn add_cookie(&mut self, cookie: SetCookie) -> &mut Response {
         self.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
+
+        self
     }
 
     #[cfg(feature = "cookies")]
-    pub fn add_cookies(&mut self, cookie: Vec<SetCookie>) {
+    pub fn add_cookies(&mut self, cookie: Vec<SetCookie>) -> &mut Response {
         for c in cookie {
             self.add_cookie(c);
         }
+
+        self
     }
 }
 

@@ -50,7 +50,8 @@ Learn about Middleware and how to use it to log requests.
 
 ## 09 - Cookies
 
-Get cookies from the client and set some new ones.
+Get cookies from the client and make a HTML table.
+Also set new cookies with extra options.
 
 ### TODO
 
