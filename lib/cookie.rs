@@ -46,13 +46,12 @@ impl Cookie {
     /// ```
     pub fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
         if let Some(cookie_string) = cookie_string.strip_prefix("Cookie: ") {
-            let cookie_string = &cookie_string[8..];
             let cookies = cookie_string.split("; ").collect::<Vec<&str>>();
             let mut final_cookies = Vec::new();
             for i in cookies {
                 let mut cookie_parts = i.splitn(2, '=');
                 let name = cookie_parts.next()?;
-                let value = &cookie_parts.next()?.replace(";", "");
+                let value = &cookie_parts.next()?.trim_end_matches(';');
                 final_cookies.push(Cookie::new(name, value));
             }
             return Some(final_cookies);
