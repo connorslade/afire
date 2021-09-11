@@ -7,6 +7,7 @@
 - Auto decode url encoded Querys
 - Update Readme
 - Proper Spelling In Description
+- Add support for Request Cookies
 
 
 # 0.1.4

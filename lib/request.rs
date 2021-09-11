@@ -34,6 +34,7 @@ pub struct Request {
 }
 
 impl Request {
+    #[allow(clippy::too_many_arguments)]
     /// Quick and easy way to create a request.
     ///
     /// ```rust

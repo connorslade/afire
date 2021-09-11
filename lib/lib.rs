@@ -157,6 +157,7 @@ pub use self::query::Query;
 // Cookies 🍪
 mod cookie;
 pub use self::cookie::Cookie;
+pub use self::cookie::SetCookie;
 
 // Extra Features
 mod extensions;

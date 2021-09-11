@@ -1,3 +1,4 @@
+use super::cookie::SetCookie;
 use super::header::Header;
 
 /// Http Response
@@ -61,6 +62,17 @@ impl Response {
     /// ```
     pub fn ok(data: &str, headers: Option<Vec<Header>>) -> Response {
         Response::new(200, data, headers.unwrap_or_default())
+    }
+
+    pub fn add_cookie(&mut self, cookie: SetCookie) {
+        self.headers
+            .push(Header::new("Set-Cookie", &cookie.to_string()));
+    }
+
+    pub fn add_cookies(&mut self, cookie: Vec<SetCookie>) {
+        for c in cookie {
+            self.add_cookie(c);
+        }
     }
 }
 

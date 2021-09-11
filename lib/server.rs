@@ -155,7 +155,7 @@ impl Server {
 
             // Add default headers to response
             let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone().unwrap_or(Vec::new()));
+            headers.append(&mut self.default_headers.clone().unwrap_or_default());
 
             // Add content-length header to response
             headers.push(Header::new("Content-Length", &res.data.len().to_string()));
