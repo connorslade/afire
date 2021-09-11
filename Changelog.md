@@ -9,6 +9,8 @@
 - Proper Spelling In Description
 - Add support for Request Cookies
 - Add Cookies to a Feature
+- Add Support for Response Cookies
+- Deprecate .any routes
 
 
 # 0.1.4
