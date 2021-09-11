@@ -6,7 +6,7 @@ edition = "2018"
 
 repository = "https://github.com/Basicprogrammer10/afire"
 documentation = "https://docs.rs/afire"
-description = "🔥 A blazeing fast web framework for Rust"
+description = "🔥 A blazing fast web framework for Rust"
 keywords = ["http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]
 license = "GPL-3.0"
