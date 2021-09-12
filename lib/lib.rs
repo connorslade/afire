@@ -125,6 +125,7 @@ Logger::attach(
 */
 
 mod common;
+mod threadpool;
 
 // The main server
 mod server;

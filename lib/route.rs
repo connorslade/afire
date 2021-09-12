@@ -8,6 +8,7 @@ use super::response::Response;
 ///
 /// You should not use this directly.
 /// It will be created automatically when using server.route
+#[derive(Clone)]
 pub struct Route {
     pub(super) method: Method,
     pub(super) path: String,
