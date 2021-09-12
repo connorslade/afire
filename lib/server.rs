@@ -13,6 +13,8 @@ use std::panic;
 
 // Import local files
 
+#[cfg(feature = "cookies")]
+use super::cookie::Cookie;
 use super::header::{headers_to_string, Header};
 use super::method::Method;
 use super::query::Query;
@@ -154,7 +156,7 @@ impl Server {
 
             // Add default headers to response
             let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone().unwrap_or(Vec::new()));
+            headers.append(&mut self.default_headers.clone().unwrap_or_default());
 
             // Add content-length header to response
             headers.push(Header::new("Content-Length", &res.data.len().to_string()));
@@ -216,11 +218,15 @@ impl Server {
         let req_query = get_request_query(stream_string.to_string());
         let body = get_request_body(stream_string.to_string());
         let headers = get_request_headers(stream_string.to_string());
+        #[cfg(feature = "cookies")]
+        let cookies = get_request_cookies(stream_string.to_string());
         let req = Request::new(
             req_method,
             &req_path,
             req_query,
             headers,
+            #[cfg(feature = "cookies")]
+            cookies,
             body,
             stream.peer_addr().unwrap().to_string(),
             stream_string.to_string(),
@@ -426,6 +432,7 @@ impl Server {
     /// server.start();
     /// ```
     /// Now you can make any type of request to `/nose` and it will return a 200
+    #[deprecated(since = "0.1.5", note = "Instead use .route(Method::ANY...)")]
     pub fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes
             .push(Route::new(Method::ANY, path.to_string(), handler));
@@ -534,7 +541,7 @@ fn get_request_query(raw_data: String) -> Query {
         if path.len() <= 1 {
             return Query::new_empty();
         }
-        return Query::new(&path[1]);
+        return Query::new(path[1]);
     }
     Query::new_empty()
 }
@@ -562,6 +569,24 @@ fn get_request_headers(raw_data: String) -> Vec<Header> {
     }
 
     headers
+}
+
+/// Get Cookies of a raw HTTP request.
+#[cfg(feature = "cookies")]
+pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
+    let spilt = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
+    let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();
+
+    for header in raw_headers {
+        if !header.starts_with("Cookie:") {
+            continue;
+        }
+
+        if let Some(cookie) = Cookie::from_string(header.trim_matches(char::from(0))) {
+            return cookie;
+        }
+    }
+    Vec::new()
 }
 
 /// Get the byte size of the headers of a raw HTTP request.

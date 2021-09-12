@@ -36,6 +36,6 @@ pub fn decode_url(url: String) -> String {
 
 fn try_push(vec: &mut String, c: Option<&char>) {
     if let Some(c) = c {
-        vec.push(c.clone());
+        vec.push(*c);
     }
 }

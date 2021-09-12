@@ -9,7 +9,8 @@
 | 05_header         | Make and Read Headers to send extra data              |
 | 06_error_handling | Catch panics in routes                                |
 | 07_serve_static   | Serve static files from a dir                         |
-| 08_middleware.rs  | Use Middleware to log requests                        |
+| 08_middleware     | Use Middleware to log requests                        |
+| 09_cookie         | Read and Write cookies to the client                  |
 
 ## 01 - Basic
 
@@ -47,7 +48,13 @@ Serve all static files from a directory.
 
 Learn about Middleware and how to use it to log requests.
 
+## 09 - Cookies
+
+Get cookies from the client and make a HTML table.
+Also set new cookies with extra options.
+
 ### TODO
 
 - Logger
 - Ratelimater
+- Cookies (Still in development)
