@@ -432,7 +432,7 @@ impl Server {
     /// server.start();
     /// ```
     /// Now you can make any type of request to `/nose` and it will return a 200
-    #[deprecated(since="0.1.5", note="Instead use .route(Method::ANY...)")]
+    #[deprecated(since = "0.1.5", note = "Instead use .route(Method::ANY...)")]
     pub fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
         self.routes
             .push(Route::new(Method::ANY, path.to_string(), handler));

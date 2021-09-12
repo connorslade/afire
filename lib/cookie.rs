@@ -1,3 +1,11 @@
+/*!
+Cookies!
+
+This module provides a simple interface for setting and receiving cookies.
+
+It can be disabled with the `cookies` feature.
+*/
+
 use std::fmt;
 
 /// Represents a Cookie
@@ -7,10 +15,13 @@ pub struct Cookie {
 }
 
 /// Represents a Client's Cookie
+///
+/// Has more information than a normal Cookie
+/// (e.g. max-age, domain, path, secure)
 pub struct SetCookie {
     pub cookie: Cookie,
 
-    pub max_age: Option<i64>,
+    pub max_age: Option<u64>,
     pub domain: Option<String>,
     pub path: Option<String>,
     pub secure: bool,
@@ -33,18 +44,7 @@ impl Cookie {
     /// Make a Vec of Cookies from a String
     ///
     /// Intended for making Cookie Vec from HTTP Headers
-    /// ## Example
-    /// ```
-    /// use afire::Cookie;
-    /// let cookie = Cookie::from_string("Cookie: name=value; foo=bar;").unwrap();
-    ///
-    /// assert_eq!(cookie[0].name, "name");
-    /// assert_eq!(cookie[0].value, "value");
-    ///
-    /// assert_eq!(cookie[1].name, "foo");
-    /// assert_eq!(cookie[1].value, "bar");
-    /// ```
-    pub fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
+    pub(crate) fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
         if let Some(cookie_string) = cookie_string.strip_prefix("Cookie: ") {
             let cookies = cookie_string.split("; ").collect::<Vec<&str>>();
             let mut final_cookies = Vec::new();
@@ -112,7 +112,7 @@ impl SetCookie {
     /// ```
     pub fn full_new(
         cookie: Cookie,
-        max_age: i64,
+        max_age: u64,
         domain: &str,
         path: &str,
         secure: bool,
@@ -127,59 +127,65 @@ impl SetCookie {
     }
 
     /// Set the Max-Age field of a SetCookie
+    ///
+    /// This is the number of seconds the cookie should be valid for.
     /// ## Example
     /// ```
     /// use afire::SetCookie;
-    /// let mut cookie = SetCookie::new("name", "value");
-    /// cookie.set_max_age(10*60);
+    /// let mut cookie = SetCookie::new("name", "value")
+    ///     .set_max_age(10 * 60);
     ///
     /// assert_eq!(cookie.max_age, Some(10*60));
     /// ```
-    pub fn set_max_age(&mut self, max_age: i64) -> &mut SetCookie {
-        self.max_age = Some(max_age);
-        self
+    pub fn set_max_age(self, max_age: u64) -> SetCookie {
+        let mut new = self;
+        new.max_age = Some(max_age);
+        new
     }
 
     /// Set the Domain field of a SetCookie
     /// ## Example
     /// ```
     /// use afire::SetCookie;
-    /// let mut cookie = SetCookie::new("name", "value");
-    /// cookie.set_domain("domain");
+    /// let mut cookie = SetCookie::new("name", "value")
+    ///     .set_domain("domain");
     ///
     /// assert_eq!(cookie.domain, Some("domain".to_string()));
     /// ```
-    pub fn set_domain(&mut self, domain: &str) -> &mut SetCookie {
-        self.domain = Some(domain.to_string());
-        self
+    pub fn set_domain(self, domain: &str) -> SetCookie {
+        let mut new = self;
+        new.domain = Some(domain.to_string());
+        new
     }
 
     /// Set the Path field of a SetCookie
     /// ## Example
     /// ```
     /// use afire::SetCookie;
-    /// let mut cookie = SetCookie::new("name", "value");
-    /// cookie.set_path("path");
+    /// let mut cookie = SetCookie::new("name", "value")
+    ///     .set_path("path");
     ///
     /// assert_eq!(cookie.path, Some("path".to_string()));
     /// ```
-    pub fn set_path(&mut self, path: &str) -> &mut SetCookie {
-        self.path = Some(path.to_string());
-        self
+    pub fn set_path(self, path: &str) -> SetCookie {
+        let mut new = self;
+        new.path = Some(path.to_string());
+        new
     }
 
     /// Set the Secure field of a SetCookie
     /// ## Example
     /// ```
     /// use afire::SetCookie;
-    /// let mut cookie = SetCookie::new("name", "value");
-    /// cookie.set_secure(true);
+    /// let mut cookie = SetCookie::new("name", "value")
+    ///     .set_secure(true);
     ///
     /// assert_eq!(cookie.secure, true);
     /// ```
-    pub fn set_secure(&mut self, secure: bool) -> &mut SetCookie {
-        self.secure = secure;
-        self
+    pub fn set_secure(self, secure: bool) -> SetCookie {
+        let mut new = self;
+        new.secure = secure;
+        new
     }
 }
 
@@ -235,6 +241,6 @@ impl fmt::Display for SetCookie {
             cookie_string.push_str("Secure; ");
         }
 
-        f.write_str(&cookie_string)
+        f.write_str(cookie_string.trim_end())
     }
 }

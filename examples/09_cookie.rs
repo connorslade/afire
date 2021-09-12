@@ -30,13 +30,12 @@ fn main() {
     server.route(Method::GET, "/set", |req| {
         // Create a new cookie
         let cookie = SetCookie::new(
-            &req.query.get("name").unwrap_or("test".to_string()),
-            &req.query.get("value").unwrap_or("test".to_string()),
+            &req.query.get("name").unwrap_or_else(|| "test".to_string()),
+            &req.query.get("value").unwrap_or_else(|| "test".to_string()),
         )
         // Set some options
         .set_max_age(60 * 60)
-        .set_path("/")
-        .clone();
+        .set_path("/");
 
         let body = format!(
             "Set Cookie '{}' to '{}'",
@@ -44,13 +43,11 @@ fn main() {
         );
 
         // Set the cookie
-        Response::new(200, &body, vec![Header::new("Content-Type", "text/html")])
-            .add_cookie(cookie)
-            .clone()
+        Response::new(200, &body, vec![Header::new("Content-Type", "text/html")]).add_cookie(cookie)
     });
 
     // Now goto http://localhost:8080/set?name=hello&value=world
-    // Then goto http://localhost:8080 and you should see a table with the cookie
+    // Then goto http://localhost:8080/ and you should see a table with the cookie
 
     println!(
         "[09] Listening on http://{}:{}",

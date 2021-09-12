@@ -16,7 +16,7 @@ pub struct Response {
 
 impl Response {
     /// Quick and easy way to create a response.
-    /// ## Examples
+    /// ## Example
     /// ```rust
     /// // Import Library
     /// use afire::{Response, Header};
@@ -32,7 +32,7 @@ impl Response {
     }
 
     /// Create a response from a byte Vec.
-    /// ## Examples
+    /// ## Example
     /// ```rust
     /// // Import Library
     /// use afire::{Response, Header};
@@ -51,7 +51,7 @@ impl Response {
     /// Easy way to create a successful response.
     ///
     /// Will just pass status code 200.
-    /// ## Examples
+    /// ## Example
     /// ```rust
     /// // Import Library
     /// use afire::Response;
@@ -65,21 +65,41 @@ impl Response {
         Response::new(200, data, headers.unwrap_or_default())
     }
 
+    /// Add a cookie to a response.
+    /// ## Example
+    /// ```
+    /// // Import Library
+    /// use afire::{Response, SetCookie};
+    ///
+    /// // Create Response and add cookie
+    /// let response = Response::new(200, "🍦", vec![])
+    ///     .add_cookie(SetCookie::new("name", "value"));
+    /// ```
     #[cfg(feature = "cookies")]
-    pub fn add_cookie(&mut self, cookie: SetCookie) -> &mut Response {
-        self.headers
+    pub fn add_cookie(&self, cookie: SetCookie) -> Response {
+        let mut new = self.clone();
+        new.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
-
-        self
+        new.clone()
     }
 
+    /// Add a vec of cookies to a response.
+    /// ## Example
+    /// ```
+    /// // Import Library
+    /// use afire::{Response, SetCookie};
+    ///
+    /// // Create Response and add cookie
+    /// let response = Response::new(200, "🍦", vec![])
+    ///     .add_cookies(vec![SetCookie::new("name", "value")]);
+    /// ```
     #[cfg(feature = "cookies")]
-    pub fn add_cookies(&mut self, cookie: Vec<SetCookie>) -> &mut Response {
+    pub fn add_cookies(&self, cookie: Vec<SetCookie>) -> Response {
         for c in cookie {
             self.add_cookie(c);
         }
 
-        self
+        self.clone()
     }
 }
 
