@@ -8,7 +8,6 @@ use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::str;
-use std::sync::Arc;
 
 #[cfg(feature = "panic_handler")]
 use std::panic;
@@ -192,18 +191,13 @@ impl Server {
 
             let routes = self.routes.clone();
             // let middleware = self.middleware.clone();
-            let error_handler = self.error_handler.clone();
+            let error_handler = self.error_handler;
 
             pool.execute(move || {
                 let mut stream = stream;
                 // Get the response from the handler
                 // Uses the most recently defined route that matches the request
-                let mut res = handle_connection(
-                    &stream,
-                    &Vec::new(),
-                    error_handler,
-                    &routes,
-                );
+                let mut res = handle_connection(&stream, &Vec::new(), error_handler, &routes);
 
                 // Add default headers to response
                 let mut headers = res.headers;
@@ -232,9 +226,9 @@ impl Server {
         }
     }
 
-    fn handle_connection(&self, mut stream: &TcpStream) -> Response {
+    fn handle_connection(&self, stream: &TcpStream) -> Response {
         handle_connection(
-            &mut stream,
+            &stream,
             &self.middleware,
             self.error_handler,
             &self.routes,
@@ -473,9 +467,9 @@ impl Server {
 
 fn handle_connection(
     mut stream: &TcpStream,
-    middleware: &Vec<Box<dyn Fn(&Request) -> Option<Response>>>,
+    middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
     error_handler: fn(Request) -> Response,
-    routes: &Vec<Route>,
+    routes: &[Route],
 ) -> Response {
     // Init (first) Buffer
     let mut buffer = vec![0; BUFF_SIZE];

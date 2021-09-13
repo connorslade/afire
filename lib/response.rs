@@ -80,7 +80,7 @@ impl Response {
         let mut new = self.clone();
         new.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
-        new.clone()
+        new
     }
 
     /// Add a vec of cookies to a response.
