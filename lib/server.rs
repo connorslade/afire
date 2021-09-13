@@ -16,13 +16,14 @@ use std::panic;
 
 #[cfg(feature = "cookies")]
 use super::cookie::Cookie;
+#[cfg(feature = "thread_pool")]
+use super::threadpool::ThreadPool;
 use super::header::{headers_to_string, Header};
 use super::method::Method;
 use super::query::Query;
 use super::request::Request;
 use super::response::Response;
 use super::route::Route;
-use super::threadpool::ThreadPool;
 
 /// Default Buffer Size
 ///
@@ -176,6 +177,7 @@ impl Server {
         }
     }
 
+    #[cfg(feature = "thread_pool")]
     pub fn start_threaded(&self, threads: usize) {
         // Exit if the server should not run
         if !self.run {

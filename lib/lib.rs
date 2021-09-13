@@ -124,8 +124,9 @@ Logger::attach(
 ```
 */
 
-mod common;
+#[cfg(feature = "thread_pool")]
 mod threadpool;
+mod common;
 
 // The main server
 mod server;
