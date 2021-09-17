@@ -9,15 +9,17 @@ use std::net::TcpListener;
 use std::net::TcpStream;
 use std::str;
 
+// Feature Imports
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-// Import local files
-
 #[cfg(feature = "cookies")]
 use super::cookie::Cookie;
+
 #[cfg(feature = "thread_pool")]
 use super::threadpool::ThreadPool;
+
+// Import local files
 use super::header::{headers_to_string, Header};
 use super::method::Method;
 use super::query::Query;
@@ -177,6 +179,30 @@ impl Server {
         }
     }
 
+    /// Start the server with a thread pool.
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Starts a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Define a route
+    /// server.route(Method::GET, "/", |req| {
+    ///     Response::new(
+    ///         200,
+    ///         "N O S E",
+    ///         vec![Header::new("Content-Type", "text/plain")],
+    ///     )
+    /// });
+    ///
+    /// // Starts the server with 8 threads
+    /// // This is blocking
+    /// // Keep the server from starting and blocking the main thread
+    /// # server.set_run(false);
+    /// server.start_threaded(8);
+    /// ```
     #[cfg(feature = "thread_pool")]
     pub fn start_threaded(&self, threads: usize) {
         // Exit if the server should not run
@@ -229,12 +255,7 @@ impl Server {
     }
 
     fn handle_connection(&self, stream: &TcpStream) -> Response {
-        handle_connection(
-            &stream,
-            &self.middleware,
-            self.error_handler,
-            &self.routes,
-        )
+        handle_connection(&stream, &self.middleware, self.error_handler, &self.routes)
     }
 
     /// Keep a server from starting
@@ -467,6 +488,7 @@ impl Server {
     }
 }
 
+/// Handle a request
 fn handle_connection(
     mut stream: &TcpStream,
     middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
@@ -481,7 +503,10 @@ fn handle_connection(
 
     // Get buffer as string
     let buffer_clone = buffer.clone();
-    let stream_string = str::from_utf8(&buffer_clone).expect("Error parsing buffer data");
+    let stream_string = match str::from_utf8(&buffer_clone) {
+        Ok(s) => s,
+        Err(_) => return Response::new(500, "Internal Server Error", vec![]),
+    };
 
     // Get Content-Length header
     // If header shows thar more space is needed,

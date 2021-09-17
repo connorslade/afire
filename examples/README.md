@@ -11,6 +11,7 @@
 | 07_serve_static   | Serve static files from a dir                         |
 | 08_middleware     | Use Middleware to log requests                        |
 | 09_cookie         | Read and Write cookies to the client                  |
+| 10_threading      | Start a server with a threadpool to handel requests   |
 
 ## 01 - Basic
 
@@ -52,6 +53,10 @@ Learn about Middleware and how to use it to log requests.
 
 Get cookies from the client and make a HTML table.
 Also set new cookies with extra options.
+
+## 10 - Threading
+
+Like Example 01 but the server is started with a threadpool to handle requests.
 
 ### TODO
 

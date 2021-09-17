@@ -1,19 +1,29 @@
 // Define a thread pool to execute tasks in parallel.
 
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-pub struct ThreadPool {
+/// A thread pool
+pub(crate) struct ThreadPool {
+    /// Worker threads
     workers: Vec<Worker>,
+
+    /// Sender Channel
     sender: mpsc::Sender<Message>,
 }
 
-pub struct Worker {
+/// Worker thread
+struct Worker {
+    id: usize,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
-pub struct Message {
+/// A task to be executed in the thread pool
+struct Message {
+    /// An id for the task
     pub id: usize,
+
+    /// A function to execute
     pub task: Box<dyn FnOnce() + Send + 'static>,
 }
 
@@ -26,21 +36,24 @@ impl ThreadPool {
     ///
     /// The `new` function will panic if the size is zero.
     pub fn new(size: usize) -> ThreadPool {
+        // Make sure the size is not zero
         assert!(size > 0);
 
-        let (sender, receiver) = mpsc::channel();
-
-        let receiver = Arc::new(Mutex::new(receiver));
-
+        let (tx, rx) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(rx));
         let mut workers = Vec::with_capacity(size);
 
-        for _ in 0..size {
-            workers.push(Worker::new(Arc::clone(&receiver)));
+        for i in 0..size {
+            workers.push(Worker::new(Arc::clone(&receiver), i));
         }
 
-        ThreadPool { workers, sender }
+        ThreadPool {
+            workers,
+            sender: tx,
+        }
     }
 
+    /// Execute a task in the thread pool.
     pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
@@ -52,14 +65,14 @@ impl ThreadPool {
 }
 
 impl Worker {
-    fn new(receiver: Arc<Mutex<Receiver<Message>>>) -> Worker {
+    fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>, id: usize) -> Worker {
         let thread = std::thread::spawn(move || loop {
             let message = receiver.lock().unwrap().recv().unwrap();
-
             message.task();
         });
 
         Worker {
+            id,
             thread: Some(thread),
         }
     }
