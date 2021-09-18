@@ -1,4 +1,5 @@
 // Import STD libraries
+use std::io;
 use std::io::Read;
 use std::io::Write;
 use std::net::IpAddr;
@@ -8,13 +9,17 @@ use std::net::TcpListener;
 use std::net::TcpStream;
 use std::str;
 
+// Feature Imports
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-// Import local files
-
 #[cfg(feature = "cookies")]
 use super::cookie::Cookie;
+
+#[cfg(feature = "thread_pool")]
+use super::threadpool::ThreadPool;
+
+// Import local files
 use super::header::{headers_to_string, Header};
 use super::method::Method;
 use super::query::Query;
@@ -138,13 +143,7 @@ impl Server {
             return;
         }
 
-        let listener = TcpListener::bind(SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(
-                self.ip[0], self.ip[1], self.ip[2], self.ip[3],
-            )),
-            self.port,
-        ))
-        .unwrap();
+        let listener = init_listener(self.ip, self.port).unwrap();
 
         for event in listener.incoming() {
             // Read stream into buffer
@@ -162,6 +161,7 @@ impl Server {
             headers.push(Header::new("Content-Length", &res.data.len().to_string()));
 
             // Convert the response to a string
+            // TODO: Use Bytes instead of String
             let mut response = format!(
                 "HTTP/1.1 {} OK\r\n{}\r\n\r\n",
                 res.status,
@@ -179,93 +179,83 @@ impl Server {
         }
     }
 
-    /// Handel a connection to the server
-    // TODO: Try just expanding buffer if full and not relinging on content length
-    fn handle_connection(&self, mut stream: &TcpStream) -> Response {
-        // Init (first) Buffer
-        let mut buffer = vec![0; BUFF_SIZE];
-
-        // Read stream into buffer
-        let _ = stream.read(&mut buffer).unwrap();
-
-        // Get buffer as string
-        let buffer_clone = buffer.clone();
-        let stream_string = str::from_utf8(&buffer_clone).expect("Error parsing buffer data");
-
-        // Get Content-Length header
-        // If header shows thar more space is needed,
-        // make a new buffer read the rest of the stream and add it to the first buffer
-        for i in get_request_headers(stream_string.to_string()) {
-            if i.name != "Content-Length" {
-                continue;
-            }
-            let header_size = get_header_size(stream_string.to_string());
-            let content_length = i.value.parse::<usize>().unwrap_or(0);
-            let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
-            if new_buffer_size > 0 {
-                let mut new_buffer = vec![0; new_buffer_size as usize];
-                let _ = stream.read(&mut new_buffer).unwrap();
-                buffer.append(&mut new_buffer);
-            }
-            break;
+    /// Start the server with a thread pool.
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Starts a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Define a route
+    /// server.route(Method::GET, "/", |req| {
+    ///     Response::new(
+    ///         200,
+    ///         "N O S E",
+    ///         vec![Header::new("Content-Type", "text/plain")],
+    ///     )
+    /// });
+    ///
+    /// // Starts the server with 8 threads
+    /// // This is blocking
+    /// // Keep the server from starting and blocking the main thread
+    /// # server.set_run(false);
+    /// server.start_threaded(8);
+    /// ```
+    #[cfg(feature = "thread_pool")]
+    pub fn start_threaded(&self, threads: usize) {
+        // Exit if the server should not run
+        if !self.run {
+            return;
         }
 
-        let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
+        let listener = init_listener(self.ip, self.port).unwrap();
+        let pool = ThreadPool::new(threads);
 
-        // Make Request Object
-        let req_method = get_request_method(stream_string.to_string());
-        let req_path = get_request_path(stream_string.to_string());
-        let req_query = get_request_query(stream_string.to_string());
-        let body = get_request_body(stream_string.to_string());
-        let headers = get_request_headers(stream_string.to_string());
-        #[cfg(feature = "cookies")]
-        let cookies = get_request_cookies(stream_string.to_string());
-        let req = Request::new(
-            req_method,
-            &req_path,
-            req_query,
-            headers,
-            #[cfg(feature = "cookies")]
-            cookies,
-            body,
-            stream.peer_addr().unwrap().to_string(),
-            stream_string.to_string(),
-        );
+        for event in listener.incoming() {
+            // Read stream into buffer
+            let stream = event.unwrap();
 
-        // Use middleware to handle request
-        // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
-        for middleware in self.middleware.iter().rev() {
-            match (middleware)(&req) {
-                None => (),
-                Some(res) => return res,
-            }
+            let routes = self.routes.clone();
+            // let middleware = self.middleware.clone();
+            let error_handler = self.error_handler;
+
+            pool.execute(move || {
+                let mut stream = stream;
+                // Get the response from the handler
+                // Uses the most recently defined route that matches the request
+                let mut res = handle_connection(&stream, &Vec::new(), error_handler, &routes);
+
+                // Add default headers to response
+                let mut headers = res.headers;
+                // headers.append(&mut self.default_headers.clone().unwrap_or_default());
+
+                // Add content-length header to response
+                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+
+                // Convert the response to a string
+
+                let mut response = format!(
+                    "HTTP/1.1 {} OK\r\n{}\r\n\r\n",
+                    res.status,
+                    headers_to_string(headers)
+                )
+                .as_bytes()
+                .to_vec();
+
+                // Add Bytes of data to response
+                response.append(&mut res.data);
+
+                // Send the response
+                stream.write_all(&response).unwrap();
+                stream.flush().unwrap();
+            });
         }
+    }
 
-        // Loop through all routes and check if the request matches
-        for route in self.routes.iter().rev() {
-            if (req.method == route.method || route.method == Method::ANY)
-                && (req.path == route.path || route.path == "*")
-            {
-                // Optionally enable automatic panic handling
-                #[cfg(feature = "panic_handler")]
-                {
-                    let result = panic::catch_unwind(|| (route.handler)(req.clone()));
-                    return result.ok().unwrap_or_else(|| (self.error_handler)(req));
-                }
-
-                #[cfg(not(feature = "panic_handler"))]
-                {
-                    return (route.handler)(req);
-                }
-            }
-        }
-
-        // If no route was found, return a default 404
-        Response::new(
-            404,
-            "Not Found",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+    fn handle_connection(&self, stream: &TcpStream) -> Response {
+        handle_connection(stream, &self.middleware, self.error_handler, &self.routes)
     }
 
     /// Keep a server from starting
@@ -496,6 +486,110 @@ impl Server {
         self.routes
             .push(Route::new(method, path.to_string(), handler));
     }
+}
+
+/// Handle a request
+fn handle_connection(
+    mut stream: &TcpStream,
+    middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
+    error_handler: fn(Request) -> Response,
+    routes: &[Route],
+) -> Response {
+    // Init (first) Buffer
+    let mut buffer = vec![0; BUFF_SIZE];
+
+    // Read stream into buffer
+    let _ = stream.read(&mut buffer).unwrap();
+
+    // Get buffer as string
+    let buffer_clone = buffer.clone();
+    let stream_string = match str::from_utf8(&buffer_clone) {
+        Ok(s) => s,
+        Err(_) => return Response::new(500, "Internal Server Error", vec![]),
+    };
+
+    // Get Content-Length header
+    // If header shows thar more space is needed,
+    // make a new buffer read the rest of the stream and add it to the first buffer
+    for i in get_request_headers(stream_string.to_string()) {
+        if i.name != "Content-Length" {
+            continue;
+        }
+        let header_size = get_header_size(stream_string.to_string());
+        let content_length = i.value.parse::<usize>().unwrap_or(0);
+        let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
+        if new_buffer_size > 0 {
+            let mut new_buffer = vec![0; new_buffer_size as usize];
+            let _ = stream.read(&mut new_buffer).unwrap();
+            buffer.append(&mut new_buffer);
+        }
+        break;
+    }
+
+    let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
+
+    // Make Request Object
+    let req_method = get_request_method(stream_string.to_string());
+    let req_path = get_request_path(stream_string.to_string());
+    let req_query = get_request_query(stream_string.to_string());
+    let body = get_request_body(stream_string.to_string());
+    let headers = get_request_headers(stream_string.to_string());
+    #[cfg(feature = "cookies")]
+    let cookies = get_request_cookies(stream_string.to_string());
+    let req = Request::new(
+        req_method,
+        &req_path,
+        req_query,
+        headers,
+        #[cfg(feature = "cookies")]
+        cookies,
+        body,
+        stream.peer_addr().unwrap().to_string(),
+        stream_string.to_string(),
+    );
+
+    // Use middleware to handle request
+    // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
+    for middleware in middleware.iter().rev() {
+        match (middleware)(&req) {
+            None => (),
+            Some(res) => return res,
+        }
+    }
+
+    // Loop through all routes and check if the request matches
+    for route in routes.iter().rev() {
+        if (req.method == route.method || route.method == Method::ANY)
+            && (req.path == route.path || route.path == "*")
+        {
+            // Optionally enable automatic panic handling
+            #[cfg(feature = "panic_handler")]
+            {
+                let result = panic::catch_unwind(|| (route.handler)(req.clone()));
+                return result.ok().unwrap_or_else(|| (error_handler)(req));
+            }
+
+            #[cfg(not(feature = "panic_handler"))]
+            {
+                return (route.handler)(req);
+            }
+        }
+    }
+
+    // If no route was found, return a default 404
+    Response::new(
+        404,
+        &format!("Cannot {} {}", req.method, req.path),
+        vec![Header::new("Content-Type", "text/plain")],
+    )
+}
+
+/// Init Listaner
+fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
+    TcpListener::bind(SocketAddr::new(
+        IpAddr::V4(Ipv4Addr::new(ip[0], ip[1], ip[2], ip[3])),
+        port,
+    ))
 }
 
 /// Get the request method of a raw HTTP request.

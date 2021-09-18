@@ -8,7 +8,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.1.4"
+afire = "0.1.5"
 ```
 
 ## 📄 Info
@@ -19,14 +19,13 @@ For more information on this lib check the docs [here](https://crates.io/crates/
 
 ## 💥 Examples
 
-These are some very basic examples.
-For more examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
+For some examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
 
-Make a simple server:
+Here is a super simple examples:
 
 ```rust
 // Import Lib
-use afire::*;
+use afire::{Server, Method, Response, Header};
 
 // Create Server
 let mut server: Server = Server::new("localhost", 8080);
@@ -44,86 +43,35 @@ server.route(Method::GET, "/", |_req| {
 // This is blocking
 
 server.start();
+
+// Or use  multi threading
+server.start_threaded(8);
 ```
 
-You can add as many routes as you want. The most recently defined route will always take priority. So you can make a 404 page like this:
+## 🔧 Features
 
-```rust
-// Import Library
-use afire::{Server, Response, Header, Method};
+Here I will outline interesting features that are available in afire.
 
-// Create Server
-let mut server: Server = Server::new("localhost", 8080);
-
-// Define 404 page
-// Because this is defined first, it will take a low priority
-server.all(|req| {
-    Response::new(
-        404,
-        "The page you are looking for does not exist :/",
-        vec![Header::new("Content-Type", "text/plain")],
-    )
-});
-
-// Define a route
-// As this is defined last, it will take a high priority
-server.route(Method::GET, "/hello", |req| {
-    Response::new(
-        200,
-        "Hello World!",
-        vec![Header::new("Content-Type", "text/plain")],
-    )
-});
-
-// Starts the server
-// This is blocking
-server.start();
-```
-
-## 📦 Middleware
+- Builtin Middleware
 
 afire comes with some builtin extensions in the form of middleware.
-
+It is all currently in very early beta stage.
 For these you will need to enable the feature.
 
 To use these extra features enable them like this:
 
-```
-afire = { version = "0.1.4", features = ["rate_limit", "logging"] }
+```toml
+afire = { version = "0.1.5", features = ["rate_limit", "logging"] }
 ```
 
-### • ⛓️ Rate-limit
+- Threading
 
-This will use the client ip to limit the amount of requests that will be processed. You can configure the request limit and the reset period.
+Just start the server like this. This will spawn a pool of threads to handle the requests.
 
 ```rust
-// Import Stuff
-use afire::{Server, RateLimiter};
+use afire::{Server, Method, Response, Header};
 
-// Make server
 let mut server: Server = Server::new("localhost", 8080);
 
-// Enable Rate Limiting
-// This will limit the requests per ip to 5 every 10 sec
-RateLimiter::attach(&mut server, 5, 10);
-```
-
-### • 📜 Logger
-
-This will log all requests to a file or stdout or bolth. You can pick a log level that will determine if headers and body will be logged.
-
-```rust
-// Import Stuff
-use afire::{Server, Logger, Level};
-
-// Make server again
-let mut server: Server = Server::new("localhost", 8080);
-
-// Enable Logger
-// Level::Debug has headers and body
-// Level::Info does not
-Logger::attach(
-    &mut server,
-    Logger::new(Level::Debug, Some("log.log"), true),
-);
+server.start_threaded(8);
 ```

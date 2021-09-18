@@ -1,10 +1,9 @@
 // If file logging is enabled
+use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 
 use crate::{Request, Server};
-
-static mut LOGGER: Option<Logger> = None;
 
 /// Define Log Levels
 pub enum Level {
@@ -139,15 +138,10 @@ impl Logger {
     /// server.start();
     /// ```
     pub fn attach(server: &mut Server, logger: Logger) {
-        unsafe {
-            LOGGER = Some(logger);
-        }
+        let logger = RefCell::new(logger);
 
-        server.every(Box::new(|req| {
-            unsafe {
-                LOGGER.as_mut().unwrap().log(req);
-            }
-
+        server.every(Box::new(move |req| {
+            logger.borrow_mut().log(req);
             None
         }));
     }

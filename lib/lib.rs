@@ -1,29 +1,32 @@
 /*!
-# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="https://www.codefactor.io/repository/github/basicprogrammer10/watertemp"><a href="#"><img src="https://img.shields.io/tokei/lines/github/Basicprogrammer10/afire?label=Total%20Lines"></a> <a href="https://crates.io/crates/afire"><img src="https://img.shields.io/crates/d/afire"></a>
+# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="https://www.codefactor.io/repository/github/basicprogrammer10/watertemp"><a href="#"><img src="https://img.shields.io/tokei/lines/github/Basicprogrammer10/afire?label=Total%20Lines"></a> <a href="https://crates.io/crates/afire"><img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
+
 A blazing fast dependency free web framework for Rust
 
 ## 💠 Install
 
 Just add the following to your `Cargo.toml`:
+
 ```toml
 [dependencies]
-afire = "0.1.4"
+afire = "0.1.5"
 ```
 
 ## 📄 Info
-This is kinda like express.js for rust. It is not *that* complicated but it still makes development of apis / servers much easier. It supports Middleware and comes with some built in for Logging and Rate limiting.
+
+This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of apis / servers much easier. It supports Middleware and comes with some built in for Logging and Rate limiting.
 
 For more information on this lib check the docs [here](https://crates.io/crates/afire)
 
 ## 💥 Examples
 
-These are some very basic examples.
-For more examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
+For some examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
 
-Make a simple server:
-```rust
+Here is a super simple examples:
+
+```no_run
 // Import Lib
-use afire::*;
+use afire::{Server, Method, Response, Header};
 
 // Create Server
 let mut server: Server = Server::new("localhost", 8080);
@@ -39,92 +42,46 @@ server.route(Method::GET, "/", |_req| {
 
 // Start the server
 // This is blocking
-# server.set_run(false);
+
 server.start();
-```
-You can add as many routes as you want. The most recently defined route will always take priority. So you can make a 404 page like this:
-```rust
-// Import Library
-use afire::{Server, Response, Header, Method};
 
-// Create Server
-let mut server: Server = Server::new("localhost", 8080);
-
-// Define 404 page
-// Because this is defined first, it will take a low priority
-server.all(|req| {
-    Response::new(
-        404,
-        "The page you are looking for does not exist :/",
-        vec![Header::new("Content-Type", "text/plain")],
-    )
-});
-
-// Define a route
-// As this is defined last, it will take a high priority
-server.route(Method::GET, "/hello", |req| {
-    Response::new(
-        200,
-        "Hello World!",
-        vec![Header::new("Content-Type", "text/plain")],
-    )
-});
-
-// Starts the server
-// This is blocking
-# server.set_run(false);
-server.start();
+// Or use  multi threading
+server.start_threaded(8);
 ```
 
-## 📦 Middleware
+## 🔧 Features
+
+Here I will outline interesting features that are available in afire.
+
+- Builtin Middleware
 
 afire comes with some builtin extensions in the form of middleware.
-
+It is all currently in very early beta stage.
 For these you will need to enable the feature.
 
 To use these extra features enable them like this:
 
-`afire = { version = "0.1.4", features = ["rate_limit", "logging"] }`
-
-### • ⛓️ Rate-limit
-This will use the client ip to limit the amount of requests that will be processed. You can configure the request limit and the reset period.
-```rust
-// Import Stuff
-# #[cfg(feature = "rate_limit")]
-use afire::{Server, RateLimiter};
-# use afire::Server;
-
-// Make server
-let mut server: Server = Server::new("localhost", 8080);
-
-// Enable Rate Limiting
-// This will limit the requests per ip to 5 every 10 sec
-# #[cfg(feature = "rate_limit")]
-RateLimiter::attach(&mut server, 5, 10);
+```toml
+afire = { version = "0.1.5", features = ["rate_limit", "logging"] }
 ```
-### • 📜 Logger
-This will log all requests to a file or stdout or bolth. You can pick a log level that will determine if headers and body will be logged.
-```rust
-// Import Stuff
-# #[cfg(feature = "logging")]
-use afire::{Server, Logger, Level};
-# use afire::Server;
 
-// Make server again
+- Threading
+
+Just start the server like this. This will spawn a pool of threads to handle the requests.
+
+```rust
+use afire::{Server, Method, Response, Header};
+
 let mut server: Server = Server::new("localhost", 8080);
 
-// Enable Logger
-// Level::Debug has headers and body
-// Level::Info does not
-# #[cfg(feature = "logging")]
-Logger::attach(
-    &mut server,
-    Logger::new(Level::Debug, Some("log.log"), true),
-);
+# server.set_run(false);
+server.start_threaded(8);
 ```
 */
 
 mod common;
+#[cfg(feature = "thread_pool")]
+mod threadpool;
 
 // The main server
 mod server;

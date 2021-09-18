@@ -10,7 +10,10 @@ use std::fmt;
 
 /// Represents a Cookie
 pub struct Cookie {
+    /// Cookie Key
     pub name: String,
+
+    /// Cookie Value
     pub value: String,
 }
 

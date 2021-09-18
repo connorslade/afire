@@ -11,6 +11,7 @@
 - Add Cookies to a Feature
 - Add Support for Response Cookies
 - Deprecate .any routes
+- Make Built in middleware less garbage
 
 
 # 0.1.4
