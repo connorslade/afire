@@ -255,7 +255,7 @@ impl Server {
     }
 
     fn handle_connection(&self, stream: &TcpStream) -> Response {
-        handle_connection(&stream, &self.middleware, self.error_handler, &self.routes)
+        handle_connection(stream, &self.middleware, self.error_handler, &self.routes)
     }
 
     /// Keep a server from starting

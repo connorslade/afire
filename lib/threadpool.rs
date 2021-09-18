@@ -14,15 +14,11 @@ pub(crate) struct ThreadPool {
 
 /// Worker thread
 struct Worker {
-    id: usize,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
 /// A task to be executed in the thread pool
 struct Message {
-    /// An id for the task
-    pub id: usize,
-
     /// A function to execute
     pub task: Box<dyn FnOnce() + Send + 'static>,
 }
@@ -43,8 +39,8 @@ impl ThreadPool {
         let receiver = Arc::new(Mutex::new(rx));
         let mut workers = Vec::with_capacity(size);
 
-        for i in 0..size {
-            workers.push(Worker::new(Arc::clone(&receiver), i));
+        for _ in 0..size {
+            workers.push(Worker::new(Arc::clone(&receiver)));
         }
 
         ThreadPool {
@@ -60,19 +56,18 @@ impl ThreadPool {
     {
         let job = Box::new(f);
 
-        self.sender.send(Message { id: 0, task: job }).unwrap();
+        self.sender.send(Message { task: job }).unwrap();
     }
 }
 
 impl Worker {
-    fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>, id: usize) -> Worker {
+    fn new(receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
         let thread = std::thread::spawn(move || loop {
             let message = receiver.lock().unwrap().recv().unwrap();
             message.task();
         });
 
         Worker {
-            id,
             thread: Some(thread),
         }
     }
@@ -81,7 +76,7 @@ impl Worker {
 impl Drop for ThreadPool {
     fn drop(&mut self) {
         for _ in &mut self.workers {
-            self.sender.send(Message::new(0, Box::new(|| {}))).unwrap();
+            self.sender.send(Message::new(Box::new(|| {}))).unwrap();
         }
 
         for worker in &mut self.workers {
@@ -93,8 +88,8 @@ impl Drop for ThreadPool {
 }
 
 impl Message {
-    pub fn new(id: usize, task: Box<dyn FnOnce() + Send + 'static>) -> Message {
-        Message { id, task }
+    pub fn new(task: Box<dyn FnOnce() + Send + 'static>) -> Message {
+        Message { task }
     }
 
     // Add task function to run message.
