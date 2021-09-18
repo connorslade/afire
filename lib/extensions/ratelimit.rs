@@ -19,16 +19,41 @@ pub struct RateLimiter {
 
     /// Table of requests per IP
     requests: HashMap<String, u64>,
+
+    /// Handler for when the limit is reached
+    handler: Box<dyn Fn(&Request) -> Option<Response>>,
 }
 
 impl RateLimiter {
     /// Make a new RateLimiter.
-    fn new(req_limit: u64, req_timeout: u64) -> RateLimiter {
+    pub fn new(req_limit: u64, req_timeout: u64) -> RateLimiter {
         RateLimiter {
             req_limit,
             last_reset: 0,
             req_timeout,
             requests: HashMap::new(),
+            handler: Box::new(|_| {
+                Some(Response::new(
+                    429,
+                    "Too Many Requests",
+                    vec![Header::new("Content-Type", "text/plain")],
+                ))
+            }),
+        }
+    }
+
+    /// Make a new RateLimiter with a custom handler.
+    pub fn new_handler(
+        req_limit: u64,
+        req_timeout: u64,
+        handler: Box<dyn Fn(&Request) -> Option<Response>>,
+    ) -> RateLimiter {
+        RateLimiter {
+            req_limit,
+            last_reset: 0,
+            req_timeout,
+            requests: HashMap::new(),
+            handler,
         }
     }
 
@@ -73,8 +98,7 @@ impl RateLimiter {
     /// # server.set_run(false);
     /// server.start();
     /// ```
-    pub fn attach(server: &mut Server, req_limit: u64, req_timeout: u64) {
-        let limiter = RateLimiter::new(req_limit, req_timeout);
+    pub fn attach(server: &mut Server, limiter: RateLimiter) {
         let cell = RefCell::new(limiter);
 
         server.every(Box::new(move |req| {
@@ -83,57 +107,7 @@ impl RateLimiter {
             cell.borrow_mut().check_reset();
 
             if cell.borrow_mut().is_over_limit(ip.clone()) {
-                return Some(Response::new(
-                    429,
-                    "Too Many Requests",
-                    vec![Header::new("Content-Type", "text/plain")],
-                ));
-            }
-
-            cell.borrow_mut().add_request(ip);
-
-            None
-        }));
-    }
-
-    /// Attach the rate limiter to a server.
-    /// And add a custom handler for the rate limit.
-    /// ## Example
-    /// ```rust
-    /// // Import Lib
-    /// use afire::{Server, Header, Response, RateLimiter};
-    ///
-    /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
-    ///
-    /// // Enable Rate Limiting
-    /// // This will limit the number of requests per IP to 5 per 10 seconds
-    /// RateLimiter::attach_handler(&mut server, 5, 10, Box::new(|req| {
-    ///    // Return a custom response
-    ///    Some(Response::new(429, "Too Many Requests", vec![Header::new("Content-Type", "text/plain")]))
-    /// }));    
-    ///
-    /// // Start Server
-    /// // This is blocking
-    /// # server.set_run(false);
-    /// server.start();
-    /// ```
-    pub fn attach_handler(
-        server: &mut Server,
-        req_limit: u64,
-        req_timeout: u64,
-        handler: Box<dyn Fn(&Request) -> Option<Response>>,
-    ) {
-        let limiter = RateLimiter::new(req_limit, req_timeout);
-        let cell = RefCell::new(limiter);
-
-        server.every(Box::new(move |req| {
-            let ip = get_ip(req);
-
-            cell.borrow_mut().check_reset();
-
-            if cell.borrow_mut().is_over_limit(ip.clone()) {
-                return handler(req);
+                return (cell.borrow().handler)(req);
             }
 
             cell.borrow_mut().add_request(ip);

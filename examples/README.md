@@ -12,6 +12,8 @@
 | 08_middleware     | Use Middleware to log requests                        |
 | 09_cookie         | Read and Write cookies to the client                  |
 | 10_threading      | Start a server with a threadpool to handel requests   |
+| 11_logging        | Log requests to a file / console                      |
+| 12_rate_limit     | Add a rate limit to your server                       |
 
 ## 01 - Basic
 
@@ -58,8 +60,10 @@ Also set new cookies with extra options.
 
 Like Example 01 but the server is started with a threadpool to handle requests.
 
-### TODO
+## 11 - Logging
 
-- Logger
-- Ratelimater
-- Cookies (Still in development)
+Using afire's built in middleware make and attach a logger to a server.
+
+## 12 - Rate Limit
+
+Add a rate limit to your server with some built in middleware.

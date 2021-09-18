@@ -1,4 +1,9 @@
-# 0.1.5*
+# 0.1.6*
+- Add Example for Logging
+- Add Example for Rate Limiter
+- Improve Rate limiter
+
+# 0.1.5
 - Add a route error handler
 - Add `set_error_handler` fn to set the error handler
 - Implement clone for more structs

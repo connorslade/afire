@@ -27,3 +27,7 @@ logging = []
 panic_handler = []
 cookies = []
 thread_pool = []
+
+[dev-dependencies]
+# Enable rate_limit and logging features for examples
+afire = { path = ".", features = ["rate_limit", "logging"] }
