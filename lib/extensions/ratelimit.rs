@@ -91,7 +91,7 @@ impl RateLimiter {
     ///
     /// // Enable Rate Limiting
     /// // This will limit the number of requests per IP to 5 per 10 seconds
-    /// RateLimiter::attach(&mut server, 5, 10);
+    /// RateLimiter::attach(&mut server, RateLimiter::new(5, 10));
     ///
     /// // Start Server
     /// // This is blocking
