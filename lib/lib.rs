@@ -9,7 +9,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.1.4"
+afire = "0.1.5"
 ```
 
 ## 📄 Info
@@ -62,7 +62,7 @@ For these you will need to enable the feature.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.1.4", features = ["rate_limit", "logging"] }
+afire = { version = "0.1.5", features = ["rate_limit", "logging"] }
 ```
 
 - Threading
@@ -79,9 +79,9 @@ server.start_threaded(8);
 ```
 */
 
+mod common;
 #[cfg(feature = "thread_pool")]
 mod threadpool;
-mod common;
 
 // The main server
 mod server;
