@@ -16,7 +16,7 @@ fn main() {
     server.route(Method::GET, "/", |_req| {
         Response::new(
             200,
-            "Hello from thread 0",
+            "Hello from ThreadPool!",
             vec![Header::new("Content-Type", "text/plain")],
         )
     });
