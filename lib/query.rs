@@ -87,6 +87,18 @@ impl Clone for Query {
     }
 }
 
+// Implement fmt::Display for Query
+impl fmt::Display for Query {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut output = String::from("?");
+        for i in self.data.clone() {
+            output.push_str(&format!("{}={}&", i[0], i[1]));
+        }
+        output.pop();
+        write!(f, "{}", output)
+    }
+}
+
 /// Implement the fmt::Display trait for Query
 impl fmt::Debug for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

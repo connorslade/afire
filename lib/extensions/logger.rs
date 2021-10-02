@@ -92,10 +92,11 @@ impl Logger {
             }
 
             Level::Info => self.send_log(format!(
-                "[{}] {} {}",
+                "[{}] {} {}{}",
                 remove_address_port(&req.address),
                 req.method.to_string(),
-                req.path
+                req.path,
+                req.query.to_string()
             )),
         }
     }

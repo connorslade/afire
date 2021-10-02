@@ -60,6 +60,8 @@ Also set new cookies with extra options.
 
 Like Example 01 but the server is started with a threadpool to handle requests.
 
+This feature is still experimental and doesn't yet support any Middleware : /
+
 ## 11 - Logging
 
 Using afire's built in middleware make and attach a logger to a server.

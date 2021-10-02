@@ -8,6 +8,8 @@ use afire::{Header, Method, Response, Server};
 // or something similar to split the load across multiple servers
 // But just a thread pool is a good way to get started
 
+// Note: The threadpool doesn't yet support Middleware :/
+
 fn main() {
     // Create a new Server instance on localhost port 8080
     let mut server: Server = Server::new("localhost", 8080);
