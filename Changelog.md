@@ -2,6 +2,9 @@
 - Add Example for Logging
 - Add Example for Rate Limiter
 - Improve Rate limiter
+- Add More Function Docs
+- Show Query data in Info Logger
+- Ignore extra slashes in path
 
 # 0.1.5
 - Add a route error handler

@@ -625,7 +625,24 @@ fn get_request_path(raw_data: String) -> String {
     if path_str.len() > 1 {
         let path = path_str[1].to_string();
         let path = path.split('?').collect::<Vec<&str>>();
-        return path[0].to_string();
+        let mut new_path = String::new();
+
+        // Remove Consecutive slashes
+        for i in path[0].chars() {
+            if i != '/' {
+                new_path.push(i);
+                continue;
+            }
+            if new_path.chars().last().unwrap_or_default() != '/' {
+                new_path.push('/');
+            }
+        }
+
+        // Trim trailing slash
+        if new_path.chars().last().unwrap_or_default() == '/' {
+            new_path.pop();
+        }
+        return new_path;
     }
     "".to_string()
 }
