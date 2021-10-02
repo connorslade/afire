@@ -180,6 +180,11 @@ impl Server {
     }
 
     /// Start the server with a thread pool.
+    ///
+    /// **IN DEVELOPMENT**
+    ///
+    /// Currently will not work with any middleware.
+    /// Everything else works though
     /// ## Example
     /// ```rust
     /// // Import Library
@@ -218,8 +223,8 @@ impl Server {
             let stream = event.unwrap();
 
             let routes = self.routes.clone();
-            // let middleware = self.middleware.clone();
             let error_handler = self.error_handler;
+            let default_headers = self.default_headers.clone();
 
             pool.execute(move || {
                 let mut stream = stream;
@@ -229,7 +234,7 @@ impl Server {
 
                 // Add default headers to response
                 let mut headers = res.headers;
-                // headers.append(&mut self.default_headers.clone().unwrap_or_default());
+                headers.append(&mut default_headers.unwrap_or_default());
 
                 // Add content-length header to response
                 headers.push(Header::new("Content-Length", &res.data.len().to_string()));

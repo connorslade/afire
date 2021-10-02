@@ -79,6 +79,8 @@ server.start_threaded(8);
 ```
 */
 
+#![warn(missing_docs)]
+
 mod common;
 #[cfg(feature = "thread_pool")]
 mod threadpool;

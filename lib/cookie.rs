@@ -22,11 +22,21 @@ pub struct Cookie {
 /// Has more information than a normal Cookie
 /// (e.g. max-age, domain, path, secure)
 pub struct SetCookie {
+    /// Base Cookie
     pub cookie: Cookie,
 
+    /// Cookie Max-Age
+    ///
+    /// Number of seconds until the cookie expires. A zero or negative number will expire the cookie immediately.
     pub max_age: Option<u64>,
+
+    /// Cookie Domain
     pub domain: Option<String>,
+
+    /// Cookie Path where the cookie is valid
     pub path: Option<String>,
+
+    /// Cookie is secure
     pub secure: bool,
 }
 

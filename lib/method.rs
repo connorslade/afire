@@ -2,16 +2,47 @@ use std::fmt;
 
 /// Methods for a request
 pub enum Method {
+    /// GET Method
+    ///
+    /// Used for retrieving data
     GET,
+
+    /// POST Method
+    ///
+    /// Used for submitting data
     POST,
+
+    /// PUT Method
+    ///
+    /// Used for updating data
     PUT,
+
+    /// DELETE Method
+    ///
+    /// Used for deleting data
     DELETE,
+
+    /// OPTIONS Method
+    ///
+    /// Used for requesting information about the server
     OPTIONS,
+
+    /// HEAD Method
+    ///
+    /// For getting the response from a GET request without the body
     HEAD,
+
+    /// PATCH Method
+    ///
+    /// Used for aplaying a partial update to a resource
     PATCH,
+
+    /// TRACE Method
+    ///
+    /// Used for tracing the route of a request
     TRACE,
 
-    /// Custom request
+    /// Custom Method
     CUSTOM(String),
 
     /// For routes that run on all methods
