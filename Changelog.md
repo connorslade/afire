@@ -5,6 +5,10 @@
 - Add More Function Docs
 - Show Query data in Info Logger
 - Ignore extra slashes in path
+- Remove nose.txt... dont know how that got thare :P
+- Dont unwrap stream.read, ignore errors like a good programmer
+- Fix Routeing Issue
+- Ignore Case in Methood String
 
 # 0.1.5
 - Add a route error handler

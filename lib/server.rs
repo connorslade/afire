@@ -174,7 +174,7 @@ impl Server {
             response.append(&mut res.data);
 
             // Send the response
-            stream.write_all(&response).unwrap();
+            let _ = stream.write_all(&response);
             stream.flush().unwrap();
         }
     }
@@ -253,7 +253,7 @@ impl Server {
                 response.append(&mut res.data);
 
                 // Send the response
-                stream.write_all(&response).unwrap();
+                let _ = stream.write_all(&response);
                 stream.flush().unwrap();
             });
         }
@@ -504,13 +504,16 @@ fn handle_connection(
     let mut buffer = vec![0; BUFF_SIZE];
 
     // Read stream into buffer
-    let _ = stream.read(&mut buffer).unwrap();
+    match stream.read(&mut buffer) {
+        Ok(_) => {}
+        Err(_) => return quick_err("Error Reading Stream", 500),
+    };
 
     // Get buffer as string
     let buffer_clone = buffer.clone();
     let stream_string = match str::from_utf8(&buffer_clone) {
         Ok(s) => s,
-        Err(_) => return Response::new(500, "Internal Server Error", vec![]),
+        Err(_) => return quick_err("Internal Server Error", 500),
     };
 
     // Get Content-Length header
@@ -525,7 +528,10 @@ fn handle_connection(
         let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
         if new_buffer_size > 0 {
             let mut new_buffer = vec![0; new_buffer_size as usize];
-            let _ = stream.read(&mut new_buffer).unwrap();
+            match stream.read(&mut new_buffer) {
+                Ok(_) => {}
+                Err(_) => return quick_err("Error Reading Stream", 500),
+            };
             buffer.append(&mut new_buffer);
         }
         break;
@@ -603,10 +609,11 @@ fn get_request_method(raw_data: String) -> Method {
         .split(' ')
         .collect::<Vec<&str>>()
         .get(0)
-        .unwrap()
-        .to_string();
+        .unwrap_or(&"GET")
+        .to_string()
+        .to_uppercase();
 
-    match &method_str[..] {
+    match method_str.as_str() {
         "GET" => Method::GET,
         "POST" => Method::POST,
         "PUT" => Method::PUT,
@@ -709,4 +716,9 @@ pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
 fn get_header_size(raw_data: String) -> usize {
     let headers = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
     headers[0].len() + 4
+}
+
+/// Quick function to get a basic error response
+fn quick_err(text: &str, code: u16) -> Response {
+    Response::new(code, text, vec![Header::new("Content-Type", "text/plain")])
 }

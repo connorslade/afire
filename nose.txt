@@ -1,2 +1,0 @@
-[127.0.0.1] GET /crash [] (User-Agent: insomnia/2021.5.2, Accept: */*) {}
-[127.0.0.1] GET / [] (User-Agent: insomnia/2021.5.2, Accept: */*) {}

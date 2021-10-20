@@ -18,9 +18,14 @@ pub struct Route {
 impl Route {
     /// Creates a new route.
     pub(super) fn new(method: Method, path: String, handler: fn(Request) -> Response) -> Route {
+        let mut new_path = path;
+        if new_path.chars().last().unwrap_or_default() == '/' {
+            new_path.pop();
+        }
+
         Route {
             method,
-            path,
+            path: new_path,
             handler,
         }
     }
