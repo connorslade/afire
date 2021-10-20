@@ -81,6 +81,8 @@ server.start_threaded(8);
 
 #![warn(missing_docs)]
 
+pub(crate) const VERSION: &str = "0.1.6";
+
 mod common;
 #[cfg(feature = "thread_pool")]
 mod threadpool;

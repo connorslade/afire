@@ -20,12 +20,14 @@ use super::cookie::Cookie;
 use super::threadpool::ThreadPool;
 
 // Import local files
+use super::common::reason_phrase;
 use super::header::{headers_to_string, Header};
 use super::method::Method;
 use super::query::Query;
 use super::request::Request;
 use super::response::Response;
 use super::route::Route;
+use super::VERSION;
 
 /// Default Buffer Size
 ///
@@ -106,7 +108,7 @@ impl Server {
                     vec![Header::new("Content-Type", "text/plain")],
                 )
             },
-            default_headers: Some(vec![Header::new("Server", "afire")]),
+            default_headers: Some(vec![Header::new("Server", &format!("afire/{}", VERSION))]),
         }
     }
 
@@ -163,8 +165,9 @@ impl Server {
             // Convert the response to a string
             // TODO: Use Bytes instead of String
             let mut response = format!(
-                "HTTP/1.1 {} OK\r\n{}\r\n\r\n",
+                "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
                 res.status,
+                reason_phrase(res.status),
                 headers_to_string(headers)
             )
             .as_bytes()
@@ -242,8 +245,9 @@ impl Server {
                 // Convert the response to a string
 
                 let mut response = format!(
-                    "HTTP/1.1 {} OK\r\n{}\r\n\r\n",
+                    "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
                     res.status,
+                    reason_phrase(res.status),
                     headers_to_string(headers)
                 )
                 .as_bytes()

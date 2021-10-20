@@ -9,6 +9,8 @@
 - Dont unwrap stream.read, ignore errors like a good programmer
 - Fix Routeing Issue
 - Ignore Case in Methood String
+- Add diffrent Reason Phrase for the status codes
+- Update Server Header to add Version
 
 # 0.1.5
 - Add a route error handler
