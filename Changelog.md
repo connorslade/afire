@@ -27,7 +27,7 @@
 - Add support for Request Cookies
 - Add Cookies to a Feature
 - Add Support for Response Cookies
-- Deprecate .any routes
+- Deprecate .any routes (Use `.route(Method::ANY...)` instead)
 - Make Built in middleware less garbage
 
 

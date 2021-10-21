@@ -9,7 +9,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.1.5"
+afire = "0.1.6"
 ```
 
 ## 📄 Info
@@ -45,7 +45,7 @@ server.route(Method::GET, "/", |_req| {
 
 server.start();
 
-// Or use  multi threading
+// Or use  multi threading *experimental*
 server.start_threaded(8);
 ```
 
@@ -62,7 +62,7 @@ For these you will need to enable the feature.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.1.5", features = ["rate_limit", "logging"] }
+afire = { version = "0.1.6", features = ["rate_limit", "logging"] }
 ```
 
 - Threading
