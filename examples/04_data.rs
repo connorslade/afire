@@ -41,11 +41,11 @@ fn main() {
     // Define webpage with form
     // The form data will be post to /form on submit
     server.route(Method::GET, "/form", |_req| {
-        let page = "<form method=\"post\">
-            <label for=\"name\">Name:</label>
-            <input type=\"text\" id=\"name\" name=\"name\"><br><br>
-            <input type=\"submit\" value=\"Submit\">
-      </form>";
+        let page = r#"<form method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name"><br><br>
+            <input type="submit" value="Submit">
+      </form>"#;
 
         Response::new(200, page, vec![Header::new("Content-Type", "text/html")])
     });

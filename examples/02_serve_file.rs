@@ -11,7 +11,7 @@ fn main() {
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
         // Try to read File
-        match fs::read("data/02/index.html") {
+        match fs::read("examples/data/index.html") {
             // If its found send it as response
             // This used `new_raw` to send the file as raw bytes not a string
             // This may not be useful for html files but if you want to to serve an image file this will be useful

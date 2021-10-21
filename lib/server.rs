@@ -611,9 +611,8 @@ fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
 fn get_request_method(raw_data: String) -> Method {
     let method_str = raw_data
         .split(' ')
-        .collect::<Vec<&str>>()
-        .get(0)
-        .unwrap_or(&"GET")
+        .next()
+        .unwrap_or("GET")
         .to_string()
         .to_uppercase();
 
@@ -632,53 +631,57 @@ fn get_request_method(raw_data: String) -> Method {
 
 /// Get the path of a raw HTTP request.
 fn get_request_path(raw_data: String) -> String {
-    let path_str = raw_data.split(' ').collect::<Vec<&str>>();
-    if path_str.len() > 1 {
-        let path = path_str[1].to_string();
-        let path = path.split('?').collect::<Vec<&str>>();
-        let mut new_path = String::new();
+    let mut path_str = raw_data.split(' ');
 
-        // Remove Consecutive slashes
-        for i in path[0].chars() {
-            if i != '/' {
-                new_path.push(i);
-                continue;
-            }
-            if new_path.chars().last().unwrap_or_default() != '/' {
-                new_path.push('/');
-            }
+    let path = path_str.nth(1).unwrap_or_default().to_string();
+    let mut path = path.split('?');
+    let mut new_path = String::new();
+
+    // Remove Consecutive slashes
+    for i in path.next().unwrap_or_default().chars() {
+        if i != '/' {
+            new_path.push(i);
+            continue;
         }
 
-        // Trim trailing slash
-        if new_path.chars().last().unwrap_or_default() == '/' {
-            new_path.pop();
+        if new_path.chars().last().unwrap_or_default() != '/' {
+            new_path.push('/');
         }
-        return new_path;
     }
-    "".to_string()
+
+    // Trim trailing slash
+    if new_path.chars().last().unwrap_or_default() == '/' {
+        new_path.pop();
+    }
+    new_path
 }
 
 // Get The Query Data of a raw HTTP request.
 fn get_request_query(raw_data: String) -> Query {
-    let path_str = raw_data.split(' ').collect::<Vec<&str>>();
-    if path_str.len() > 1 {
-        let path = path_str[1].to_string();
-        let path = path.split('?').collect::<Vec<&str>>();
-
-        if path.len() <= 1 {
-            return Query::new_empty();
-        }
-        return Query::new(path[1]);
+    let mut path_str = raw_data.split(' ');
+    if path_str.clone().count() <= 1 {
+        return Query::new_empty();
     }
-    Query::new_empty()
+
+    let path = path_str.nth(1).unwrap_or_default().to_string();
+    let mut path = path.split('?');
+
+    if path.clone().count() <= 1 {
+        return Query::new_empty();
+    }
+    Query::new(path.nth(1).unwrap_or_default())
 }
 
 /// Get the body of a raw HTTP request.
 fn get_request_body(raw_data: String) -> String {
-    let data = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
+    let mut data = raw_data.split("\r\n\r\n");
 
-    if data.len() >= 2 {
-        return data[1].to_string().trim_matches(char::from(0)).to_string();
+    if data.clone().count() >= 2 {
+        return data
+            .nth(1)
+            .unwrap_or_default()
+            .trim_matches(char::from(0))
+            .to_string();
     }
     "".to_string()
 }
@@ -686,8 +689,8 @@ fn get_request_body(raw_data: String) -> String {
 /// Get the headers of a raw HTTP request.
 fn get_request_headers(raw_data: String) -> Vec<Header> {
     let mut headers = Vec::new();
-    let spilt = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
-    let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();
+    let mut spilt = raw_data.split("\r\n\r\n");
+    let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
 
     for header in raw_headers {
         if let Some(header) = Header::from_string(header.trim_matches(char::from(0))) {
@@ -701,8 +704,8 @@ fn get_request_headers(raw_data: String) -> Vec<Header> {
 /// Get Cookies of a raw HTTP request.
 #[cfg(feature = "cookies")]
 pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
-    let spilt = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
-    let raw_headers = spilt[0].split("\r\n").collect::<Vec<&str>>();
+    let mut spilt = raw_data.split("\r\n\r\n");
+    let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
 
     for header in raw_headers {
         if !header.starts_with("Cookie:") {
@@ -718,8 +721,8 @@ pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
 
 /// Get the byte size of the headers of a raw HTTP request.
 fn get_header_size(raw_data: String) -> usize {
-    let headers = raw_data.split("\r\n\r\n").collect::<Vec<&str>>();
-    headers[0].len() + 4
+    let mut headers = raw_data.split("\r\n\r\n");
+    headers.next().unwrap_or_default().len() + 4
 }
 
 /// Quick function to get a basic error response

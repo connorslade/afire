@@ -20,7 +20,7 @@ fn main() {
     server.route(Method::GET, "/", |_req| {
         Response::new(
             200,
-            "<a href=\"/panic\">PANIC</a>",
+            r#"<a href="/panic">PANIC</a>"#,
             vec![Header::new("Content-Type", "text/html")],
         )
     });

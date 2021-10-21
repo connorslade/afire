@@ -80,24 +80,36 @@ impl Logger {
                     query = query[0..query.len() - 2].to_string()
                 }
 
+                let mut new_path = req.path.clone();
+                if new_path.is_empty() {
+                    new_path = "/".to_string();
+                }
+
                 self.send_log(format!(
                     "[{}] {} {} [{}] ({}) {{{}}}",
                     remove_address_port(&req.address),
                     req.method.to_string(),
-                    req.path,
+                    new_path,
                     query,
                     headers,
                     req.body.replace('\n', "\\n")
                 ))
             }
 
-            Level::Info => self.send_log(format!(
-                "[{}] {} {}{}",
-                remove_address_port(&req.address),
-                req.method.to_string(),
-                req.path,
-                req.query.to_string()
-            )),
+            Level::Info => {
+                let mut new_path = req.path.clone();
+                if new_path.is_empty() {
+                    new_path = "/".to_string();
+                }
+
+                self.send_log(format!(
+                    "[{}] {} {}{}",
+                    remove_address_port(&req.address),
+                    req.method.to_string(),
+                    new_path,
+                    req.query.to_string()
+                ))
+            }
         }
     }
 

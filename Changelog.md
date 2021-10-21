@@ -11,6 +11,9 @@
 - Ignore Case in Methood String
 - Add diffrent Reason Phrase for the status codes
 - Update Server Header to add Version
+- Cleanup Raw Http Parseing
+- Fix / Update some examples
+- Update Logger Middleware
 
 # 0.1.5
 - Add a route error handler
