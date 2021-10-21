@@ -13,17 +13,14 @@ use std::str;
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-#[cfg(feature = "cookies")]
-use super::cookie::Cookie;
-
 #[cfg(feature = "thread_pool")]
 use super::threadpool::ThreadPool;
 
 // Import local files
 use super::common::reason_phrase;
 use super::header::{headers_to_string, Header};
+use super::http;
 use super::method::Method;
-use super::query::Query;
 use super::request::Request;
 use super::response::Response;
 use super::route::Route;
@@ -57,7 +54,7 @@ pub struct Server {
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    error_handler: fn(Request) -> Response,
+    error_handler: fn(Request, String) -> Response,
     /// Headers automatically added to every response.
     default_headers: Option<Vec<Header>>,
 }
@@ -101,10 +98,10 @@ impl Server {
             middleware: Vec::new(),
             run: true,
             #[cfg(feature = "panic_handler")]
-            error_handler: |_| {
+            error_handler: |_, err| {
                 Response::new(
                     500,
-                    "Internal Server Error :/",
+                    &format!("Internal Server Error :/\n{}", err),
                     vec![Header::new("Content-Type", "text/plain")],
                 )
             },
@@ -291,7 +288,6 @@ impl Server {
         self.run = run;
     }
 
-    #[cfg(feature = "panic_handler")]
     /// Set the panic handler response
     ///
     /// Default response is 500 "Internal Server Error :/"
@@ -316,7 +312,8 @@ impl Server {
     /// # server.set_run(false);
     /// server.start();
     /// ```
-    pub fn set_error_handler(&mut self, res: fn(Request) -> Response) {
+    #[cfg(feature = "panic_handler")]
+    pub fn set_error_handler(&mut self, res: fn(Request, String) -> Response) {
         self.error_handler = res;
     }
 
@@ -501,7 +498,7 @@ impl Server {
 fn handle_connection(
     mut stream: &TcpStream,
     middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
-    error_handler: fn(Request) -> Response,
+    error_handler: fn(Request, String) -> Response,
     routes: &[Route],
 ) -> Response {
     // Init (first) Buffer
@@ -523,11 +520,11 @@ fn handle_connection(
     // Get Content-Length header
     // If header shows thar more space is needed,
     // make a new buffer read the rest of the stream and add it to the first buffer
-    for i in get_request_headers(stream_string.to_string()) {
+    for i in http::get_request_headers(stream_string.to_string()) {
         if i.name != "Content-Length" {
             continue;
         }
-        let header_size = get_header_size(stream_string.to_string());
+        let header_size = http::get_header_size(stream_string.to_string());
         let content_length = i.value.parse::<usize>().unwrap_or(0);
         let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
         if new_buffer_size > 0 {
@@ -541,16 +538,20 @@ fn handle_connection(
         break;
     }
 
-    let stream_string = str::from_utf8(&buffer).expect("Error parsing buffer data");
+    // TODO: Make this work with non utf8 stuff too
+    let stream_string = match str::from_utf8(&buffer) {
+        Ok(i) => i,
+        Err(_) => return quick_err("No support for non utf-8 chars\nFor now", 500),
+    };
 
     // Make Request Object
-    let req_method = get_request_method(stream_string.to_string());
-    let req_path = get_request_path(stream_string.to_string());
-    let req_query = get_request_query(stream_string.to_string());
-    let body = get_request_body(stream_string.to_string());
-    let headers = get_request_headers(stream_string.to_string());
+    let req_method = http::get_request_method(stream_string.to_string());
+    let req_path = http::get_request_path(stream_string.to_string());
+    let req_query = http::get_request_query(stream_string.to_string());
+    let body = http::get_request_body(stream_string.to_string());
+    let headers = http::get_request_headers(stream_string.to_string());
     #[cfg(feature = "cookies")]
-    let cookies = get_request_cookies(stream_string.to_string());
+    let cookies = http::get_request_cookies(stream_string.to_string());
     let req = Request::new(
         req_method,
         &req_path,
@@ -581,7 +582,14 @@ fn handle_connection(
             #[cfg(feature = "panic_handler")]
             {
                 let result = panic::catch_unwind(|| (route.handler)(req.clone()));
-                return result.ok().unwrap_or_else(|| (error_handler)(req));
+                let err = match result {
+                    Ok(i) => return i,
+                    Err(e) => match e.downcast_ref::<&str>() {
+                        Some(err) => err,
+                        None => "",
+                    },
+                };
+                return (error_handler)(req, err.to_string());
             }
 
             #[cfg(not(feature = "panic_handler"))]
@@ -605,124 +613,6 @@ fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
         IpAddr::V4(Ipv4Addr::new(ip[0], ip[1], ip[2], ip[3])),
         port,
     ))
-}
-
-/// Get the request method of a raw HTTP request.
-fn get_request_method(raw_data: String) -> Method {
-    let method_str = raw_data
-        .split(' ')
-        .next()
-        .unwrap_or("GET")
-        .to_string()
-        .to_uppercase();
-
-    match method_str.as_str() {
-        "GET" => Method::GET,
-        "POST" => Method::POST,
-        "PUT" => Method::PUT,
-        "DELETE" => Method::DELETE,
-        "OPTIONS" => Method::OPTIONS,
-        "HEAD" => Method::HEAD,
-        "PATCH" => Method::PATCH,
-        "TRACE" => Method::TRACE,
-        _ => Method::CUSTOM(method_str),
-    }
-}
-
-/// Get the path of a raw HTTP request.
-fn get_request_path(raw_data: String) -> String {
-    let mut path_str = raw_data.split(' ');
-
-    let path = path_str.nth(1).unwrap_or_default().to_string();
-    let mut path = path.split('?');
-    let mut new_path = String::new();
-
-    // Remove Consecutive slashes
-    for i in path.next().unwrap_or_default().chars() {
-        if i != '/' {
-            new_path.push(i);
-            continue;
-        }
-
-        if new_path.chars().last().unwrap_or_default() != '/' {
-            new_path.push('/');
-        }
-    }
-
-    // Trim trailing slash
-    if new_path.chars().last().unwrap_or_default() == '/' {
-        new_path.pop();
-    }
-    new_path
-}
-
-// Get The Query Data of a raw HTTP request.
-fn get_request_query(raw_data: String) -> Query {
-    let mut path_str = raw_data.split(' ');
-    if path_str.clone().count() <= 1 {
-        return Query::new_empty();
-    }
-
-    let path = path_str.nth(1).unwrap_or_default().to_string();
-    let mut path = path.split('?');
-
-    if path.clone().count() <= 1 {
-        return Query::new_empty();
-    }
-    Query::new(path.nth(1).unwrap_or_default())
-}
-
-/// Get the body of a raw HTTP request.
-fn get_request_body(raw_data: String) -> String {
-    let mut data = raw_data.split("\r\n\r\n");
-
-    if data.clone().count() >= 2 {
-        return data
-            .nth(1)
-            .unwrap_or_default()
-            .trim_matches(char::from(0))
-            .to_string();
-    }
-    "".to_string()
-}
-
-/// Get the headers of a raw HTTP request.
-fn get_request_headers(raw_data: String) -> Vec<Header> {
-    let mut headers = Vec::new();
-    let mut spilt = raw_data.split("\r\n\r\n");
-    let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
-
-    for header in raw_headers {
-        if let Some(header) = Header::from_string(header.trim_matches(char::from(0))) {
-            headers.push(header)
-        }
-    }
-
-    headers
-}
-
-/// Get Cookies of a raw HTTP request.
-#[cfg(feature = "cookies")]
-pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
-    let mut spilt = raw_data.split("\r\n\r\n");
-    let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
-
-    for header in raw_headers {
-        if !header.starts_with("Cookie:") {
-            continue;
-        }
-
-        if let Some(cookie) = Cookie::from_string(header.trim_matches(char::from(0))) {
-            return cookie;
-        }
-    }
-    Vec::new()
-}
-
-/// Get the byte size of the headers of a raw HTTP request.
-fn get_header_size(raw_data: String) -> usize {
-    let mut headers = raw_data.split("\r\n\r\n");
-    headers.next().unwrap_or_default().len() + 4
 }
 
 /// Quick function to get a basic error response

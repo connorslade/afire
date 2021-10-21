@@ -1,3 +1,7 @@
+# 0.1.7*
+- Add Panic Message to Error Handel
+- Add http.rs to move raw http parseing out of server.rs
+
 # 0.1.6
 - Add Example for Logging
 - Add Example for Rate Limiter
