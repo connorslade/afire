@@ -1,17 +1,17 @@
-# 0.1.6*
+# 0.1.6
 - Add Example for Logging
 - Add Example for Rate Limiter
 - Improve Rate limiter
 - Add More Function Docs
 - Show Query data in Info Logger
 - Ignore extra slashes in path
-- Remove nose.txt... dont know how that got thare :P
-- Dont unwrap stream.read, ignore errors like a good programmer
+- Remove nose.txt... don't know how that got there :P
+- Don't unwrap stream.read, ignore errors like a good programmer
 - Fix Routeing Issue
-- Ignore Case in Methood String
-- Add diffrent Reason Phrase for the status codes
+- Ignore Case in Method String
+- Add different Reason Phrase for the status codes
 - Update Server Header to add Version
-- Cleanup Raw Http Parseing
+- Cleanup Raw HTTP Parsing
 - Fix / Update some examples
 - Update Logger Middleware
 
@@ -21,7 +21,7 @@
 - Implement clone for more structs
 - Add More Examples
 - Put default headers after route headers
-- Auto decode url encoded Querys
+- Auto decode URL encoded Queries
 - Update Readme
 - Proper Spelling In Description
 - Add support for Request Cookies
@@ -32,7 +32,7 @@
 
 
 # 0.1.4
-- Allow responding with bytes not just strings
+- Allow responding with bytes, not just strings
 - Add Serving Favoricon as example thing
 
 # 0.1.3
@@ -51,5 +51,5 @@
 - Update Keywords in Cargo.toml
 - Update Version number in Cargo.toml
 - Make a function to add default headers to a server
-- Dont let Logger Crash in debug mode if there are no headers
+- Don't let Logger Crash in debug mode if there are no headers
 - Code Cleanup
