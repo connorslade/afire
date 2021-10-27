@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::str;
+use std::time::Duration;
 
 // Feature Imports
 #[cfg(feature = "panic_handler")]
@@ -55,8 +56,12 @@ pub struct Server {
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
     error_handler: fn(Request, String) -> Response,
+
     /// Headers automatically added to every response.
     default_headers: Option<Vec<Header>>,
+
+    /// Socket Timeout
+    socket_timeout: Option<Duration>,
 }
 
 /// Implementations for Server
@@ -106,6 +111,7 @@ impl Server {
                 )
             },
             default_headers: Some(vec![Header::new("Server", &format!("afire/{}", VERSION))]),
+            socket_timeout: None,
         }
     }
 
@@ -147,6 +153,8 @@ impl Server {
         for event in listener.incoming() {
             // Read stream into buffer
             let mut stream = event.unwrap();
+            stream.set_read_timeout(self.socket_timeout).unwrap();
+            stream.set_write_timeout(self.socket_timeout).unwrap();
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
@@ -221,6 +229,8 @@ impl Server {
         for event in listener.incoming() {
             // Read stream into buffer
             let stream = event.unwrap();
+            stream.set_read_timeout(self.socket_timeout).unwrap();
+            stream.set_write_timeout(self.socket_timeout).unwrap();
 
             let routes = self.routes.clone();
             let error_handler = self.error_handler;
@@ -360,6 +370,10 @@ impl Server {
             .as_mut()
             .unwrap_or(&mut Vec::<Header>::new())
             .push(header);
+    }
+
+    pub fn set_socket_timeout(&mut self, socket_timeout: Option<Duration>) {
+        self.socket_timeout = socket_timeout;
     }
 
     /// Create a new route the runs for all methods and paths
