@@ -314,8 +314,8 @@ impl Server {
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Set the panic handler response
-    /// server.set_error_handler(|_req| {
-    ///    Response::new(500, "Internal Server Error", vec![])
+    /// server.set_error_handler(|_req, err| {
+    ///    Response::new(500, &format!("Internal Server Error: {}", err), vec![])
     /// });
     ///
     /// // Start the server
