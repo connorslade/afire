@@ -63,8 +63,17 @@ impl Cookie {
             let mut final_cookies = Vec::new();
             for i in cookies {
                 let mut cookie_parts = i.splitn(2, '=');
-                let name = cookie_parts.next()?;
-                let value = &cookie_parts.next()?.trim_end_matches(';');
+                let name = match cookie_parts.next() {
+                    Some(i) => i,
+                    None => continue,
+                };
+
+                let value = match &cookie_parts.next() {
+                    Some(i) => i,
+                    None => continue,
+                }
+                .trim_end_matches(';');
+
                 final_cookies.push(Cookie::new(name, value));
             }
             return Some(final_cookies);

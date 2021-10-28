@@ -7,6 +7,8 @@ use crate::method::Method;
 use crate::query::Query;
 
 /// Get the request method of a raw HTTP request.
+///
+/// Defaults to GET if no methood found
 pub fn get_request_method(raw_data: String) -> Method {
     let method_str = raw_data
         .split(' ')
