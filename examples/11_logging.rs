@@ -8,11 +8,10 @@ fn main() {
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            "Hello World!\nThis request has been logged!",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(200)
+            .text("Hello World!\nThis request has been logged!")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     // Make a logger

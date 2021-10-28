@@ -1,3 +1,8 @@
+# 0.2.0*
+- Response Overhaul, Now more like a Response Builder
+- Update *every* example with new syntax...
+- Small improvement to Query parseing
+
 # 0.1.7
 - Add Panic Message to Error Handel
 - Add http.rs to move raw http parseing out of server.rs

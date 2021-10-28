@@ -70,7 +70,7 @@ pub fn get_request_query(raw_data: String) -> Query {
     if path.clone().count() <= 1 {
         return Query::new_empty();
     }
-    Query::new(path.nth(1).unwrap_or_default())
+    Query::new(path.nth(1).unwrap_or_default()).unwrap_or_else(|| Query { data: Vec::new() })
 }
 
 /// Get the body of a raw HTTP request.

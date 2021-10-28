@@ -9,7 +9,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.1.7"
+afire = "0.2.0*"
 ```
 
 ## 📄 Info
@@ -33,11 +33,10 @@ let mut server: Server = Server::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/", |_req| {
-    Response::new(
-        200,
-        "Hello World",
-        vec![Header::new("Content-Type", "text/plain")],
-    )
+    Response::new()
+        .status(200)
+        .text("Hello World!")
+        .header(Header::new("Content-Type", "text/plain"))
 });
 
 // Start the server
@@ -81,7 +80,7 @@ server.start_threaded(8);
 
 #![warn(missing_docs)]
 
-pub(crate) const VERSION: &str = "0.1.7";
+pub(crate) const VERSION: &str = "0.2.0*";
 
 mod common;
 mod http;

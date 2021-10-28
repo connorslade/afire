@@ -18,7 +18,10 @@ fn main() {
                 .unwrap_or_else(|| "Nobody".to_string())
         );
 
-        Response::new(200, &text, vec![Header::new("Content-Type", "text/html")])
+        Response::new()
+            .status(200)
+            .text(text)
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // Define another route
@@ -28,14 +31,17 @@ fn main() {
         // Instead it is part of the req.body but as a string
         // We will need to parse it get it as a query
         // This is *super* easy to do with afire
-        let body_data = Query::from_body(req.body);
+        let body_data = Query::from_body(req.body).unwrap();
 
         let name = body_data
             .get("name")
             .unwrap_or_else(|| "Nobody".to_string());
         let text = format!("<h1>Hello, {}</h1>", name);
 
-        Response::new(200, &text, vec![Header::new("Content-Type", "text/html")])
+        Response::new()
+            .status(200)
+            .text(text)
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // Define webpage with form
@@ -47,7 +53,10 @@ fn main() {
             <input type="submit" value="Submit">
       </form>"#;
 
-        Response::new(200, page, vec![Header::new("Content-Type", "text/html")])
+        Response::new()
+            .status(200)
+            .text(page)
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // You can now goto http://localhost:8080?name=John and should see "Hello, John"

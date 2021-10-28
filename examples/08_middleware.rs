@@ -14,11 +14,10 @@ fn main() {
 
     // Define a basic route
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            "Hello World!",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(200)
+            .text("Hello World!")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     // Now to add some middleware

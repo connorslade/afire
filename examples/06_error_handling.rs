@@ -18,22 +18,23 @@ fn main() {
 
     // Give the server a main page
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            r#"<a href="/panic">PANIC</a>"#,
-            vec![Header::new("Content-Type", "text/html")],
-        )
+        Response::new()
+            .status(200)
+            .text(r#"<a href="/panic">PANIC</a>"#)
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // You can optionally define a custom error handler
     // This can be defined anywhere in the server and will take affect for all routes
     // Its like a normal route, but it will only be called if the route panics
     server.set_error_handler(|_req, err| {
-        Response::new(
-            500,
-            &format!("<h1>Internal Server Error</h1><br>Panicked at '{}'", err),
-            vec![Header::new("Content-Type", "text/html")],
-        )
+        Response::new()
+            .status(500)
+            .text(format!(
+                "<h1>Internal Server Error</h1><br>Panicked at '{}'",
+                err
+            ))
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // You can now goto http://localhost:8080/panic

@@ -8,11 +8,10 @@ fn main() {
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            "Hello World!",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(200)
+            .text("Hello World!")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     // Add the rate limiter middleware
@@ -26,11 +25,12 @@ fn main() {
             1,
             2,
             Box::new(|_req| {
-                Some(Response::new(
-                    429,
-                    "AHHHH!!! Too Many Requests",
-                    vec![Header::new("Content-Type", "text/plain")],
-                ))
+                Some(
+                    Response::new()
+                        .status(429)
+                        .text("AHHHH!!! Too Many Requests")
+                        .header(Header::new("Content-Type", "text/plain")),
+                )
             }),
         ),
     );

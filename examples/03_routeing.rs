@@ -18,22 +18,20 @@ fn main() {
     // will take priority it will only run when no other route is defined.
     /* PRIO 0 */
     server.all(|_req| {
-        Response::new(
-            404,
-            "The page you are looking for does not exist :/",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(404)
+            .text("The page you are looking for does not exist :/")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     // Define a route
     // As this is defined last, it will take a high priority
     /* PRIO 1 */
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            "Hello World!",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(200)
+            .text("Hello World!")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     // Now goto http://localhost:8080/ and you should see "Hello World"

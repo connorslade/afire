@@ -9,11 +9,10 @@ fn main() {
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            "Hi :P",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(200)
+            .text("Hi :P")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     println!(

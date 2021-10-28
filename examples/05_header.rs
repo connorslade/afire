@@ -30,7 +30,7 @@ fn main() {
         // 303 -> See Other
         // 307 -> Temporary Redirect
         // 308 -> Permanent Redirect
-        Response::new(308, text, headers)
+        Response::new().status(308).text(text).headers(headers)
     });
 
     // Now to define a route to handle client headers
@@ -44,7 +44,10 @@ fn main() {
         }
 
         // Create a response with the headers
-        Response::new(200, &body, vec![Header::new("Content-Type", "text/html")])
+        Response::new()
+            .status(200)
+            .text(body)
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // Define server wide default headers

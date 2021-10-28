@@ -33,11 +33,12 @@ impl RateLimiter {
             req_timeout,
             requests: HashMap::new(),
             handler: Box::new(|_| {
-                Some(Response::new(
-                    429,
-                    "Too Many Requests",
-                    vec![Header::new("Content-Type", "text/plain")],
-                ))
+                Some(
+                    Response::new()
+                        .status(429)
+                        .text("Too Many Requests")
+                        .header(Header::new("Content-Type", "text/plain")),
+                )
             }),
         }
     }

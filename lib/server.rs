@@ -104,11 +104,10 @@ impl Server {
             run: true,
             #[cfg(feature = "panic_handler")]
             error_handler: |_, err| {
-                Response::new(
-                    500,
-                    &format!("Internal Server Error :/\n{}", err),
-                    vec![Header::new("Content-Type", "text/plain")],
-                )
+                Response::new()
+                    .status(500)
+                    .text(format!("Internal Server Error :/\n{}", err))
+                    .header(Header::new("Content-Type", "text/plain"))
             },
             default_headers: Some(vec![Header::new("Server", &format!("afire/{}", VERSION))]),
             socket_timeout: None,
@@ -129,11 +128,10 @@ impl Server {
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
-    ///     Response::new(
-    ///         200,
-    ///         "N O S E",
-    ///         vec![Header::new("Content-Type", "text/plain")],
-    ///     )
+    ///     Response::new()
+    ///         .status(200)
+    ///         .text("N O S E")
+    ///         .header(Header::new("Content-Type", "text/plain"))
     /// });
     ///
     /// // Starts the server
@@ -206,11 +204,10 @@ impl Server {
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
-    ///     Response::new(
-    ///         200,
-    ///         "N O S E",
-    ///         vec![Header::new("Content-Type", "text/plain")],
-    ///     )
+    ///     Response::new()
+    ///         .status(200)
+    ///         .text("N O S E")
+    ///         .header(Header::new("Content-Type", "text/plain"))
     /// });
     ///
     /// // Starts the server with 8 threads
@@ -321,7 +318,9 @@ impl Server {
     ///
     /// // Set the panic handler response
     /// server.set_error_handler(|_req, err| {
-    ///    Response::new(500, &format!("Internal Server Error: {}", err), vec![])
+    ///     Response::new()
+    ///         .status(500)
+    ///         .text(format!("Internal Server Error: {}", err))
     /// });
     ///
     /// // Start the server
@@ -416,21 +415,19 @@ impl Server {
     /// // Define 404 page
     /// // Because this is defined first, it will take a low priority
     /// server.all(|req| {
-    ///     Response::new(
-    ///         404,
-    ///         "The page you are looking for does not exist :/",
-    ///         vec![Header::new("Content-Type", "text/plain")],
-    ///     )
+    ///     Response::new()
+    ///         .status(404)
+    ///         .text("The page you are looking for does not exist :/")
+    ///         .header(Header::new("Content-Type", "text/plain"))
     /// });
     ///
     /// // Define a route
     /// // As this is defined last, it will take a high priority
     /// server.route(Method::GET, "/nose", |req| {
-    ///     Response::new(
-    ///         200,
-    ///         "N O S E",
-    ///         vec![Header::new("Content-Type", "text/plain")],
-    ///     )
+    ///     Response::new()
+    ///         .status(200)
+    ///         .text("N O S E")
+    ///         .header(Header::new("Content-Type", "text/plain"))
     /// });
     ///
     /// // Starts the server
@@ -454,11 +451,10 @@ impl Server {
     ///
     /// // Define a route
     /// server.any("/nose", |req| {
-    ///     Response::new(
-    ///         200,
-    ///         "N O S E",
-    ///         vec![Header::new("Content-Type", "text/plain")],
-    ///     )
+    ///     Response::new()
+    ///         .status(200)
+    ///         .text("N O S E")
+    ///         .header(Header::new("Content-Type", "text/plain"))
     /// });
     ///
     /// // Starts the server
@@ -515,11 +511,10 @@ impl Server {
     ///
     /// // Define a route
     /// server.route(Method::GET, "/nose", |req| {
-    ///     Response::new(
-    ///         200,
-    ///         "N O S E",
-    ///         vec![Header::new("Content-Type", "text/plain")],
-    ///     )
+    ///     Response::new()
+    ///         .status(200)
+    ///         .text("N O S E")
+    ///         .header(Header::new("Content-Type", "text/plain"))
     /// });
     ///
     /// // Starts the server
@@ -639,11 +634,10 @@ fn handle_connection(
     }
 
     // If no route was found, return a default 404
-    Response::new(
-        404,
-        &format!("Cannot {} {}", req.method, req.path),
-        vec![Header::new("Content-Type", "text/plain")],
-    )
+    Response::new()
+        .status(404)
+        .text(format!("Cannot {} {}", req.method, req.path))
+        .header(Header::new("Content-Type", "text/plain"))
 }
 
 /// Init Listaner
@@ -656,5 +650,8 @@ fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
 
 /// Quick function to get a basic error response
 fn quick_err(text: &str, code: u16) -> Response {
-    Response::new(code, text, vec![Header::new("Content-Type", "text/plain")])
+    Response::new()
+        .status(code)
+        .text(text)
+        .header(Header::new("Content-Type", "text/plain"))
 }

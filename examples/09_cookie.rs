@@ -23,7 +23,10 @@ fn main() {
         }
         html.push_str("</table>");
 
-        Response::new(200, &html, vec![Header::new("Content-Type", "text/html")])
+        Response::new()
+            .status(200)
+            .text(html)
+            .header(Header::new("Content-Type", "text/html"))
     });
 
     // Set a cookie defined in the Query
@@ -43,7 +46,11 @@ fn main() {
         );
 
         // Set the cookie
-        Response::new(200, &body, vec![Header::new("Content-Type", "text/html")]).add_cookie(cookie)
+        Response::new()
+            .status(200)
+            .text(body)
+            .header(Header::new("Content-Type", "text/html"))
+            .cookie(cookie)
     });
 
     // Now goto http://localhost:8080/set?name=hello&value=world

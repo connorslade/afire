@@ -15,16 +15,16 @@ fn main() {
             // If its found send it as response
             // This used `new_raw` to send the file as raw bytes not a string
             // This may not be useful for html files but if you want to to serve an image file this will be useful
-            Ok(content) => {
-                Response::new_raw(200, content, vec![Header::new("Content-Type", "text/html")])
-            }
+            Ok(content) => Response::new()
+                .status(200)
+                .bytes(content)
+                .header(Header::new("Content-Type", "text/html")),
 
             // If not send a 404 error
-            Err(_) => Response::new(
-                404,
-                "Not Found :/",
-                vec![Header::new("Content-Type", "text/html")],
-            ),
+            Err(_) => Response::new()
+                .status(404)
+                .text("Not Found :/")
+                .header(Header::new("Content-Type", "text/html")),
         }
     });
 

@@ -14,7 +14,7 @@ impl Query {
     /// use afire::Query;
     /// let query = Query::new("?foo=bar&nose=dog");
     /// ```
-    pub fn new(query: &str) -> Query {
+    pub fn new(query: &str) -> Option<Query> {
         // Remove the leading '?' if it exists
         let mut body = query.to_string();
         if body.starts_with('?') {
@@ -31,23 +31,23 @@ impl Query {
     /// use afire::Query;
     /// let query = Query::from_body("foo=bar&nose=dog".to_string());
     /// ```
-    pub fn from_body(body: String) -> Query {
+    pub fn from_body(body: String) -> Option<Query> {
         let mut data = Vec::new();
 
-        let parts: Vec<&str> = body.split('&').collect();
+        let parts = body.split('&');
         for i in parts {
-            let sub: Vec<&str> = i.split('=').collect();
-            if sub.len() < 2 {
+            let mut sub = i.splitn(2, '=');
+            if sub.clone().count() < 2 {
                 continue;
             }
 
-            let key: String = sub[0].to_string();
-            let value: String = sub[1].to_string();
+            let key: String = sub.next()?.to_string();
+            let value: String = sub.next()?.to_string();
 
             data.push([key, value])
         }
 
-        Query { data }
+        Some(Query { data })
     }
 
     /// Create a new blank query
@@ -64,7 +64,7 @@ impl Query {
     /// # Example
     /// ```
     /// use afire::Query;
-    /// let query = Query::new("?foo=bar&nose=dog");
+    /// let query = Query::new("?foo=bar&nose=dog").unwrap();
     ///
     /// assert_eq!(query.get("foo"), Some("bar".to_string()));
     /// ```

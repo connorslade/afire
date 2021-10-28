@@ -16,11 +16,10 @@ fn main() {
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
-        Response::new(
-            200,
-            "Hello from ThreadPool!",
-            vec![Header::new("Content-Type", "text/plain")],
-        )
+        Response::new()
+            .status(200)
+            .text("Hello from ThreadPool!")
+            .header(Header::new("Content-Type", "text/plain"))
     });
 
     println!(

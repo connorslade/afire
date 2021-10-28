@@ -15,54 +15,122 @@ pub struct Response {
 }
 
 impl Response {
-    /// Quick and easy way to create a response.
+    /// Create a new Blank Response
+    ///
+    /// Defult data is as follows
+    /// - Status: 200
+    ///
+    /// - Data: OK
+    ///
+    /// - Headers: Vec::new()
     /// ## Example
     /// ```rust
     /// // Import Library
     /// use afire::{Response, Header};
     /// // Create Response
-    /// let response = Response::new(200, "Hello World", vec![Header::new("Content-Type", "text/plain")]);
+    /// let response = Response::new();
     /// ```
-    pub fn new(status: u16, data: &str, headers: Vec<Header>) -> Response {
+    pub fn new() -> Response {
         Response {
-            status,
-            data: data.as_bytes().to_vec(),
-            headers,
+            status: 200,
+            data: vec![79, 75],
+            headers: Vec::new(),
         }
     }
 
-    /// Create a response from a byte Vec.
+    /// Add a status to a Response
     /// ## Example
     /// ```rust
     /// // Import Library
     /// use afire::{Response, Header};
-    ///
     /// // Create Response
-    /// let mut response = Response::new_raw(200, vec![72, 101, 108, 108, 111], vec![Header::new("Content-Type", "text/plain")]);
+    /// let response = Response::new()
+    ///    .status(200); // <- Here it is
     /// ```
-    pub fn new_raw(status: u16, data: Vec<u8>, headers: Vec<Header>) -> Response {
+    pub fn status(self, code: u16) -> Response {
         Response {
-            status,
-            data,
-            headers,
+            status: code,
+            ..self
         }
     }
 
-    /// Easy way to create a successful response.
+    /// Add text as data to a Response
     ///
-    /// Will just pass status code 200.
+    /// Will accept any type that implements Display
     /// ## Example
     /// ```rust
     /// // Import Library
     /// use afire::Response;
     ///
     /// // Create Response
-    /// let response = Response::new(200, "🍦", vec![]);
-    /// let response2 = Response::ok("🍦", None);
-    /// assert!(response == response2);
+    /// let response = Response::new()
+    ///    .text("Hi :P");
     /// ```
-    pub fn ok(data: &str, headers: Option<Vec<Header>>) -> Response {
-        Response::new(200, data, headers.unwrap_or_default())
+    pub fn text<T>(self, text: T) -> Response
+    where
+        T: std::fmt::Display,
+    {
+        Response {
+            data: text.to_string().as_bytes().to_vec(),
+            ..self
+        }
+    }
+
+    /// Add raw bytes as data to a Response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Response;
+    ///
+    /// // Create Response
+    /// let response = Response::new()
+    ///   .bytes(vec![79, 75]);
+    /// ```
+    pub fn bytes(self, bytes: Vec<u8>) -> Response {
+        Response {
+            data: bytes,
+            ..self
+        }
+    }
+
+    /// Add a Header to a Response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Response, Header};
+    ///
+    /// // Create Response
+    /// let response = Response::new()
+    ///    .header(Header::new("Content-Type", "text/html"));
+    /// ```
+    pub fn header(self, header: Header) -> Response {
+        let mut new_headers = self.headers;
+        new_headers.push(header);
+
+        Response {
+            headers: new_headers,
+            ..self
+        }
+    }
+
+    /// Add a Vec of Headers to a Response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Response, Header};
+    ///
+    /// // Create Response
+    /// let response = Response::new()
+    ///   .headers(vec![Header::new("Content-Type", "text/html")]);
+    /// ```
+    pub fn headers(self, headers: Vec<Header>) -> Response {
+        let mut new_headers = self.headers;
+        new_headers.append(&mut headers.clone());
+
+        Response {
+            headers: new_headers,
+            ..self
+        }
     }
 
     /// Add a cookie to a response.
@@ -72,11 +140,11 @@ impl Response {
     /// use afire::{Response, SetCookie};
     ///
     /// // Create Response and add cookie
-    /// let response = Response::new(200, "🍦", vec![])
-    ///     .add_cookie(SetCookie::new("name", "value"));
+    /// let response = Response::new()
+    ///     .cookie(SetCookie::new("name", "value"));
     /// ```
     #[cfg(feature = "cookies")]
-    pub fn add_cookie(&self, cookie: SetCookie) -> Response {
+    pub fn cookie(self, cookie: SetCookie) -> Response {
         let mut new = self.clone();
         new.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
@@ -90,16 +158,18 @@ impl Response {
     /// use afire::{Response, SetCookie};
     ///
     /// // Create Response and add cookie
-    /// let response = Response::new(200, "🍦", vec![])
-    ///     .add_cookies(vec![SetCookie::new("name", "value")]);
+    /// let response = Response::new()
+    ///     .cookies(vec![SetCookie::new("name", "value")]);
     /// ```
     #[cfg(feature = "cookies")]
-    pub fn add_cookies(&self, cookie: Vec<SetCookie>) -> Response {
+    pub fn cookies(self, cookie: Vec<SetCookie>) -> Response {
+        let mut new = Vec::new();
+
         for c in cookie {
-            self.add_cookie(c);
+            new.push(Header::new("Set-Cookie", &c.to_string()));
         }
 
-        self.clone()
+        self.headers(new)
     }
 }
 
