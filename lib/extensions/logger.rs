@@ -148,7 +148,7 @@ impl Logger {
     /// // Start the server
     /// // This is *still* blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn attach(server: &mut Server, logger: Logger) {
         let logger = RefCell::new(logger);

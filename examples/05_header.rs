@@ -68,7 +68,7 @@ fn main() {
 
     // Start the server
     // This will block the current thread
-    server.start();
+    server.start().unwrap();
 }
 
 // This is a representation of the order of the headers

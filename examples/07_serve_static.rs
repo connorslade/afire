@@ -58,7 +58,7 @@ fn main() {
 
     // Start the server
     // This will block the current thread
-    server.start();
+    server.start().unwrap();
 }
 
 // Get the type MMIE content type of a file from its extension

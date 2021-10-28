@@ -42,7 +42,7 @@ server.route(Method::GET, "/", |_req| {
 // Start the server
 // This is blocking
 
-server.start();
+server.start().unwrap();
 
 // Or use  multi threading *experimental*
 server.start_threaded(8);

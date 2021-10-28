@@ -96,7 +96,7 @@ impl RateLimiter {
     /// // Start Server
     /// // This is blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn attach(server: &mut Server, limiter: RateLimiter) {
         let cell = RefCell::new(limiter);

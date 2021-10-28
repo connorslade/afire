@@ -134,19 +134,19 @@ impl Server {
     /// // This is blocking
     /// # // Keep the server from starting and blocking the main thread
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
-    pub fn start(&self) {
+    pub fn start(&self) -> Option<()> {
         // Exit if the server should not run
         if !self.run {
-            return;
+            return Some(());
         }
 
-        let listener = init_listener(self.ip, self.port).unwrap();
+        let listener = init_listener(self.ip, self.port).ok()?;
 
         for event in listener.incoming() {
             // Read stream into buffer
-            let mut stream = event.unwrap();
+            let mut stream = event.ok()?;
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
@@ -177,6 +177,9 @@ impl Server {
             let _ = stream.write_all(&response);
             stream.flush().unwrap();
         }
+
+        // We should Never Get Here
+        None
     }
 
     /// Start the server with a thread pool.
@@ -209,10 +212,10 @@ impl Server {
     /// server.start_threaded(8);
     /// ```
     #[cfg(feature = "thread_pool")]
-    pub fn start_threaded(&self, threads: usize) {
+    pub fn start_threaded(&self, threads: usize) -> Option<()> {
         // Exit if the server should not run
         if !self.run {
-            return;
+            return Some(());
         }
 
         let listener = init_listener(self.ip, self.port).unwrap();
@@ -220,7 +223,7 @@ impl Server {
 
         for event in listener.incoming() {
             // Read stream into buffer
-            let stream = event.unwrap();
+            let stream = event.ok()?;
 
             let routes = self.routes.clone();
             let error_handler = self.error_handler;
@@ -258,6 +261,9 @@ impl Server {
                 stream.flush().unwrap();
             });
         }
+
+        // Again we should never get here
+        None
     }
 
     fn handle_connection(&self, stream: &TcpStream) -> Response {
@@ -282,7 +288,7 @@ impl Server {
     /// server.set_run(false);
     ///
     /// // 'Start' the server
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
@@ -310,7 +316,7 @@ impl Server {
     ///
     /// // Start the server
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     #[cfg(feature = "panic_handler")]
     pub fn set_error_handler(&mut self, res: fn(Request, String) -> Response) {
@@ -353,7 +359,7 @@ impl Server {
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn add_default_header(&mut self, header: Header) {
         self.default_headers
@@ -397,7 +403,7 @@ impl Server {
     /// // Starts the server
     /// // This is blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
@@ -425,7 +431,7 @@ impl Server {
     /// // Starts the server
     /// // This is blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     /// Now you can make any type of request to `/nose` and it will return a 200
     #[deprecated(since = "0.1.5", note = "Instead use .route(Method::ANY...)")]
@@ -459,7 +465,7 @@ impl Server {
     /// // Starts the server
     /// // This is blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn every(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
         self.middleware.push(handler);
@@ -486,7 +492,7 @@ impl Server {
     /// // Starts the server
     /// // This is blocking
     /// # server.set_run(false);
-    /// server.start();
+    /// server.start().unwrap();
     /// ```
     pub fn route(&mut self, method: Method, path: &str, handler: fn(Request) -> Response) {
         self.routes
