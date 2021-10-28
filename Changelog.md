@@ -1,11 +1,12 @@
-# 0.1.7*
+# 0.1.7
 - Add Panic Message to Error Handel
 - Add http.rs to move raw http parseing out of server.rs
 - Start / Start Threaded returns Option
 - Add .unwrap to all server.starts in examples
 - Add http.rs to move raw http parsing out of server.rs
-- Add optinal Socket Timeout
 - Dont give up on cookie parsing if cookie header is malformed
+- Add optinal Socket Timeout
+- Add Socket Timeout Docs
 
 # 0.1.6
 - Add Example for Logging

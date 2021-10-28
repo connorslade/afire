@@ -378,6 +378,25 @@ impl Server {
             .push(header);
     }
 
+    /// Set the socket Read / Write Timeout
+    ///
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use std::time::Duration;
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Set socket timeout
+    /// server.set_socket_timeout(Some(Duration::from_secs(1)));
+    ///
+    /// // Start the server
+    /// // As always, this is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn set_socket_timeout(&mut self, socket_timeout: Option<Duration>) {
         self.socket_timeout = socket_timeout;
     }

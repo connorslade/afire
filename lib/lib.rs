@@ -9,7 +9,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.1.6"
+afire = "0.1.7"
 ```
 
 ## 📄 Info
@@ -81,7 +81,7 @@ server.start_threaded(8);
 
 #![warn(missing_docs)]
 
-pub(crate) const VERSION: &str = "0.1.7*";
+pub(crate) const VERSION: &str = "0.1.7";
 
 mod common;
 mod http;
