@@ -2,6 +2,9 @@
 - Response Overhaul, Now more like a Response Builder
 - Update *every* example with new syntax...
 - Small improvement to Query parseing
+- Rename .every to .middleware
+- Update Readme in /examples
+- Add a dynamic buffer resize feature
 
 # 0.1.7
 - Add Panic Message to Error Handel

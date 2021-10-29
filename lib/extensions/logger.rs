@@ -153,7 +153,7 @@ impl Logger {
     pub fn attach(server: &mut Server, logger: Logger) {
         let logger = RefCell::new(logger);
 
-        server.every(Box::new(move |req| {
+        server.middleware(Box::new(move |req| {
             logger.borrow_mut().log(req);
             None
         }));

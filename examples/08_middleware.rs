@@ -22,7 +22,7 @@ fn main() {
 
     // Now to add some middleware
     // For this example we will add a middleware that will print all requests to the console
-    server.every(Box::new(|req| {
+    server.middleware(Box::new(|req| {
         println!("[{}] {} {}", req.address, req.method, req.path);
 
         // Return None to forward the request to the next middleware or route

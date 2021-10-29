@@ -17,7 +17,7 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = ["panic_handler", "thread_pool", "cookies"]
+default = ["panic_handler", "thread_pool", "cookies", "dynamic_resize"]
 
 # Extions
 rate_limit = []
@@ -27,6 +27,7 @@ logging = []
 panic_handler = []
 cookies = []
 thread_pool = []
+dynamic_resize = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples

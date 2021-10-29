@@ -69,3 +69,6 @@ Using afire's built in middleware make and attach a logger to a server.
 ## 12 - Rate Limit
 
 Add a rate limit to your server with some built in middleware.
+
+## To add
+- Socket Timeout

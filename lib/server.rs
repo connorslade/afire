@@ -102,6 +102,7 @@ impl Server {
             routes: Vec::new(),
             middleware: Vec::new(),
             run: true,
+
             #[cfg(feature = "panic_handler")]
             error_handler: |_, err| {
                 Response::new()
@@ -109,6 +110,7 @@ impl Server {
                     .text(format!("Internal Server Error :/\n{}", err))
                     .header(Header::new("Content-Type", "text/plain"))
             },
+
             default_headers: Some(vec![Header::new("Server", &format!("afire/{}", VERSION))]),
             socket_timeout: None,
         }
@@ -156,7 +158,8 @@ impl Server {
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let mut res = self.handle_connection(&stream);
+            let mut res =
+                handle_connection(&stream, &self.middleware, self.error_handler, &self.routes);
 
             // Add default headers to response
             let mut headers = res.headers;
@@ -271,10 +274,6 @@ impl Server {
 
         // Again we should never get here
         None
-    }
-
-    fn handle_connection(&self, stream: &TcpStream) -> Response {
-        handle_connection(stream, &self.middleware, self.error_handler, &self.routes)
     }
 
     /// Keep a server from starting
@@ -484,7 +483,7 @@ impl Server {
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Add some middleware
-    /// server.every(Box::new(|req| {
+    /// server.middleware(Box::new(|req| {
     ///     // Do something with the request
     ///     // Return a `None` to continue to the next middleware / route
     ///     // Return a `Some` to send a response
@@ -496,7 +495,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn every(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
+    pub fn middleware(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
         self.middleware.push(handler);
     }
 
@@ -548,12 +547,13 @@ fn handle_connection(
     let buffer_clone = buffer.clone();
     let stream_string = match str::from_utf8(&buffer_clone) {
         Ok(s) => s,
-        Err(_) => return quick_err("Internal Server Error", 500),
+        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
     };
 
     // Get Content-Length header
     // If header shows thar more space is needed,
     // make a new buffer read the rest of the stream and add it to the first buffer
+    #[cfg(feature = "dynamic_resize")]
     for i in http::get_request_headers(stream_string.to_string()) {
         if i.name != "Content-Length" {
             continue;

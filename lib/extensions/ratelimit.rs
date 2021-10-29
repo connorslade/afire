@@ -102,7 +102,7 @@ impl RateLimiter {
     pub fn attach(server: &mut Server, limiter: RateLimiter) {
         let cell = RefCell::new(limiter);
 
-        server.every(Box::new(move |req| {
+        server.middleware(Box::new(move |req| {
             let ip = get_ip(req);
 
             cell.borrow_mut().check_reset();
