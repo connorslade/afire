@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Get Reason Phrase for a status code
 ///
 /// Supports Status:
@@ -57,6 +59,21 @@ pub(crate) fn reason_phrase(status: u16) -> String {
         _ => "OK",
     }
     .to_string()
+}
+
+/// Remove the port from an address
+///
+/// '192.168.1.26:1234' -> '192.168.1.26'
+pub(crate) fn remove_address_port<T>(address: T) -> String
+where
+    T: fmt::Display,
+{
+    address
+        .to_string()
+        .split(':')
+        .next()
+        .unwrap_or("null")
+        .to_string()
 }
 
 /// Compares two Vectors

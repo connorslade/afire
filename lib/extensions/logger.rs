@@ -3,9 +3,11 @@ use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 
+use crate::common::remove_address_port;
 use crate::{Request, Server};
 
 /// Define Log Levels
+#[derive(Debug)]
 pub enum Level {
     /// Give lots of information on what's going on.
     ///
@@ -19,6 +21,7 @@ pub enum Level {
 }
 
 /// Logger
+#[derive(Debug)]
 pub struct Logger {
     /// Is Logger enabled
     enabled: bool,
@@ -35,21 +38,97 @@ pub struct Logger {
 
 impl Logger {
     /// Make a new logger
+    ///
+    /// The default settings are as follows
+    ///
+    /// - Log Level: `Level::Info`
+    ///
+    /// - File: `None`
+    ///
+    /// - Console: `true`
     /// ## Example
     /// ```rust
     /// // Import Lib
     /// use afire::{Logger, Level};
     ///
     /// // Create a new logger
-    /// let logger = Logger::new(Level::Debug, Some("logs/log.txt"), true);
+    /// let logger = Logger::new();
     /// ```
-    pub fn new(level: Level, file: Option<&'static str>, console: bool) -> Logger {
+    pub fn new() -> Logger {
         Logger {
             enabled: true,
-            level,
-            file,
-            console,
+            level: Level::Info,
+            file: None,
+            console: true,
         }
+    }
+
+    /// Set the log Level of a logger
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Logger, Level};
+    ///
+    /// // Create a new logger
+    /// let logger = Logger::new()
+    ///     .level(Level::Debug);
+    /// ```
+    pub fn level(self, level: Level) -> Logger {
+        Logger { level, ..self }
+    }
+
+    /// Set the log file of a logger
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Logger, Level};
+    ///
+    /// // Create a new logger
+    /// let logger = Logger::new()
+    ///     .file(Some("nose.txt"));
+    /// ```
+    pub fn file(self, file: Option<&'static str>) -> Logger {
+        Logger { file, ..self }
+    }
+
+    /// Set the log Level of a logger
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Logger, Level};
+    ///
+    /// // Create a new logger
+    /// let logger = Logger::new()
+    ///     .console(false);
+    /// ```
+    pub fn console(self, console: bool) -> Logger {
+        Logger { console, ..self }
+    }
+
+    /// Attach a logger to a server
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Logger, Level, Server};
+    ///
+    /// // Create a new server
+    /// let mut server: Server = Server::new("localhost", 1234);
+    ///
+    /// // Create a new logger and attach it to the server
+    /// Logger::new().attach(&mut server);
+    ///
+    /// // Start the server
+    /// // This is *still* blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn attach(self, server: &mut Server) {
+        let logger = RefCell::new(self);
+
+        server.middleware(Box::new(move |req| {
+            logger.borrow_mut().log(req);
+            None
+        }));
     }
 
     /// Take a request and log it
@@ -132,42 +211,11 @@ impl Logger {
             }
         }
     }
-
-    /// Attach a logger to a server
-    /// ## Example
-    /// ```rust
-    /// // Import Lib
-    /// use afire::{Logger, Level, Server};
-    ///
-    /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
-    ///
-    /// // Create a new logger and attach it to the server
-    /// Logger::attach(&mut server, Logger::new(Level::Debug, Some("logs/log.txt"), true));
-    ///
-    /// // Start the server
-    /// // This is *still* blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn attach(server: &mut Server, logger: Logger) {
-        let logger = RefCell::new(logger);
-
-        server.middleware(Box::new(move |req| {
-            logger.borrow_mut().log(req);
-            None
-        }));
-    }
 }
 
-/// Remove the port from an address
-///
-/// '192.168.1.26:1234' -> '192.168.1.26'
-fn remove_address_port(address: &str) -> String {
-    address
-        .split(':')
-        .collect::<Vec<&str>>()
-        .first()
-        .unwrap_or(&"null")
-        .to_string()
+// Impl Default for Response
+impl Default for Logger {
+    fn default() -> Logger {
+        Logger::new()
+    }
 }

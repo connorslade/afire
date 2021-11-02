@@ -553,6 +553,7 @@ fn handle_connection(
     // Get Content-Length header
     // If header shows thar more space is needed,
     // make a new buffer read the rest of the stream and add it to the first buffer
+    // This could cause a proformance hit but is actually seams to be fasy enough
     #[cfg(feature = "dynamic_resize")]
     for i in http::get_request_headers(stream_string.to_string()) {
         if i.name != "Content-Length" {

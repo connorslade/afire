@@ -5,6 +5,8 @@
 - Rename .every to .middleware
 - Update Readme in /examples
 - Add a dynamic buffer resize feature
+- Update Readme
+- Update Logger Middleware to be a builder
 
 # 0.1.7
 - Add Panic Message to Error Handel

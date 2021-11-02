@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[cfg(feature = "cookies")]
 use super::cookie::SetCookie;
 use super::header::Header;
@@ -68,7 +70,7 @@ impl Response {
     /// ```
     pub fn text<T>(self, text: T) -> Response
     where
-        T: std::fmt::Display,
+        T: fmt::Display,
     {
         Response {
             data: text.to_string().as_bytes().to_vec(),
@@ -125,7 +127,8 @@ impl Response {
     /// ```
     pub fn headers(self, headers: Vec<Header>) -> Response {
         let mut new_headers = self.headers;
-        new_headers.append(&mut headers.clone());
+        let mut headers = headers;
+        new_headers.append(&mut headers);
 
         Response {
             headers: new_headers,
@@ -145,7 +148,7 @@ impl Response {
     /// ```
     #[cfg(feature = "cookies")]
     pub fn cookie(self, cookie: SetCookie) -> Response {
-        let mut new = self.clone();
+        let mut new = self;
         new.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
         new
@@ -170,6 +173,13 @@ impl Response {
         }
 
         self.headers(new)
+    }
+}
+
+// Impl Default for Response
+impl Default for Response {
+    fn default() -> Response {
+        Response::new()
     }
 }
 

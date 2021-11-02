@@ -4,6 +4,7 @@ use std::fmt;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
+use crate::common::remove_address_port;
 use crate::{Header, Request, Response, Server};
 
 /// Limit the amount of requests handled by the server.
@@ -103,7 +104,7 @@ impl RateLimiter {
         let cell = RefCell::new(limiter);
 
         server.middleware(Box::new(move |req| {
-            let ip = get_ip(req);
+            let ip = remove_address_port(&req.address);
 
             cell.borrow_mut().check_reset();
 
@@ -128,14 +129,4 @@ impl fmt::Debug for RateLimiter {
             .field("requests", &self.requests)
             .finish()
     }
-}
-
-fn get_ip(req: &Request) -> String {
-    req.address
-        .clone()
-        .split(':')
-        .collect::<Vec<&str>>()
-        .first()
-        .unwrap_or(&"null")
-        .to_string()
 }

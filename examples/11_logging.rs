@@ -14,20 +14,24 @@ fn main() {
             .header(Header::new("Content-Type", "text/plain"))
     });
 
-    // Make a logger
-    // This can be simplified by putting the logger creation directly in the attach method
+    // Make a logger and attach it to the server
 
-    // The fist argument is the level of logging this can be Debug or Info
-    // Debug will give alot more information about the request
-
-    // The second argument is if the logger should save to a file or not
-    // None is no file and Some(String) is a file with the given name
-
-    // The third argument tells the logger should print to the console or not
-    let logger = Logger::new(Level::Info, None, true);
-
-    // Attach a logger to the server
-    Logger::attach(&mut server, logger);
+    // In this example all of the arguments for the Logger are being manually set
+    // By defult Log Level is INFO, File is None and Console is true
+    // This could be condenced to `Logger::new().attach(&mut server);` as it uses al defult values
+    Logger::new()
+        // The level of logging this can be Debug or Info
+        // Debug will give alot more information about the request
+        .level(Level::Info)
+        // The file argument tells the logger should save to a file or not
+        // None is no file and Some(&str) is a file with the given name
+        // With logging to file it will wrtie to the file on every request...
+        .file(None)
+        // Tells the Logger if it should log to the console aswell
+        .console(true)
+        // This must be put at the end of your Logger Construction
+        // It adds the Logger to your Server as Middleware
+        .attach(&mut server);
 
     // Now if you goto http://localhost:8080/ you should see the log message in console.
 
