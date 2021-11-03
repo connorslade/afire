@@ -47,7 +47,11 @@ impl Cookie {
     /// use afire::Cookie;
     /// let cookie = Cookie::new("name", "value");
     /// ```
-    pub fn new(name: &str, value: &str) -> Cookie {
+    pub fn new<T, M>(name: T, value: M) -> Cookie
+    where
+        T: std::fmt::Display,
+        M: std::fmt::Display,
+    {
         Cookie {
             name: name.to_string(),
             value: value.to_string(),
@@ -116,7 +120,11 @@ impl SetCookie {
     /// use afire::SetCookie;
     /// let cookie = SetCookie::new("name", "value");
     /// ```
-    pub fn new(name: &str, value: &str) -> SetCookie {
+    pub fn new<T, M>(name: T, value: M) -> SetCookie
+    where
+        T: std::fmt::Display,
+        M: std::fmt::Display,
+    {
         SetCookie {
             cookie: Cookie::new(name, value),
             max_age: None,
@@ -155,11 +163,11 @@ impl SetCookie {
     /// ```
     /// use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
-    ///     .set_max_age(10 * 60);
+    ///     .max_age(10 * 60);
     ///
     /// assert_eq!(cookie.max_age, Some(10*60));
     /// ```
-    pub fn set_max_age(self, max_age: u64) -> SetCookie {
+    pub fn max_age(self, max_age: u64) -> SetCookie {
         let mut new = self;
         new.max_age = Some(max_age);
         new
@@ -170,11 +178,14 @@ impl SetCookie {
     /// ```
     /// use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
-    ///     .set_domain("domain");
+    ///     .domain("domain");
     ///
     /// assert_eq!(cookie.domain, Some("domain".to_string()));
     /// ```
-    pub fn set_domain(self, domain: &str) -> SetCookie {
+    pub fn domain<T>(self, domain: T) -> SetCookie
+    where
+        T: fmt::Display,
+    {
         let mut new = self;
         new.domain = Some(domain.to_string());
         new
@@ -185,11 +196,14 @@ impl SetCookie {
     /// ```
     /// use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
-    ///     .set_path("path");
+    ///     .path("path");
     ///
     /// assert_eq!(cookie.path, Some("path".to_string()));
     /// ```
-    pub fn set_path(self, path: &str) -> SetCookie {
+    pub fn path<T>(self, path: T) -> SetCookie
+    where
+        T: fmt::Display,
+    {
         let mut new = self;
         new.path = Some(path.to_string());
         new
@@ -200,11 +214,11 @@ impl SetCookie {
     /// ```
     /// use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
-    ///     .set_secure(true);
+    ///     .secure(true);
     ///
     /// assert_eq!(cookie.secure, true);
     /// ```
-    pub fn set_secure(self, secure: bool) -> SetCookie {
+    pub fn secure(self, secure: bool) -> SetCookie {
         let mut new = self;
         new.secure = secure;
         new

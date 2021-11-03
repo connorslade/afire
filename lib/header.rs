@@ -18,7 +18,11 @@ impl Header {
     /// let header1 = Header::new("Content-Type", "text/html");
     /// let header2 = Header::new("Access-Control-Allow-Origin", "*");
     /// ```
-    pub fn new(name: &str, value: &str) -> Header {
+    pub fn new<T, M>(name: T, value: M) -> Header
+    where
+        T: fmt::Display,
+        M: fmt::Display,
+    {
         Header {
             name: name.to_string(),
             value: value.to_string(),
@@ -55,14 +59,19 @@ impl Header {
     /// let header2 = Header::from_string("Content-Type: text/html").unwrap();
     ///
     /// assert!(header2 == header1);
-    pub fn from_string(header: &str) -> Option<Header> {
-        let splitted_header: Vec<&str> = header.split(':').collect();
-        if splitted_header.len() != 2 {
+    /// ```
+    pub fn from_string<T>(header: T) -> Option<Header>
+    where
+        T: fmt::Display,
+    {
+        let header = header.to_string();
+        let mut splitted_header = header.split(':');
+        if splitted_header.clone().count() != 2 {
             return None;
         }
         Some(Header {
-            name: splitted_header[0].trim().to_string(),
-            value: splitted_header[1].trim().to_string(),
+            name: splitted_header.next()?.trim().to_string(),
+            value: splitted_header.next()?.trim().to_string(),
         })
     }
 }

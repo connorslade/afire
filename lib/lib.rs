@@ -33,10 +33,10 @@ let mut server: Server = Server::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/", |_req| {
-    Response::new()
-        .status(200)
-        .text("Hello World!")
-        .header(Header::new("Content-Type", "text/plain"))
+  Response::new()
+    .status(200)
+    .text("Hello World!")
+    .header(Header::new("Content-Type", "text/plain"))
 });
 
 // Start the server
@@ -66,7 +66,7 @@ afire = { version = "0.2.0", features = ["rate_limit", "logging"] }
 
 - Threading
 
-Just start the server like this. This will spawn a pool of threads to handle the requests.
+Just start the server like this. This will spawn a pool of threads to handle the requests. This is currently experimental and does not support middleware...
 
 ```rust
 use afire::{Server, Method, Response, Header};

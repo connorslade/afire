@@ -32,11 +32,10 @@ let mut server: Server = Server::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/", |_req| {
-    Response::new(
-        200,
-        "Hello World",
-        vec![Header::new("Content-Type", "text/plain")],
-    )
+  Response::new()
+    .status(200)
+    .text("Hello World!")
+    .header(Header::new("Content-Type", "text/plain"))
 });
 
 // Start the server

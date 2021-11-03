@@ -176,7 +176,7 @@ impl Response {
     }
 }
 
-// Impl Default for Response
+// Impl Defult for Response
 impl Default for Response {
     fn default() -> Response {
         Response::new()
