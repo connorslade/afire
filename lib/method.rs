@@ -69,7 +69,10 @@ impl Method {
     /// assert!(Method::from_string("TRACE") == Method::TRACE);
     /// assert!(Method::from_string("foo") == Method::CUSTOM("FOO".to_string()));
     /// ```
-    pub fn from_string(s: &str) -> Method {
+    pub fn from_string<T>(s: T) -> Method
+    where
+        T: fmt::Display,
+    {
         let upper_s = s.to_string().to_uppercase();
         match &upper_s[..] {
             "GET" => Method::GET,

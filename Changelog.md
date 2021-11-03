@@ -2,6 +2,10 @@
 - Response Overhaul, Now more like a Response Builder
 - Update *every* example with new syntax...
 - Small improvement to Query parseing
+- Update SetCookie Function Names
+- Update Cookie Example
+- Add a Build Script to write the Readme from the docstring in lib.rs
+- Use Generics for more functions that take &str / Strings to just impl Display
 
 # 0.1.7
 - Add Panic Message to Error Handel

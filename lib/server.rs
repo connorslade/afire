@@ -1,4 +1,5 @@
 // Import STD libraries
+use std::fmt;
 use std::io;
 use std::io::Read;
 use std::io::Write;
@@ -77,12 +78,16 @@ impl Server {
     /// // Note: The server has not been started yet
     /// let mut server: Server = Server::new("localhost", 8080);
     /// ```
-    pub fn new(mut raw_ip: &str, port: u16) -> Server {
+    pub fn new<T>(raw_ip: T, port: u16) -> Server
+    where
+        T: fmt::Display,
+    {
+        let mut raw_ip = raw_ip.to_string();
         let mut ip: [u8; 4] = [0; 4];
 
         // If the ip is localhost, use the loop back ip
         if raw_ip == "localhost" {
-            raw_ip = "127.0.0.1";
+            raw_ip = String::from("127.0.0.1");
         }
 
         // Parse the ip to an array
@@ -464,7 +469,10 @@ impl Server {
     /// ```
     /// Now you can make any type of request to `/nose` and it will return a 200
     #[deprecated(since = "0.1.5", note = "Instead use .route(Method::ANY...)")]
-    pub fn any(&mut self, path: &str, handler: fn(Request) -> Response) {
+    pub fn any<T>(&mut self, path: T, handler: fn(Request) -> Response)
+    where
+        T: fmt::Display,
+    {
         self.routes
             .push(Route::new(Method::ANY, path.to_string(), handler));
     }
@@ -522,7 +530,10 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn route(&mut self, method: Method, path: &str, handler: fn(Request) -> Response) {
+    pub fn route<T>(&mut self, method: Method, path: T, handler: fn(Request) -> Response)
+    where
+        T: fmt::Display,
+    {
         self.routes
             .push(Route::new(method, path.to_string(), handler));
     }

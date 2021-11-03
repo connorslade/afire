@@ -145,7 +145,7 @@ impl Response {
     /// ```
     #[cfg(feature = "cookies")]
     pub fn cookie(self, cookie: SetCookie) -> Response {
-        let mut new = self.clone();
+        let mut new = self;
         new.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
         new
@@ -170,6 +170,13 @@ impl Response {
         }
 
         self.headers(new)
+    }
+}
+
+// Impl Defult for Response
+impl Default for Response {
+    fn default() -> Response {
+        Response::new()
     }
 }
 

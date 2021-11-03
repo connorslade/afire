@@ -9,7 +9,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.2.0*"
+afire = "0.2.0"
 ```
 
 ## 📄 Info
@@ -33,10 +33,10 @@ let mut server: Server = Server::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/", |_req| {
-    Response::new()
-        .status(200)
-        .text("Hello World!")
-        .header(Header::new("Content-Type", "text/plain"))
+  Response::new()
+    .status(200)
+    .text("Hello World!")
+    .header(Header::new("Content-Type", "text/plain"))
 });
 
 // Start the server
@@ -61,12 +61,12 @@ For these you will need to enable the feature.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.1.6", features = ["rate_limit", "logging"] }
+afire = { version = "0.2.0", features = ["rate_limit", "logging"] }
 ```
 
 - Threading
 
-Just start the server like this. This will spawn a pool of threads to handle the requests.
+Just start the server like this. This will spawn a pool of threads to handle the requests. This is currently experimental and does not support middleware...
 
 ```rust
 use afire::{Server, Method, Response, Header};

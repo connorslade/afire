@@ -14,7 +14,10 @@ impl Query {
     /// use afire::Query;
     /// let query = Query::new("?foo=bar&nose=dog");
     /// ```
-    pub fn new(query: &str) -> Option<Query> {
+    pub fn new<T>(query: T) -> Option<Query>
+    where
+        T: fmt::Display,
+    {
         // Remove the leading '?' if it exists
         let mut body = query.to_string();
         if body.starts_with('?') {
@@ -68,9 +71,14 @@ impl Query {
     ///
     /// assert_eq!(query.get("foo"), Some("bar".to_string()));
     /// ```
-    pub fn get(&self, key: &str) -> Option<String> {
+    pub fn get<T>(&self, key: T) -> Option<String>
+    where
+        T: fmt::Display,
+    {
+        let key = key.to_string();
+
         for i in self.data.clone() {
-            if i[0] == key {
+            if *i.first()? == key {
                 return Some(i[1].clone());
             }
         }

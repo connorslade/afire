@@ -33,12 +33,12 @@ fn main() {
     server.route(Method::GET, "/set", |req| {
         // Create a new cookie
         let cookie = SetCookie::new(
-            &req.query.get("name").unwrap_or_else(|| "test".to_string()),
-            &req.query.get("value").unwrap_or_else(|| "test".to_string()),
+            req.query.get("name").unwrap_or_else(|| "test".to_string()),
+            req.query.get("value").unwrap_or_else(|| "test".to_string()),
         )
         // Set some options
-        .set_max_age(60 * 60)
-        .set_path("/");
+        .max_age(60 * 60)
+        .path("/");
 
         let body = format!(
             "Set Cookie '{}' to '{}'",
