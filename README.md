@@ -43,7 +43,7 @@ server.route(Method::GET, "/", |_req| {
 
 server.start().unwrap();
 
-// Or use  multi threading *experimental*
+// Or use multi threading *experimental*
 server.start_threaded(8);
 ```
 
@@ -54,7 +54,6 @@ Here I will outline interesting features that are available in afire.
 - Builtin Middleware
 
 afire comes with some builtin extensions in the form of middleware.
-It is all currently in very early beta stage.
 For these you will need to enable the feature.
 
 To use these extra features enable them like this:

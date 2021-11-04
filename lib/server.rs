@@ -91,7 +91,7 @@ impl Server {
         }
 
         // Parse the ip to an array
-        let split_ip: Vec<&str> = raw_ip.split('.').collect();
+        let split_ip = raw_ip.split('.').collect::<Vec<&str>>();
 
         if split_ip.len() != 4 {
             panic!("Invalid Server IP");

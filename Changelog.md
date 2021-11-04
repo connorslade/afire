@@ -1,4 +1,4 @@
-# 0.2.0*
+# 0.2.0
 - Response Overhaul, Now more like a Response Builder
 - Update *every* example with new syntax...
 - Small improvement to Query parseing
