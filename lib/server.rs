@@ -116,7 +116,7 @@ impl Server {
                     .header(Header::new("Content-Type", "text/plain"))
             },
 
-            default_headers: Some(vec![Header::new("Server", &format!("afire/{}", VERSION))]),
+            default_headers: Some(vec![Header::new("Server", format!("afire/{}", VERSION))]),
             socket_timeout: None,
         }
     }

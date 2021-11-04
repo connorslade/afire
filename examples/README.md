@@ -1,19 +1,19 @@
 # 🔥 afire Examples
 
-| Name              | Description                                           |
-| ----------------- | ----------------------------------------------------- |
-| 01_basic          | Start a basic web server that can serve text.         |
-| 02_serve_file     | Serve a local file.                                   |
-| 03_routeing       | Learn about routeing priority and add a 404 page      |
-| 04_data           | Send data to server with a Query String and Form Data |
-| 05_header         | Make and Read Headers to send extra data              |
-| 06_error_handling | Catch panics in routes                                |
-| 07_serve_static   | Serve static files from a dir                         |
-| 08_middleware     | Use Middleware to log requests                        |
-| 09_cookie         | Read and Write cookies to the client                  |
-| 10_threading      | Start a server with a threadpool to handel requests   |
-| 11_logging        | Log requests to a file / console                      |
-| 12_rate_limit     | Add a rate limit to your server                       |
+| Name              | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| 01_basic          | Start a basic web server that can serve text.                     |
+| 02_serve_file     | Serve a local file.                                               |
+| 03_routeing       | Learn about routing priority and add a 404 page                   |
+| 04_data           | Send data to server with a Query String, Path Prams and Form Data |
+| 05_header         | Make and Read Headers to send extra data                          |
+| 06_error_handling | Catch panics in routes                                            |
+| 07_serve_static   | Serve static files from a dir                                     |
+| 08_middleware     | Use Middleware to log requests                                    |
+| 09_cookie         | Read and Write cookies to the client                              |
+| 10_threading      | Start a server with a thread-pool to handle requests              |
+| 11_logging        | Log requests to a file / console                                  |
+| 12_rate_limit     | Add a rate limit to your server                                   |
 
 ## 01 - Basic
 
@@ -25,13 +25,13 @@ Read and server binary files from disk.
 
 In the example a html text file is served but this code would work with images, videos, etc.
 
-## 03 - Routeing
+## 03 - Routing
 
-Learn about routeing priority and add a 404 page.
+Learn about routing priority and add a 404 page.
 
 ## 04 - Data
 
-Use Query Strings and HTML forms to send data to the server from a webpage.
+Use Query Strings, Path Prams and HTML forms to send data to the server from a webpage.
 
 ## 05 - Headers
 
@@ -58,7 +58,7 @@ Also set new cookies with extra options.
 
 ## 10 - Threading
 
-Like Example 01 but the server is started with a threadpool to handle requests.
+Like Example 01 but the server is started with a thread-pool to handle requests.
 
 This feature is still experimental and doesn't yet support any Middleware : /
 
@@ -71,4 +71,5 @@ Using afire's built in middleware make and attach a logger to a server.
 Add a rate limit to your server with some built in middleware.
 
 ## To add
+
 - Socket Timeout

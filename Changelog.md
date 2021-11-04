@@ -10,6 +10,7 @@
 - Update Readme in /examples
 - Add a dynamic buffer resize feature
 - Update Logger Middleware to be a builder
+- Add Path Pram Example in 04_data
 
 # 0.1.7
 - Add Panic Message to Error Handel
