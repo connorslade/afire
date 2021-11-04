@@ -64,6 +64,7 @@ pub(crate) fn reason_phrase(status: u16) -> String {
 /// Remove the port from an address
 ///
 /// '192.168.1.26:1234' -> '192.168.1.26'
+#[cfg(any(feature = "rate_limit", feature = "logging"))]
 pub(crate) fn remove_address_port<T>(address: T) -> String
 where
     T: fmt::Display,

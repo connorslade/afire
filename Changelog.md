@@ -1,3 +1,6 @@
+# 0.2.1*
+- Only Build common::remove_address_port if logger or rate-limiter are enabled
+
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder
 - Update *every* example with new syntax...
