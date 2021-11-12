@@ -22,6 +22,7 @@ default = ["panic_handler", "thread_pool", "cookies", "dynamic_resize"]
 # Extions
 rate_limit = []
 logging = []
+serve_static = []
 
 # Default On
 panic_handler = []
@@ -31,4 +32,4 @@ dynamic_resize = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples
-afire = { path = ".", features = ["rate_limit", "logging"] }
+afire = { path = ".", features = ["rate_limit", "logging", "serve_static"] }

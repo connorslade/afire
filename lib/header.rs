@@ -4,8 +4,11 @@ use std::fmt;
 ///
 /// Has a name and a value.
 pub struct Header {
-    pub(super) name: String,
-    pub(super) value: String,
+    /// Name of the Header
+    pub name: String,
+
+    /// Value of the Header
+    pub value: String,
 }
 
 impl Header {
