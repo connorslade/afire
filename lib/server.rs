@@ -586,7 +586,7 @@ fn handle_connection(
 
     // TODO: Make this work with non utf8 stuff too
     let stream_string = match str::from_utf8(&buffer) {
-        Ok(i) => i,
+        Ok(i) => i.trim_matches(char::from(0)),
         Err(_) => return quick_err("No support for non utf-8 chars\nFor now", 500),
     };
 

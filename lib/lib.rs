@@ -123,9 +123,11 @@ pub use self::cookie::{Cookie, SetCookie};
 // Extra Features
 mod extensions;
 
-// Basic Rate Limiter
 #[cfg(feature = "rate_limit")]
 pub use extensions::ratelimit::RateLimiter;
 
 #[cfg(feature = "logging")]
 pub use extensions::logger::{Level, Logger};
+
+#[cfg(feature = "serve_static")]
+pub use extensions::serve_static::ServeStatic;
