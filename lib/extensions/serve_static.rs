@@ -44,18 +44,20 @@ impl ServeStatic {
         }
     }
 
-    // pub fn disabled<T>(self, file_path: T) -> Self
-    // where
-    //     T: std::fmt::Display,
-    // {
-    //     let mut disabled = self.disabled_files;
-    //     disabled.push(file_path.to_string());
-    //
-    //     Self {
-    //         disabled_files: disabled,
-    //         ..self
-    //     }
-    // }
+    /// Disable serveing a file
+    /// Path is relative to the dir being served
+    pub fn disabled<T>(self, file_path: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        let mut disabled = self.disabled_files;
+        disabled.push(file_path.to_string());
+
+        Self {
+            disabled_files: disabled,
+            ..self
+        }
+    }
 
     /// Attatch it to a Server
     pub fn attach(self, server: &mut Server) {

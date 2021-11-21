@@ -49,20 +49,20 @@ pub struct Server {
     /// Middleware
     pub middleware: Vec<Box<dyn Fn(&Request) -> Option<Response>>>,
 
+    /// Default response for internal server errors
+    #[cfg(feature = "panic_handler")]
+    pub error_handler: fn(Request, String) -> Response,
+
+    /// Headers automatically added to every response.
+    pub default_headers: Option<Vec<Header>>,
+
+    /// Socket Timeout
+    pub socket_timeout: Option<Duration>,
+
     /// Run server
     ///
     /// Really just for testing.
     run: bool,
-
-    /// Default response for internal server errors
-    #[cfg(feature = "panic_handler")]
-    error_handler: fn(Request, String) -> Response,
-
-    /// Headers automatically added to every response.
-    default_headers: Option<Vec<Header>>,
-
-    /// Socket Timeout
-    socket_timeout: Option<Duration>,
 }
 
 /// Implementations for Server
@@ -97,7 +97,7 @@ impl Server {
             panic!("Invalid Server IP");
         }
         for i in 0..4 {
-            let octet: u8 = split_ip[i].parse::<u8>().expect("Invalid Server IP");
+            let octet = split_ip[i].parse::<u8>().expect("Invalid Server IP");
             ip[i] = octet;
         }
 
