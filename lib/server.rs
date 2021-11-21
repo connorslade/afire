@@ -15,8 +15,8 @@ use std::time::Duration;
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-#[cfg(feature = "thread_pool")]
-use super::threadpool::ThreadPool;
+// #[cfg(feature = "thread_pool")]
+// use super::threadpool::ThreadPool;
 
 // Import local files
 use super::common::reason_phrase;
@@ -196,90 +196,90 @@ impl Server {
         None
     }
 
-    /// Start the server with a thread pool.
-    ///
-    /// **IN DEVELOPMENT**
-    ///
-    /// Currently will not work with any middleware.
-    /// Everything else works though
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::{Server, Response, Header, Method};
-    ///
-    /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Define a route
-    /// server.route(Method::GET, "/", |req| {
-    ///     Response::new()
-    ///         .status(200)
-    ///         .text("N O S E")
-    ///         .header(Header::new("Content-Type", "text/plain"))
-    /// });
-    ///
-    /// // Starts the server with 8 threads
-    /// // This is blocking
-    /// // Keep the server from starting and blocking the main thread
-    /// # server.set_run(false);
-    /// server.start_threaded(8);
-    /// ```
-    #[cfg(feature = "thread_pool")]
-    pub fn start_threaded(&self, threads: usize) -> Option<()> {
-        // Exit if the server should not run
-        if !self.run {
-            return Some(());
-        }
-
-        let listener = init_listener(self.ip, self.port).unwrap();
-        let pool = ThreadPool::new(threads);
-
-        for event in listener.incoming() {
-            // Read stream into buffer
-            let stream = event.ok()?;
-            stream.set_read_timeout(self.socket_timeout).unwrap();
-            stream.set_write_timeout(self.socket_timeout).unwrap();
-
-            let routes = self.routes.clone();
-            let error_handler = self.error_handler;
-            let default_headers = self.default_headers.clone();
-
-            pool.execute(move || {
-                let mut stream = stream;
-                // Get the response from the handler
-                // Uses the most recently defined route that matches the request
-                let mut res = handle_connection(&stream, &Vec::new(), error_handler, &routes);
-
-                // Add default headers to response
-                let mut headers = res.headers;
-                headers.append(&mut default_headers.unwrap_or_default());
-
-                // Add content-length header to response
-                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
-
-                // Convert the response to a string
-
-                let mut response = format!(
-                    "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                    res.status,
-                    reason_phrase(res.status),
-                    headers_to_string(headers)
-                )
-                .as_bytes()
-                .to_vec();
-
-                // Add Bytes of data to response
-                response.append(&mut res.data);
-
-                // Send the response
-                let _ = stream.write_all(&response);
-                stream.flush().unwrap();
-            });
-        }
-
-        // Again we should never get here
-        None
-    }
+    // /// Start the server with a thread pool.
+    // ///
+    // /// **IN DEVELOPMENT**
+    // ///
+    // /// Currently will not work with any middleware.
+    // /// Everything else works though
+    // /// ## Example
+    // /// ```rust
+    // /// // Import Library
+    // /// use afire::{Server, Response, Header, Method};
+    // ///
+    // /// // Starts a server for localhost on port 8080
+    // /// let mut server: Server = Server::new("localhost", 8080);
+    // ///
+    // /// // Define a route
+    // /// server.route(Method::GET, "/", |req| {
+    // ///     Response::new()
+    // ///         .status(200)
+    // ///         .text("N O S E")
+    // ///         .header(Header::new("Content-Type", "text/plain"))
+    // /// });
+    // ///
+    // /// // Starts the server with 8 threads
+    // /// // This is blocking
+    // /// // Keep the server from starting and blocking the main thread
+    // /// # server.set_run(false);
+    // /// server.start_threaded(8);
+    // /// ```
+    // #[cfg(feature = "thread_pool")]
+    // pub fn start_threaded(&self, threads: usize) -> Option<()> {
+    //     // Exit if the server should not run
+    //     if !self.run {
+    //         return Some(());
+    //     }
+    //
+    //     let listener = init_listener(self.ip, self.port).unwrap();
+    //     let pool = ThreadPool::new(threads);
+    //
+    //     for event in listener.incoming() {
+    //         // Read stream into buffer
+    //         let stream = event.ok()?;
+    //         stream.set_read_timeout(self.socket_timeout).unwrap();
+    //         stream.set_write_timeout(self.socket_timeout).unwrap();
+    //
+    //         let routes = self.routes.clone();
+    //         let error_handler = self.error_handler;
+    //         let default_headers = self.default_headers.clone();
+    //
+    //         pool.execute(move || {
+    //             let mut stream = stream;
+    //             // Get the response from the handler
+    //             // Uses the most recently defined route that matches the request
+    //             let mut res = handle_connection(&stream, &Vec::new(), error_handler, &routes);
+    //
+    //             // Add default headers to response
+    //             let mut headers = res.headers;
+    //             headers.append(&mut default_headers.unwrap_or_default());
+    //
+    //             // Add content-length header to response
+    //             headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+    //
+    //             // Convert the response to a string
+    //
+    //             let mut response = format!(
+    //                 "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+    //                 res.status,
+    //                 reason_phrase(res.status),
+    //                 headers_to_string(headers)
+    //             )
+    //             .as_bytes()
+    //             .to_vec();
+    //
+    //             // Add Bytes of data to response
+    //             response.append(&mut res.data);
+    //
+    //             // Send the response
+    //             let _ = stream.write_all(&response);
+    //             stream.flush().unwrap();
+    //         });
+    //     }
+    //
+    //     // Again we should never get here
+    //     None
+    // }
 
     /// Keep a server from starting
     ///
@@ -441,7 +441,7 @@ impl Server {
     /// ```
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_string(), handler));
+            .push(Route::new(Method::ANY, "*".to_string(), Box::new(handler)));
     }
 
     /// Create a new route for any type of request
@@ -473,7 +473,7 @@ impl Server {
         T: fmt::Display,
     {
         self.routes
-            .push(Route::new(Method::ANY, path.to_string(), handler));
+            .push(Route::new(Method::ANY, path.to_string(), Box::new(handler)));
     }
 
     /// Add a new middleware to the server
@@ -534,7 +534,7 @@ impl Server {
         T: fmt::Display,
     {
         self.routes
-            .push(Route::new(method, path.to_string(), handler));
+            .push(Route::new(method, path.to_string(), Box::new(handler)));
     }
 }
 

@@ -2,6 +2,8 @@
 - Only Build common::remove_address_port if logger or rate-limiter are enabled
 - Make Header name / value Public
 - Serve Static Middleware
+- Make Routes use Closures
+- Remove Threadpool (for now)
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder

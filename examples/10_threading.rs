@@ -30,5 +30,5 @@ fn main() {
 
     // Start the server with 8 threads
     // This will block the current thread
-    server.start_threaded(8);
+    // server.start_threaded(8);
 }

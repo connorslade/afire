@@ -45,7 +45,7 @@ server.route(Method::GET, "/", |_req| {
 server.start().unwrap();
 
 // Or use multi threading *experimental*
-server.start_threaded(8);
+// server.start_threaded(8);
 ```
 
 ## 🔧 Features
@@ -73,7 +73,7 @@ use afire::{Server, Method, Response, Header};
 let mut server: Server = Server::new("localhost", 8080);
 
 # server.set_run(false);
-server.start_threaded(8);
+// server.start_threaded(8);
 ```
 */
 
