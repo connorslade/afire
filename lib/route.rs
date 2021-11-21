@@ -1,5 +1,4 @@
 use std::fmt;
-use std::panic::RefUnwindSafe;
 
 use super::method::Method;
 use super::request::Request;
@@ -18,7 +17,7 @@ pub struct Route {
     pub path: String,
 
     /// Route Handler
-    pub handler: Box<dyn Fn(Request) -> Response + RefUnwindSafe>,
+    pub handler: Box<dyn Fn(Request) -> Response>,
 }
 
 impl Route {
@@ -26,16 +25,16 @@ impl Route {
     pub(super) fn new(
         method: Method,
         path: String,
-        handler: Box<dyn Fn(Request) -> Response + RefUnwindSafe>,
+        handler: Box<dyn Fn(Request) -> Response>,
     ) -> Route {
-        let mut new_path = path;
-        if new_path.chars().last().unwrap_or_default() == '/' {
-            new_path.pop();
+        let mut path = path;
+        if path.chars().last().unwrap_or_default() == '/' {
+            path.pop();
         }
 
         Route {
             method,
-            path: new_path,
+            path,
             handler,
         }
     }

@@ -4,6 +4,9 @@
 - Serve Static Middleware
 - Make Routes use Closures
 - Remove Threadpool (for now)
+- Make Error handler use a closure
+- Rename `set_error_handler` to `error_handler`
+- Rename `set_socket_timeout` to `socket_timeout`
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder

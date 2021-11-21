@@ -63,7 +63,11 @@ impl ServeStatic {
     pub fn attach(self, server: &mut Server) {
         let cell = RefCell::new(self);
 
-        server.middleware(Box::new(move |req| {
+        server.all_c(Box::new(move |req| {
+            if req.query.get("paic").is_some() {
+                panic!("um");
+            }
+
             let mut path = format!("{}{}", cell.borrow().data_dir, req.path.replace("/..", ""));
 
             // Add Index.html if path ends with /
@@ -83,11 +87,11 @@ impl ServeStatic {
                     .unwrap()
                     .to_string(),
             ) {
-                return Some((cell.borrow().not_found)(req, path));
+                return (cell.borrow().not_found)(&req, path);
             }
 
             // Try to read File
-            Some(match fs::read(&path) {
+            match fs::read(&path) {
                 // If its found send it as response
                 Ok(content) => Response::new().bytes(content).header(Header::new(
                     "Content-Type",
@@ -95,8 +99,8 @@ impl ServeStatic {
                 )),
 
                 // If not send the 404 route defined
-                Err(_) => (cell.borrow().not_found)(req, path),
-            })
+                Err(_) => (cell.borrow().not_found)(&req, path),
+            }
         }));
     }
 }
