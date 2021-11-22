@@ -14,6 +14,9 @@ pub struct Response {
 
     /// Response Headers
     pub headers: Vec<Header>,
+
+    /// Response Reason
+    pub reason: Option<String>,
 }
 
 impl Response {
@@ -37,6 +40,7 @@ impl Response {
             status: 200,
             data: vec![79, 75],
             headers: Vec::new(),
+            reason: None,
         }
     }
 
@@ -45,6 +49,7 @@ impl Response {
     /// ```rust
     /// // Import Library
     /// use afire::{Response, Header};
+    ///
     /// // Create Response
     /// let response = Response::new()
     ///    .status(200); // <- Here it is
@@ -52,6 +57,25 @@ impl Response {
     pub fn status(self, code: u16) -> Response {
         Response {
             status: code,
+            ..self
+        }
+    }
+
+    /// Manually set the Reason Phrase
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Response, Header};
+    ///
+    /// // Create Response
+    /// let response = Response::new()
+    ///    .reason("OK");
+    /// ```
+    pub fn reason<T>(self, reason: T) -> Response
+    where
+        T: fmt::Display,
+    {
+        Response {
+            reason: Some(reason.to_string()),
             ..self
         }
     }
@@ -190,6 +214,7 @@ impl Clone for Response {
             status: self.status,
             data: self.data.clone(),
             headers: self.headers.clone(),
+            reason: self.reason.clone(),
         }
     }
 }
@@ -197,6 +222,9 @@ impl Clone for Response {
 impl PartialEq for Response {
     /// Allow comparing Responses
     fn eq(&self, other: &Self) -> bool {
-        self.status == other.status && self.data == other.data && self.headers == other.headers
+        self.status == other.status
+            && self.data == other.data
+            && self.headers == other.headers
+            && self.reason == other.reason
     }
 }

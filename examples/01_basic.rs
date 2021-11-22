@@ -10,7 +10,12 @@ fn main() {
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {
         Response::new()
+            // By default the status is 200
             .status(200)
+            // By default the reason phrase is derived from the status
+            .reason("OK!")
+            // Although is is named `text` it takes any type that impls Display
+            // So for example numbers work too
             .text("Hi :P")
             .header(Header::new("Content-Type", "text/plain"))
     });

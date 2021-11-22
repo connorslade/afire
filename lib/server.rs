@@ -179,7 +179,10 @@ impl Server {
             let mut response = format!(
                 "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
                 res.status,
-                reason_phrase(res.status),
+                match res.reason {
+                    Some(i) => i,
+                    None => reason_phrase(res.status),
+                },
                 headers_to_string(headers)
             )
             .as_bytes()
