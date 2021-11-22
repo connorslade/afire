@@ -13,7 +13,7 @@ afire = "0.2.1"
 
 ## 📄 Info
 
-This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of apis / servers much easier. It supports Middleware and comes with some built in for Logging and Rate limiting.
+This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of apis / web servers much easier. It supports Middleware and comes with some built in for Static File Serving, Logging and Rate limiting.
 
 For more information on this lib check the docs [here](https://crates.io/crates/afire)
 
@@ -59,7 +59,7 @@ For these you will need to enable the feature.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.2.1", features = ["rate_limit", "logging"] }
+afire = { version = "0.2.1", features = ["rate_limit", "logging", "serve_static"] }
 ```
 
 - Threading

@@ -121,7 +121,7 @@ impl ServeStatic {
         }
     }
 
-    /// Disable serveing a file
+    /// Disable serving a file
     /// Path is relative to the dir being served
     /// ## Example
     /// ```rust
@@ -154,7 +154,7 @@ impl ServeStatic {
         }
     }
 
-    /// Disable serveing a many files at once
+    /// Disable serving a many files at once
     /// Path is relative to the dir being served
     /// ## Example
     /// ```rust
@@ -191,10 +191,12 @@ impl ServeStatic {
 
     /// Add a middleware to the static file server
     ///
-    /// Middleware here works much diffrnetly to afire middleware
+    /// Middleware here works much diffrently to afire middleware
+    ///
     /// The middleware priority is still by most recently defined
-    /// But this middleware takes functions only - no closures
-    /// and resultes of the middleware are put togther so more then one ac affect thre response
+    ///
+    /// But this middleware takes functions only - no closures.
+    /// The Resultes of the middleware are put togther so more then one middleware can affect thre response
     /// ## Example
     /// ```rust
     /// // Import Library
