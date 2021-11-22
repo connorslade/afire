@@ -83,8 +83,8 @@ pub(crate) const VERSION: &str = "0.2.1*";
 
 mod common;
 mod http;
-#[cfg(feature = "thread_pool")]
-mod threadpool;
+// #[cfg(feature = "thread_pool")]
+// mod threadpool;
 
 // The main server
 mod server;

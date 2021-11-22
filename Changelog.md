@@ -9,6 +9,7 @@
 - Rename `set_socket_timeout` to `socket_timeout`
 - Update Serve Static Example to use Middleware
 - Allow for Manually setting the reason phrase
+- Support URL encoded cookies
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder

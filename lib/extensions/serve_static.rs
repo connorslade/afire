@@ -6,6 +6,8 @@ use crate::Request;
 use crate::Response;
 use crate::Server;
 
+type Middleware = fn(Request, Response, bool) -> Option<(Response, bool)>;
+
 /// Serve Static Content
 #[derive(Clone)]
 pub struct ServeStatic {
@@ -21,7 +23,7 @@ pub struct ServeStatic {
     /// Middleware
     ///
     /// (Request, Static Response, Sucess [eg If file found])
-    pub middleware: Vec<fn(Request, Response, bool) -> Option<(Response, bool)>>,
+    pub middleware: Vec<Middleware>,
 
     /// MIME Types
     pub types: Vec<(String, String)>,
@@ -220,7 +222,7 @@ impl ServeStatic {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn middleware(self, f: fn(Request, Response, bool) -> Option<(Response, bool)>) -> Self {
+    pub fn middleware(self, f: Middleware) -> Self {
         let mut middleware = self.middleware;
         middleware.push(f);
 
@@ -362,9 +364,8 @@ impl ServeStatic {
             let mut res = process_req(req.clone(), cell.clone());
 
             for i in cell.borrow().middleware.clone().iter().rev() {
-                match i(req.clone(), res.0.clone(), res.1) {
-                    Some(i) => res = i,
-                    None => {}
+                if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                    res = i
                 };
             }
 
@@ -412,7 +413,7 @@ fn process_req(req: Request, cell: RefCell<ServeStatic>) -> (Response, bool) {
     }
 }
 
-fn get_type(path: &str, types: &Vec<(String, String)>) -> String {
+fn get_type(path: &str, types: &[(String, String)]) -> String {
     for i in types {
         if i.0 == path.split('.').last().unwrap_or("") {
             return i.1.to_owned();
