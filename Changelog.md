@@ -7,6 +7,7 @@
 - Make Error handler use a closure
 - Rename `set_error_handler` to `error_handler`
 - Rename `set_socket_timeout` to `socket_timeout`
+- Update Serve Static Example to use Middleware
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder

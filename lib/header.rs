@@ -68,13 +68,13 @@ impl Header {
         T: fmt::Display,
     {
         let header = header.to_string();
-        let mut splitted_header = header.split(':');
-        if splitted_header.clone().count() != 2 {
+        let mut split_header = header.split(':');
+        if split_header.clone().count() != 2 {
             return None;
         }
         Some(Header {
-            name: splitted_header.next()?.trim().to_string(),
-            value: splitted_header.next()?.trim().to_string(),
+            name: split_header.next()?.trim().to_string(),
+            value: split_header.next()?.trim().to_string(),
         })
     }
 }

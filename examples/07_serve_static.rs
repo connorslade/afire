@@ -1,7 +1,7 @@
-use afire::{Header, Response, Server};
-use std::fs;
+use afire::{Header, Response, ServeStatic, Server};
 
 // Serve static files from a directory
+// Afire middleware makes this *easy*
 
 const STATIC_DIR: &str = "examples/data";
 
@@ -9,46 +9,32 @@ fn main() {
     // Create a new Server instance on localhost port 8080
     let mut server: Server = Server::new("localhost", 8080);
 
-    // Define a method to handle all requests
-    // Other methods can be defined after this one and take a higher priority
-    server.all(|req| {
-        // Gen the local path to the requested file
-        // Im removing '/..' in the path to avoid directory traversal exploits
-        let mut path = format!("{}{}", STATIC_DIR, req.path.replace("/..", ""));
+    // Make a new static file server with a path
+    ServeStatic::new(STATIC_DIR)
+        // Middleware here works much diffrnetly to afire middleware
+        // The middleware priority is still by most recently defined
+        // But this middleware takes functions only - no closures
+        // and resultes of the middleware are put togther so more then one ac affect thre response
+        //
+        // Args:
+        // - req: Client Request
+        // - res: Current Server Response
+        // - suc: File to serve was found
+        .middleware(|req, res, suc| {
+            // Print path sevred
+            println!("Staticly Served: {}", req.path);
 
-        // Add Index.html if path ends with /
-        // This will cause the server to automatically serve the index.html
-        if path.ends_with('/') {
-            path.push_str("index.html");
-        }
-
-        // Also add '/index.html' if path dose not end with a file
-        // Ex 'page' will return 'page/index.html'
-        if !path.split('/').last().unwrap_or_default().contains('.') {
-            path.push_str("/index.html");
-        }
-
-        // Try to read File
-        // Using read over read_to_string is important to allow serving non utf8 files
-        match fs::read(&path) {
-            // If its found send it as response
-            // We are setting the Content-Type header with the file extension through a match expression
-            Ok(content) => Response::new()
-                .status(200)
-                .bytes(content)
-                .header(Header::new("Content-Type", get_type(&path))),
-
-            // If not read and send 404.html
-            // If that file is not found, fallback to sending "Not Found :/"
-            Err(_) => Response::new()
-                .status(404)
-                .bytes(
-                    fs::read(format!("{}/404.html", STATIC_DIR))
-                        .unwrap_or_else(|_| "Not Found :/".as_bytes().to_owned()),
-                )
-                .header(Header::new("Content-Type", "text/html")),
-        }
-    });
+            // Return none to not mess with response
+            Some((res.header(Header::new("X-Static-Serve", "true")), suc))
+        })
+        // Function that runs when no file is found to serve
+        // This will run before middleware
+        .not_found(|_req, _dis| Response::new().status(404).text("Page Not Found!"))
+        // Add an extra mime type to the server
+        // It has alot already
+        .mime_type("key", "value")
+        // Attatch the middleware to the server
+        .attach(&mut server);
 
     println!(
         "[07] Listening on http://{}:{}",
@@ -59,25 +45,4 @@ fn main() {
     // Start the server
     // This will block the current thread
     server.start().unwrap();
-}
-
-// Get the type MMIE content type of a file from its extension
-// Thare are lots of other MMIME types but these are the most common
-fn get_type(path: &str) -> &str {
-    match path.split('.').last() {
-        Some(ext) => match ext {
-            "html" => "text/html",
-            "css" => "text/css",
-            "js" => "application/javascript",
-            "png" => "image/png",
-            "jpg" => "image/jpeg",
-            "jpeg" => "image/jpeg",
-            "gif" => "image/gif",
-            "ico" => "image/x-icon",
-            "svg" => "image/svg+xml",
-            _ => "application/octet-stream",
-        },
-
-        None => "application/octet-stream",
-    }
 }

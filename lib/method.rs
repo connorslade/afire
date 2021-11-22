@@ -34,7 +34,7 @@ pub enum Method {
 
     /// PATCH Method
     ///
-    /// Used for aplaying a partial update to a resource
+    /// Used for applying a partial update to a resource
     PATCH,
 
     /// TRACE Method

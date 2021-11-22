@@ -10,7 +10,7 @@ use super::response::Response;
 /// It will be created automatically when using server.route
 // #[derive(Clone)]
 pub struct Route {
-    /// Route Methood (GET, POST, ANY, etc)
+    /// Route Method (GET, POST, ANY, etc)
     pub method: Method,
 
     /// Route Path

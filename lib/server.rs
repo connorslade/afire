@@ -353,7 +353,7 @@ impl Server {
 
     /// Define the panic handler but with closures!
     ///
-    /// Basicly just [`Server::error_handler`] but with closures
+    /// Basicity just [`Server::error_handler`] but with closures
     ///
     /// Default response is 500 "Internal Server Error :/"
     ///
@@ -466,7 +466,7 @@ impl Server {
 
     /// Create a new route for any type of request
     ///
-    /// Basicly just [`Server::any`] but with closures
+    /// Basicity just [`Server::any`] but with closures
     /// ## Example
     /// ```rust
     /// // Import Library
@@ -530,7 +530,7 @@ impl Server {
 
     /// Define a new route with a closure as a handler
     ///
-    /// Basicly just [`Server::route`] but with closures
+    /// Basicity just [`Server::route`] but with closures
     /// ## Example
     /// ```rust
     /// // Import Library
@@ -593,7 +593,7 @@ fn handle_connection(
     // Get Content-Length header
     // If header shows thar more space is needed,
     // make a new buffer read the rest of the stream and add it to the first buffer
-    // This could cause a proformance hit but is actually seams to be fasy enough
+    // This could cause a performance hit but is actually seams to be fast enough
     #[cfg(feature = "dynamic_resize")]
     for i in http::get_request_headers(stream_string.to_string()) {
         if i.name != "Content-Length" {
@@ -683,7 +683,7 @@ fn handle_connection(
         .header(Header::new("Content-Type", "text/plain"))
 }
 
-/// Init Listaner
+/// Init Listener
 fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
     TcpListener::bind(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(ip[0], ip[1], ip[2], ip[3])),

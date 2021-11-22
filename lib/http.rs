@@ -1,14 +1,15 @@
-//! Stuff for wioking with Raw HTTP data
+//! Stuff for working with Raw HTTP data
 
 #[cfg(feature = "cookies")]
 use super::cookie::Cookie;
+use crate::common;
 use crate::header::Header;
 use crate::method::Method;
 use crate::query::Query;
 
 /// Get the request method of a raw HTTP request.
 ///
-/// Defaults to GET if no methood found
+/// Defaults to GET if no method found
 pub fn get_request_method(raw_data: String) -> Method {
     let method_str = raw_data
         .split(' ')
@@ -54,7 +55,8 @@ pub fn get_request_path(raw_data: String) -> String {
     if new_path.chars().last().unwrap_or_default() == '/' {
         new_path.pop();
     }
-    new_path
+
+    common::decode_url(new_path)
 }
 
 // Get The Query Data of a raw HTTP request.

@@ -19,7 +19,7 @@ pub struct Response {
 impl Response {
     /// Create a new Blank Response
     ///
-    /// Defult data is as follows
+    /// Default data is as follows
     /// - Status: 200
     ///
     /// - Data: OK
@@ -176,7 +176,7 @@ impl Response {
     }
 }
 
-// Impl Defult for Response
+// Impl Default for Response
 impl Default for Response {
     fn default() -> Response {
         Response::new()
