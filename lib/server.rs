@@ -574,7 +574,7 @@ impl Server {
 fn handle_connection(
     mut stream: &TcpStream,
     middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
-    error_handler: &Box<dyn Fn(Request, String) -> Response>,
+    error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
 ) -> Response {
     // Init (first) Buffer
