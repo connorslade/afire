@@ -29,6 +29,20 @@ pub struct ServeStatic {
 
 impl ServeStatic {
     /// Make a new Static File Server
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static file server and attach it to the afire server
+    /// ServeStatic::new("data/static").attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn new<T>(path: T) -> Self
     where
         T: std::fmt::Display,
@@ -109,6 +123,24 @@ impl ServeStatic {
 
     /// Disable serveing a file
     /// Path is relative to the dir being served
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Disable a file from being served
+    ///     .disable("index.scss")
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn disable<T>(self, file_path: T) -> Self
     where
         T: std::fmt::Display,
@@ -124,6 +156,24 @@ impl ServeStatic {
 
     /// Disable serveing a many files at once
     /// Path is relative to the dir being served
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Disable a vec of files from being served
+    ///     .disable_vec(vec!["index.scss", "index.css.map"])
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn disable_vec<T>(self, file_paths: Vec<T>) -> Self
     where
         T: std::fmt::Display,
@@ -145,6 +195,29 @@ impl ServeStatic {
     /// The middleware priority is still by most recently defined
     /// But this middleware takes functions only - no closures
     /// and resultes of the middleware are put togther so more then one ac affect thre response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Add some middleware to the Static File Server
+    ///     .middleware(|req, res, suc| {
+    ///        // Print the path of the file served
+    ///        println!("Staticly Served: {}", req.path);
+    ///
+    ///         None
+    ///     })
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn middleware(self, f: fn(Request, Response, bool) -> Option<(Response, bool)>) -> Self {
         let mut middleware = self.middleware;
         middleware.push(f);
@@ -157,6 +230,24 @@ impl ServeStatic {
     /// This will run if no file is found to serve or the file is disabled
     ///
     /// The bool in the fn parms is if the file is blocked
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Response, Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Set a new file not found page
+    ///     .not_found(|_req, _dis| Response::new().status(404).text("Page Not Found!"))
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn not_found(self, f: fn(&Request, bool) -> Response) -> Self {
         Self {
             not_found: f,
@@ -164,29 +255,32 @@ impl ServeStatic {
         }
     }
 
-    /// Attatch it to a Server
-    pub fn attach(self, server: &mut Server) {
-        let cell = RefCell::new(self);
-
-        server.all_c(Box::new(move |req| {
-            let mut res = process_req(req.clone(), cell.clone());
-
-            for i in cell.borrow().middleware.clone().iter().rev() {
-                match i(req.clone(), res.0.clone(), res.1) {
-                    Some(i) => res = i,
-                    None => {}
-                };
-            }
-
-            res.0
-        }));
-    }
-
     /// Add a MIME type to the Static file Server
+    ///
+    /// This extension comes with alot of builtin MIME types
+    /// but if you need to add more thats what this is for
     ///
     /// The key is the file extension
     ///
     /// The value is the MIME type
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Add a new MIME type
+    ///     .mime_type(".3gp", "video/3gpp")
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn mime_type<T, M>(self, key: T, value: M) -> Self
     where
         T: std::fmt::Display,
@@ -206,6 +300,24 @@ impl ServeStatic {
     /// The value is the MIME type
     ///
     /// Ex: ("html", "text/html")
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Add a new MIME type
+    ///     .mime_types(vec![(".3gp", "video/3gpp")])
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn mime_types<T, M>(self, new_types: Vec<(T, M)>) -> Self
     where
         T: std::fmt::Display,
@@ -220,6 +332,42 @@ impl ServeStatic {
         types.append(&mut new_types);
 
         Self { types, ..self }
+    }
+
+    /// Attatch it to a Server
+    ///
+    /// Not much to say really
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn attach(self, server: &mut Server) {
+        let cell = RefCell::new(self);
+
+        server.all_c(Box::new(move |req| {
+            let mut res = process_req(req.clone(), cell.clone());
+
+            for i in cell.borrow().middleware.clone().iter().rev() {
+                match i(req.clone(), res.0.clone(), res.1) {
+                    Some(i) => res = i,
+                    None => {}
+                };
+            }
+
+            res.0
+        }));
     }
 }
 
