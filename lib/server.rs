@@ -231,14 +231,14 @@ impl Server {
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Add a default header to the response
-    /// server.add_default_header(Header::new("Content-Type", "text/plain"));
+    /// server.default_header(Header::new("Content-Type", "text/plain"));
     ///
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn add_default_header(&mut self, header: Header) {
+    pub fn default_header(&mut self, header: Header) {
         self.default_headers
             .as_mut()
             .unwrap_or(&mut Vec::<Header>::new())
