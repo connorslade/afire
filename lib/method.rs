@@ -1,6 +1,7 @@
 use std::fmt;
 
 /// Methods for a request
+#[derive(Hash, Eq)]
 pub enum Method {
     /// GET Method
     ///

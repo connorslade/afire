@@ -3,6 +3,7 @@ use std::fmt;
 /// Http header
 ///
 /// Has a name and a value.
+#[derive(Hash, Eq)]
 pub struct Header {
     /// Name of the Header
     pub name: String,

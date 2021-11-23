@@ -8,6 +8,7 @@ use super::method::Method;
 use super::query::Query;
 
 /// Http Request
+#[derive(Hash, PartialEq, Eq)]
 pub struct Request {
     /// Request method
     pub method: Method,
@@ -26,13 +27,13 @@ pub struct Request {
     pub cookies: Vec<Cookie>,
 
     /// Request body
-    pub body: String,
+    pub body: Vec<u8>,
 
     /// Client address
     pub address: String,
 
     /// Raw Http Request
-    pub raw_data: String,
+    pub raw_data: Vec<u8>,
 }
 
 impl Request {
@@ -49,15 +50,15 @@ impl Request {
     ///    headers: vec![],
     ///    # #[cfg(feature = "cookies")]
     ///    cookies: vec![],
-    ///    body: "".to_string(),
+    ///    body: Vec::new(),
     ///    address: "127.0.0.1:8080".to_string(),
-    ///    raw_data: "".to_string(),
+    ///    raw_data: Vec::new(),
     /// };
     ///
     /// # #[cfg(feature = "cookies")]
-    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], vec![], "".to_string(), "127.0.0.1:8080".to_string(), "".to_string())));
+    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
     /// # #[cfg(not(feature = "cookies"))]
-    /// # assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], "".to_string(), "127.0.0.1:8080".to_string(), "".to_string())));
+    /// # assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
     /// ```
     pub fn new(
         method: Method,
@@ -65,9 +66,9 @@ impl Request {
         query: Query,
         headers: Vec<Header>,
         #[cfg(feature = "cookies")] cookies: Vec<Cookie>,
-        body: String,
+        body: Vec<u8>,
         address: String,
-        raw_data: String,
+        raw_data: Vec<u8>,
     ) -> Request {
         Request {
             method,

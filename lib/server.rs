@@ -598,11 +598,11 @@ fn handle_connection(
     // make a new buffer read the rest of the stream and add it to the first buffer
     // This could cause a performance hit but is actually seams to be fast enough
     #[cfg(feature = "dynamic_resize")]
-    for i in http::get_request_headers(stream_string.to_string()) {
+    for i in http::get_request_headers(&buffer) {
         if i.name != "Content-Length" {
             continue;
         }
-        let header_size = http::get_header_size(stream_string.to_string());
+        let header_size = http::get_header_size(&buffer);
         let content_length = i.value.parse::<usize>().unwrap_or(0);
         let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
         if new_buffer_size > 0 {
@@ -616,20 +616,14 @@ fn handle_connection(
         break;
     }
 
-    // TODO: Make this work with non utf8 stuff too
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(i) => i.trim_matches(char::from(0)),
-        Err(_) => return quick_err("No support for non utf-8 chars\nFor now", 500),
-    };
-
     // Make Request Object
-    let req_method = http::get_request_method(stream_string.to_string());
-    let req_path = http::get_request_path(stream_string.to_string());
-    let req_query = http::get_request_query(stream_string.to_string());
-    let body = http::get_request_body(stream_string.to_string());
-    let headers = http::get_request_headers(stream_string.to_string());
+    let req_method = http::get_request_method(&buffer);
+    let req_path = http::get_request_path(&buffer);
+    let req_query = http::get_request_query(&buffer);
+    let body = http::get_request_body(&buffer);
+    let headers = http::get_request_headers(&buffer);
     #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(stream_string.to_string());
+    let cookies = http::get_request_cookies(&buffer);
     let req = Request::new(
         req_method,
         &req_path,
@@ -639,7 +633,7 @@ fn handle_connection(
         cookies,
         body,
         stream.peer_addr().unwrap().to_string(),
-        stream_string.to_string(),
+        buffer,
     );
 
     // Use middleware to handle request
