@@ -5,6 +5,7 @@ use super::cookie::SetCookie;
 use super::header::Header;
 
 /// Http Response
+#[derive(Hash, Eq)]
 pub struct Response {
     /// Response status code
     pub status: u16,

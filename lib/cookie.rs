@@ -11,6 +11,7 @@ use std::fmt;
 use crate::common::decode_url;
 
 /// Represents a Cookie
+#[derive(Hash, PartialEq, Eq)]
 pub struct Cookie {
     /// Cookie Key
     pub name: String,

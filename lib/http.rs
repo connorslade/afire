@@ -10,7 +10,7 @@ use crate::query::Query;
 /// Get the request method of a raw HTTP request.
 ///
 /// Defaults to GET if no method found
-pub fn get_request_method(raw_data: String) -> Method {
+pub fn get_request_method(raw_data: &str) -> Method {
     let method_str = raw_data
         .split(' ')
         .next()
@@ -32,7 +32,7 @@ pub fn get_request_method(raw_data: String) -> Method {
 }
 
 /// Get the path of a raw HTTP request.
-pub fn get_request_path(raw_data: String) -> String {
+pub fn get_request_path(raw_data: &str) -> String {
     let mut path_str = raw_data.split(' ');
 
     let path = path_str.nth(1).unwrap_or_default().to_string();
@@ -60,7 +60,7 @@ pub fn get_request_path(raw_data: String) -> String {
 }
 
 // Get The Query Data of a raw HTTP request.
-pub fn get_request_query(raw_data: String) -> Query {
+pub fn get_request_query(raw_data: &str) -> Query {
     let mut path_str = raw_data.split(' ');
     if path_str.clone().count() <= 1 {
         return Query::new_empty();
@@ -76,21 +76,25 @@ pub fn get_request_query(raw_data: String) -> Query {
 }
 
 /// Get the body of a raw HTTP request.
-pub fn get_request_body(raw_data: String) -> String {
-    let mut data = raw_data.split("\r\n\r\n");
-
-    if data.clone().count() >= 2 {
-        return data
-            .nth(1)
-            .unwrap_or_default()
-            .trim_matches(char::from(0))
-            .to_string();
+pub fn get_request_body(raw_data: &Vec<u8>) -> Vec<u8> {
+    let mut raw_data = raw_data.iter().map(|x| x.to_owned());
+    let mut data = Vec::new();
+    for _ in raw_data.clone() {
+        if raw_data.next() == Some('\r' as u8)
+            && raw_data.next() == Some('\n' as u8)
+            && raw_data.next() == Some('\r' as u8)
+            && raw_data.next() == Some('\n' as u8)
+        {
+            data = raw_data.collect();
+            break;
+        }
     }
-    "".to_string()
+
+    data
 }
 
 /// Get the headers of a raw HTTP request.
-pub fn get_request_headers(raw_data: String) -> Vec<Header> {
+pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
     let mut headers = Vec::new();
     let mut spilt = raw_data.split("\r\n\r\n");
     let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
@@ -106,7 +110,7 @@ pub fn get_request_headers(raw_data: String) -> Vec<Header> {
 
 /// Get Cookies of a raw HTTP request.
 #[cfg(feature = "cookies")]
-pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
+pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
     let mut spilt = raw_data.split("\r\n\r\n");
     let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
 
@@ -123,7 +127,7 @@ pub fn get_request_cookies(raw_data: String) -> Vec<Cookie> {
 }
 
 /// Get the byte size of the headers of a raw HTTP request.
-pub fn get_header_size(raw_data: String) -> usize {
+pub fn get_header_size(raw_data: &str) -> usize {
     let mut headers = raw_data.split("\r\n\r\n");
     headers.next().unwrap_or_default().len() + 4
 }
