@@ -83,11 +83,12 @@ impl Request {
         }
     }
 
-    /// Compare two requests.
-    ///
-    /// ```rust
-    /// use afire::{Request, Method};
+    /// Get request body data as a string!
+    pub fn body_string(&self) -> Option<String> {
+        String::from_utf8(self.body.clone()).ok()
+    }
 
+    /// Compare two requests.
     pub fn compare(&self, other: &Request) -> bool {
         self.method == other.method
             && self.path == other.path

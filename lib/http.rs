@@ -10,8 +10,7 @@ use crate::query::Query;
 /// Get the request method of a raw HTTP request.
 ///
 /// Defaults to GET if no method found
-pub fn get_request_method(raw_data: &Vec<u8>) -> Method {
-    let raw_data = String::from_utf8_lossy(raw_data);
+pub fn get_request_method(raw_data: &str) -> Method {
     let method_str = raw_data
         .split(' ')
         .next()
@@ -33,8 +32,7 @@ pub fn get_request_method(raw_data: &Vec<u8>) -> Method {
 }
 
 /// Get the path of a raw HTTP request.
-pub fn get_request_path(raw_data: &Vec<u8>) -> String {
-    let raw_data = String::from_utf8_lossy(raw_data);
+pub fn get_request_path(raw_data: &str) -> String {
     let mut path_str = raw_data.split(' ');
 
     let path = path_str.nth(1).unwrap_or_default().to_string();
@@ -62,8 +60,7 @@ pub fn get_request_path(raw_data: &Vec<u8>) -> String {
 }
 
 // Get The Query Data of a raw HTTP request.
-pub fn get_request_query(raw_data: &Vec<u8>) -> Query {
-    let raw_data = String::from_utf8_lossy(raw_data);
+pub fn get_request_query(raw_data: &str) -> Query {
     let mut path_str = raw_data.split(' ');
     if path_str.clone().count() <= 1 {
         return Query::new_empty();
@@ -97,8 +94,7 @@ pub fn get_request_body(raw_data: &Vec<u8>) -> Vec<u8> {
 }
 
 /// Get the headers of a raw HTTP request.
-pub fn get_request_headers(raw_data: &Vec<u8>) -> Vec<Header> {
-    let raw_data = String::from_utf8_lossy(raw_data);
+pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
     let mut headers = Vec::new();
     let mut spilt = raw_data.split("\r\n\r\n");
     let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
@@ -114,8 +110,7 @@ pub fn get_request_headers(raw_data: &Vec<u8>) -> Vec<Header> {
 
 /// Get Cookies of a raw HTTP request.
 #[cfg(feature = "cookies")]
-pub fn get_request_cookies(raw_data: &Vec<u8>) -> Vec<Cookie> {
-    let raw_data = String::from_utf8_lossy(raw_data);
+pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
     let mut spilt = raw_data.split("\r\n\r\n");
     let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
 
@@ -132,8 +127,7 @@ pub fn get_request_cookies(raw_data: &Vec<u8>) -> Vec<Cookie> {
 }
 
 /// Get the byte size of the headers of a raw HTTP request.
-pub fn get_header_size(raw_data: &Vec<u8>) -> usize {
-    let raw_data = String::from_utf8_lossy(raw_data);
+pub fn get_header_size(raw_data: &str) -> usize {
     let mut headers = raw_data.split("\r\n\r\n");
     headers.next().unwrap_or_default().len() + 4
 }

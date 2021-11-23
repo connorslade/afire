@@ -586,9 +586,13 @@ fn handle_connection(
         Err(_) => return quick_err("Error Reading Stream", 500),
     };
 
-    // Get buffer as string
-    let buffer_clone = buffer.clone();
-    let stream_string = match str::from_utf8(&buffer_clone) {
+    println!(
+        "DUMP: {}",
+        String::from_utf8(buffer.clone()).unwrap_or_default()
+    );
+
+    // Get Buffer as string for parseing content length header
+    let stream_string = match str::from_utf8(&buffer) {
         Ok(s) => s,
         Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
     };
@@ -598,11 +602,11 @@ fn handle_connection(
     // make a new buffer read the rest of the stream and add it to the first buffer
     // This could cause a performance hit but is actually seams to be fast enough
     #[cfg(feature = "dynamic_resize")]
-    for i in http::get_request_headers(&buffer) {
+    for i in http::get_request_headers(stream_string) {
         if i.name != "Content-Length" {
             continue;
         }
-        let header_size = http::get_header_size(&buffer);
+        let header_size = http::get_header_size(stream_string);
         let content_length = i.value.parse::<usize>().unwrap_or(0);
         let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
         if new_buffer_size > 0 {
@@ -616,14 +620,24 @@ fn handle_connection(
         break;
     }
 
+    while buffer.ends_with(&['\0' as u8]) {
+        buffer.pop();
+    }
+
+    // Get Buffer as string for parseing Path, Method, Query, etc
+    let stream_string = match str::from_utf8(&buffer) {
+        Ok(s) => s,
+        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
+    };
+
     // Make Request Object
-    let req_method = http::get_request_method(&buffer);
-    let req_path = http::get_request_path(&buffer);
-    let req_query = http::get_request_query(&buffer);
+    let req_method = http::get_request_method(stream_string);
+    let req_path = http::get_request_path(stream_string);
+    let req_query = http::get_request_query(stream_string);
     let body = http::get_request_body(&buffer);
-    let headers = http::get_request_headers(&buffer);
+    let headers = http::get_request_headers(stream_string);
     #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(&buffer);
+    let cookies = http::get_request_cookies(stream_string);
     let req = Request::new(
         req_method,
         &req_path,
