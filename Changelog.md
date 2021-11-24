@@ -13,6 +13,7 @@
 - Rename `add_default_header` to `default_header`
 - Store Raw Request data and Request body as `Vec<u8>`
 - Fix Panic Handler feature compile problems
+- Dont use an Option for Vec of default headers
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder

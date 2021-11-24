@@ -55,7 +55,7 @@ pub struct Server {
     pub error_handler: Box<dyn Fn(Request, String) -> Response>,
 
     /// Headers automatically added to every response.
-    pub default_headers: Option<Vec<Header>>,
+    pub default_headers: Vec<Header>,
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
@@ -117,7 +117,7 @@ impl Server {
                     .header(Header::new("Content-Type", "text/plain"))
             }),
 
-            default_headers: Some(vec![Header::new("Server", format!("afire/{}", VERSION))]),
+            default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
             socket_timeout: None,
         }
     }
@@ -174,7 +174,7 @@ impl Server {
 
             // Add default headers to response
             let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone().unwrap_or_default());
+            headers.append(&mut self.default_headers.clone());
 
             // Add content-length header to response
             headers.push(Header::new("Content-Length", &res.data.len().to_string()));
@@ -244,10 +244,7 @@ impl Server {
     /// server.start().unwrap();
     /// ```
     pub fn default_header(&mut self, header: Header) {
-        self.default_headers
-            .as_mut()
-            .unwrap_or(&mut Vec::<Header>::new())
-            .push(header);
+        self.default_headers.push(header);
     }
 
     /// Set the socket Read / Write Timeout
