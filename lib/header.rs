@@ -3,7 +3,7 @@ use std::fmt;
 /// Http header
 ///
 /// Has a name and a value.
-#[derive(Hash, Eq)]
+#[derive(Hash, PartialEq, Eq)]
 pub struct Header {
     /// Name of the Header
     pub name: String,
@@ -95,12 +95,6 @@ impl fmt::Display for Header {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.name, self.value)
-    }
-}
-
-impl PartialEq for Header {
-    fn eq(&self, other: &Header) -> bool {
-        self.name == other.name && self.value == other.value
     }
 }
 

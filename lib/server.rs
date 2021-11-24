@@ -164,8 +164,13 @@ impl Server {
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let mut res =
-                handle_connection(&stream, &self.middleware, &self.error_handler, &self.routes);
+            let mut res = handle_connection(
+                &stream,
+                &self.middleware,
+                #[cfg(feature = "panic_handler")]
+                &self.error_handler,
+                &self.routes,
+            );
 
             // Add default headers to response
             let mut headers = res.headers;
@@ -574,7 +579,7 @@ impl Server {
 fn handle_connection(
     mut stream: &TcpStream,
     middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
-    error_handler: &dyn Fn(Request, String) -> Response,
+    #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
 ) -> Response {
     // Init (first) Buffer
@@ -592,6 +597,7 @@ fn handle_connection(
     );
 
     // Get Buffer as string for parseing content length header
+    #[cfg(feature = "dynamic_resize")]
     let stream_string = match str::from_utf8(&buffer) {
         Ok(s) => s,
         Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
@@ -620,7 +626,7 @@ fn handle_connection(
         break;
     }
 
-    while buffer.ends_with(&['\0' as u8]) {
+    while buffer.ends_with(&[b'\0']) {
         buffer.pop();
     }
 

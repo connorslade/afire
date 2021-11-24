@@ -11,6 +11,8 @@
 - Allow for Manually setting the reason phrase
 - Support URL encoded cookies
 - Rename `add_default_header` to `default_header`
+- Store Raw Request data and Request body as `Vec<u8>`
+- Fix Panic Handler feature compile problems
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder
