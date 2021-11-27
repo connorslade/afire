@@ -69,7 +69,7 @@ impl Header {
         T: fmt::Display,
     {
         let header = header.to_string();
-        let mut split_header = header.split(':');
+        let mut split_header = header.splitn(2, ':');
         if split_header.clone().count() != 2 {
             return None;
         }
