@@ -55,7 +55,7 @@ pub struct Server {
     pub error_handler: Box<dyn Fn(Request, String) -> Response>,
 
     /// Headers automatically added to every response.
-    pub default_headers: Option<Vec<Header>>,
+    pub default_headers: Vec<Header>,
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
@@ -117,7 +117,7 @@ impl Server {
                     .header(Header::new("Content-Type", "text/plain"))
             }),
 
-            default_headers: Some(vec![Header::new("Server", format!("afire/{}", VERSION))]),
+            default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
             socket_timeout: None,
         }
     }
@@ -164,12 +164,17 @@ impl Server {
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let mut res =
-                handle_connection(&stream, &self.middleware, &self.error_handler, &self.routes);
+            let mut res = handle_connection(
+                &stream,
+                &self.middleware,
+                #[cfg(feature = "panic_handler")]
+                &self.error_handler,
+                &self.routes,
+            );
 
             // Add default headers to response
             let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone().unwrap_or_default());
+            headers.append(&mut self.default_headers.clone());
 
             // Add content-length header to response
             headers.push(Header::new("Content-Length", &res.data.len().to_string()));
@@ -231,18 +236,15 @@ impl Server {
     /// let mut server: Server = Server::new("localhost", 8080);
     ///
     /// // Add a default header to the response
-    /// server.add_default_header(Header::new("Content-Type", "text/plain"));
+    /// server.default_header(Header::new("Content-Type", "text/plain"));
     ///
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn add_default_header(&mut self, header: Header) {
-        self.default_headers
-            .as_mut()
-            .unwrap_or(&mut Vec::<Header>::new())
-            .push(header);
+    pub fn default_header(&mut self, header: Header) {
+        self.default_headers.push(header);
     }
 
     /// Set the socket Read / Write Timeout
@@ -574,7 +576,7 @@ impl Server {
 fn handle_connection(
     mut stream: &TcpStream,
     middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
-    error_handler: &dyn Fn(Request, String) -> Response,
+    #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
 ) -> Response {
     // Init (first) Buffer
@@ -592,6 +594,7 @@ fn handle_connection(
     );
 
     // Get Buffer as string for parseing content length header
+    #[cfg(feature = "dynamic_resize")]
     let stream_string = match str::from_utf8(&buffer) {
         Ok(s) => s,
         Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
@@ -620,7 +623,7 @@ fn handle_connection(
         break;
     }
 
-    while buffer.ends_with(&['\0' as u8]) {
+    while buffer.ends_with(&[b'\0']) {
         buffer.pop();
     }
 

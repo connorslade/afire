@@ -6,7 +6,7 @@ use crate::Request;
 use crate::Response;
 use crate::Server;
 
-type Middleware = fn(Request, Response, bool) -> Option<(Response, bool)>;
+type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
 /// Serve Static Content
 #[derive(Clone)]

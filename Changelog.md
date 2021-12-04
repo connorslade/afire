@@ -10,6 +10,11 @@
 - Update Serve Static Example to use Middleware
 - Allow for Manually setting the reason phrase
 - Support URL encoded cookies
+- Rename `add_default_header` to `default_header`
+- Store Raw Request data and Request body as `Vec<u8>`
+- Fix Panic Handler feature compile problems
+- Dont use an Option for Vec of default headers
+- Fix Header Parseing
 - Add a `header` method on Request to get headers
 
 # 0.2.0

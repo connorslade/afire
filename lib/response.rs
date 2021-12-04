@@ -5,7 +5,7 @@ use super::cookie::SetCookie;
 use super::header::Header;
 
 /// Http Response
-#[derive(Hash, Eq)]
+#[derive(Hash, PartialEq, Eq)]
 pub struct Response {
     /// Response status code
     pub status: u16,
@@ -217,15 +217,5 @@ impl Clone for Response {
             headers: self.headers.clone(),
             reason: self.reason.clone(),
         }
-    }
-}
-
-impl PartialEq for Response {
-    /// Allow comparing Responses
-    fn eq(&self, other: &Self) -> bool {
-        self.status == other.status
-            && self.data == other.data
-            && self.headers == other.headers
-            && self.reason == other.reason
     }
 }

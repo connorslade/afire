@@ -76,14 +76,15 @@ pub fn get_request_query(raw_data: &str) -> Query {
 }
 
 /// Get the body of a raw HTTP request.
-pub fn get_request_body(raw_data: &Vec<u8>) -> Vec<u8> {
+pub fn get_request_body(raw_data: &[u8]) -> Vec<u8> {
     let mut raw_data = raw_data.iter().map(|x| x.to_owned());
     let mut data = Vec::new();
     for _ in raw_data.clone() {
-        if raw_data.next() == Some('\r' as u8)
-            && raw_data.next() == Some('\n' as u8)
-            && raw_data.next() == Some('\r' as u8)
-            && raw_data.next() == Some('\n' as u8)
+        // much jank
+        if raw_data.next() == Some(b'\r')
+            && raw_data.next() == Some(b'\n')
+            && raw_data.next() == Some(b'\r')
+            && raw_data.next() == Some(b'\n')
         {
             data = raw_data.collect();
             break;
@@ -127,6 +128,7 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
 }
 
 /// Get the byte size of the headers of a raw HTTP request.
+#[cfg(feature = "dynamic_resize")]
 pub fn get_header_size(raw_data: &str) -> usize {
     let mut headers = raw_data.split("\r\n\r\n");
     headers.next().unwrap_or_default().len() + 4
