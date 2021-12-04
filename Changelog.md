@@ -1,4 +1,4 @@
-# 0.2.1*
+# 0.2.1
 - Only Build common::remove_address_port if logger or rate-limiter are enabled
 - Make Header name / value Public
 - Serve Static Middleware
@@ -15,6 +15,7 @@
 - Fix Panic Handler feature compile problems
 - Dont use an Option for Vec of default headers
 - Fix Header Parseing
+- Add a `header` method on Request to get headers
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder

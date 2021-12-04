@@ -37,7 +37,6 @@ pub struct Request {
 }
 
 impl Request {
-    #[allow(clippy::too_many_arguments)]
     /// Quick and easy way to create a request.
     ///
     /// ```rust
@@ -60,6 +59,7 @@ impl Request {
     /// # #[cfg(not(feature = "cookies"))]
     /// # assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         method: Method,
         path: &str,
@@ -86,6 +86,35 @@ impl Request {
     /// Get request body data as a string!
     pub fn body_string(&self) -> Option<String> {
         String::from_utf8(self.body.clone()).ok()
+    }
+
+    /// Get a request header by its name
+    ///
+    /// This is not case sensitive
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Request, Header, Method, Query};
+    ///
+    /// // Create Request
+    /// # #[cfg(feature = "cookies")]
+    /// let request = Request::new(Method::GET, "/", Query::new_empty(), vec![Header::new("hello", "world")], Vec::new(), Vec::new(), "127.0.0.1:8080".to_string(), Vec::new());
+    /// # #[cfg(not(feature = "cookies"))]
+    /// # let request = Request::new(Method::GET, "/", Query::new_empty(), vec![Header::new("hello", "world")], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new());
+    ///
+    /// assert_eq!(request.header("hello").unwrap(), "world");
+    /// ```
+    pub fn header<T>(&self, name: T) -> Option<String>
+    where
+        T: fmt::Display,
+    {
+        let name = name.to_string().to_lowercase();
+        for i in self.headers.clone() {
+            if name == i.name.to_lowercase() {
+                return Some(i.value);
+            }
+        }
+        None
     }
 
     /// Compare two requests.

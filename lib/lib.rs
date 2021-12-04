@@ -79,7 +79,7 @@ let mut server: Server = Server::new("localhost", 8080);
 
 #![warn(missing_docs)]
 
-pub(crate) const VERSION: &str = "0.2.1*";
+pub(crate) const VERSION: &str = "0.2.1";
 
 mod common;
 mod http;
