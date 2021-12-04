@@ -10,6 +10,7 @@
 - Update Serve Static Example to use Middleware
 - Allow for Manually setting the reason phrase
 - Support URL encoded cookies
+- Add a `header` method on Request to get headers
 
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder
