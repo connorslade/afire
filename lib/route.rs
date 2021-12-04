@@ -8,35 +8,44 @@ use super::response::Response;
 ///
 /// You should not use this directly.
 /// It will be created automatically when using server.route
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct Route {
-    pub(super) method: Method,
-    pub(super) path: String,
-    pub(super) handler: fn(Request) -> Response,
+    /// Route Method (GET, POST, ANY, etc)
+    pub method: Method,
+
+    /// Route Path
+    pub path: String,
+
+    /// Route Handler
+    pub handler: Box<dyn Fn(Request) -> Response>,
 }
 
 impl Route {
     /// Creates a new route.
-    pub(super) fn new(method: Method, path: String, handler: fn(Request) -> Response) -> Route {
-        let mut new_path = path;
-        if new_path.chars().last().unwrap_or_default() == '/' {
-            new_path.pop();
+    pub(super) fn new(
+        method: Method,
+        path: String,
+        handler: Box<dyn Fn(Request) -> Response>,
+    ) -> Route {
+        let mut path = path;
+        if path.chars().last().unwrap_or_default() == '/' {
+            path.pop();
         }
 
         Route {
             method,
-            path: new_path,
+            path,
             handler,
         }
     }
 }
 
+// TODO: Show handler in debug
 impl fmt::Debug for Route {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Route")
             .field("method", &self.method)
             .field("path", &self.path)
-            .field("handler", &self.handler)
             .finish()
     }
 }

@@ -1,6 +1,7 @@
 use std::fmt;
 
 /// Methods for a request
+#[derive(Hash, PartialEq, Eq)]
 pub enum Method {
     /// GET Method
     ///
@@ -34,7 +35,7 @@ pub enum Method {
 
     /// PATCH Method
     ///
-    /// Used for aplaying a partial update to a resource
+    /// Used for applying a partial update to a resource
     PATCH,
 
     /// TRACE Method
@@ -136,16 +137,5 @@ impl fmt::Debug for Method {
         f.debug_struct("Method")
             .field("method", &self.to_string())
             .finish()
-    }
-}
-
-impl PartialEq for Method {
-    /// Allow comparing Method Enums
-    ///
-    /// EX: Method::GET == Method::GET
-    ///
-    /// > True
-    fn eq(&self, other: &Self) -> bool {
-        std::mem::discriminant(self) == std::mem::discriminant(other)
     }
 }

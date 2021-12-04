@@ -2,6 +2,7 @@ use crate::common;
 use std::fmt;
 
 /// Struct for holding query data
+#[derive(Hash, PartialEq, Eq)]
 pub struct Query {
     pub(crate) data: Vec<[String; 2]>,
 }

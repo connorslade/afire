@@ -1,7 +1,26 @@
+# 0.2.1
+- Only Build common::remove_address_port if logger or rate-limiter are enabled
+- Make Header name / value Public
+- Serve Static Middleware
+- Make Routes use Closures
+- Remove Threadpool (for now)
+- Make Error handler use a closure
+- Rename `set_error_handler` to `error_handler`
+- Rename `set_socket_timeout` to `socket_timeout`
+- Update Serve Static Example to use Middleware
+- Allow for Manually setting the reason phrase
+- Support URL encoded cookies
+- Rename `add_default_header` to `default_header`
+- Store Raw Request data and Request body as `Vec<u8>`
+- Fix Panic Handler feature compile problems
+- Dont use an Option for Vec of default headers
+- Fix Header Parseing
+- Add a `header` method on Request to get headers
+
 # 0.2.0
 - Response Overhaul, Now more like a Response Builder
 - Update *every* example with new syntax...
-- Small improvement to Query parseing
+- Small improvement to Query parsing
 - Update SetCookie Function Names
 - Update Cookie Example
 - Add a Build Script to write the Readme from the docstring in lib.rs
@@ -14,12 +33,12 @@
 
 # 0.1.7
 - Add Panic Message to Error Handel
-- Add http.rs to move raw http parseing out of server.rs
+- Add http.rs to move raw http parsing out of server.rs
 - Start / Start Threaded returns Option
 - Add .unwrap to all server.starts in examples
 - Add http.rs to move raw http parsing out of server.rs
 - Dont give up on cookie parsing if cookie header is malformed
-- Add optinal Socket Timeout
+- Add optional Socket Timeout
 - Add Socket Timeout Docs
 
 # 0.1.6
@@ -31,7 +50,7 @@
 - Ignore extra slashes in path
 - Remove nose.txt... don't know how that got there :P
 - Don't unwrap stream.read, ignore errors like a good programmer
-- Fix Routeing Issue
+- Fix Routing Issue
 - Ignore Case in Method String
 - Add different Reason Phrase for the status codes
 - Update Server Header to add Version

@@ -47,6 +47,8 @@ Learn about afire's automatic route error handling and add your own error handle
 
 Serve all static files from a directory.
 
+Makes use of one of afire's built in extensions
+
 ## 08 - Middleware
 
 Learn about Middleware and how to use it to log requests.

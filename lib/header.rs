@@ -3,9 +3,13 @@ use std::fmt;
 /// Http header
 ///
 /// Has a name and a value.
+#[derive(Hash, PartialEq, Eq)]
 pub struct Header {
-    pub(super) name: String,
-    pub(super) value: String,
+    /// Name of the Header
+    pub name: String,
+
+    /// Value of the Header
+    pub value: String,
 }
 
 impl Header {
@@ -65,13 +69,13 @@ impl Header {
         T: fmt::Display,
     {
         let header = header.to_string();
-        let mut splitted_header = header.split(':');
-        if splitted_header.clone().count() != 2 {
+        let mut split_header = header.splitn(2, ':');
+        if split_header.clone().count() != 2 {
             return None;
         }
         Some(Header {
-            name: splitted_header.next()?.trim().to_string(),
-            value: splitted_header.next()?.trim().to_string(),
+            name: split_header.next()?.trim().to_string(),
+            value: split_header.next()?.trim().to_string(),
         })
     }
 }
@@ -91,12 +95,6 @@ impl fmt::Display for Header {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.name, self.value)
-    }
-}
-
-impl PartialEq for Header {
-    fn eq(&self, other: &Header) -> bool {
-        self.name == other.name && self.value == other.value
     }
 }
 

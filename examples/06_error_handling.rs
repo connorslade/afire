@@ -27,7 +27,7 @@ fn main() {
     // You can optionally define a custom error handler
     // This can be defined anywhere in the server and will take affect for all routes
     // Its like a normal route, but it will only be called if the route panics
-    server.set_error_handler(|_req, err| {
+    server.error_handler(|_req, err| {
         Response::new()
             .status(500)
             .text(format!(

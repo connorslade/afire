@@ -8,6 +8,7 @@ use super::method::Method;
 use super::query::Query;
 
 /// Http Request
+#[derive(Hash, PartialEq, Eq)]
 pub struct Request {
     /// Request method
     pub method: Method,
@@ -26,17 +27,16 @@ pub struct Request {
     pub cookies: Vec<Cookie>,
 
     /// Request body
-    pub body: String,
+    pub body: Vec<u8>,
 
     /// Client address
     pub address: String,
 
     /// Raw Http Request
-    pub raw_data: String,
+    pub raw_data: Vec<u8>,
 }
 
 impl Request {
-    #[allow(clippy::too_many_arguments)]
     /// Quick and easy way to create a request.
     ///
     /// ```rust
@@ -49,25 +49,26 @@ impl Request {
     ///    headers: vec![],
     ///    # #[cfg(feature = "cookies")]
     ///    cookies: vec![],
-    ///    body: "".to_string(),
+    ///    body: Vec::new(),
     ///    address: "127.0.0.1:8080".to_string(),
-    ///    raw_data: "".to_string(),
+    ///    raw_data: Vec::new(),
     /// };
     ///
     /// # #[cfg(feature = "cookies")]
-    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], vec![], "".to_string(), "127.0.0.1:8080".to_string(), "".to_string())));
+    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
     /// # #[cfg(not(feature = "cookies"))]
-    /// # assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], "".to_string(), "127.0.0.1:8080".to_string(), "".to_string())));
+    /// # assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         method: Method,
         path: &str,
         query: Query,
         headers: Vec<Header>,
         #[cfg(feature = "cookies")] cookies: Vec<Cookie>,
-        body: String,
+        body: Vec<u8>,
         address: String,
-        raw_data: String,
+        raw_data: Vec<u8>,
     ) -> Request {
         Request {
             method,
@@ -82,11 +83,41 @@ impl Request {
         }
     }
 
-    /// Compare two requests.
-    ///
-    /// ```rust
-    /// use afire::{Request, Method};
+    /// Get request body data as a string!
+    pub fn body_string(&self) -> Option<String> {
+        String::from_utf8(self.body.clone()).ok()
+    }
 
+    /// Get a request header by its name
+    ///
+    /// This is not case sensitive
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Request, Header, Method, Query};
+    ///
+    /// // Create Request
+    /// # #[cfg(feature = "cookies")]
+    /// let request = Request::new(Method::GET, "/", Query::new_empty(), vec![Header::new("hello", "world")], Vec::new(), Vec::new(), "127.0.0.1:8080".to_string(), Vec::new());
+    /// # #[cfg(not(feature = "cookies"))]
+    /// # let request = Request::new(Method::GET, "/", Query::new_empty(), vec![Header::new("hello", "world")], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new());
+    ///
+    /// assert_eq!(request.header("hello").unwrap(), "world");
+    /// ```
+    pub fn header<T>(&self, name: T) -> Option<String>
+    where
+        T: fmt::Display,
+    {
+        let name = name.to_string().to_lowercase();
+        for i in self.headers.clone() {
+            if name == i.name.to_lowercase() {
+                return Some(i.value);
+            }
+        }
+        None
+    }
+
+    /// Compare two requests.
     pub fn compare(&self, other: &Request) -> bool {
         self.method == other.method
             && self.path == other.path

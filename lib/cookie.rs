@@ -8,7 +8,10 @@ It can be disabled with the `cookies` feature.
 
 use std::fmt;
 
+use crate::common::decode_url;
+
 /// Represents a Cookie
+#[derive(Hash, PartialEq, Eq)]
 pub struct Cookie {
     /// Cookie Key
     pub name: String,
@@ -78,7 +81,10 @@ impl Cookie {
                 }
                 .trim_end_matches(';');
 
-                final_cookies.push(Cookie::new(name, value));
+                final_cookies.push(Cookie::new(
+                    decode_url(name.to_owned()),
+                    decode_url(value.to_owned()),
+                ));
             }
             return Some(final_cookies);
         }
