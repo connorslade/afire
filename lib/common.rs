@@ -1,3 +1,4 @@
+#[cfg(any(feature = "rate_limit", feature = "logging"))]
 use std::fmt;
 
 /// Get Reason Phrase for a status code

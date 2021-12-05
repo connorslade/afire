@@ -1,6 +1,6 @@
 [package]
 name = "afire"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 
