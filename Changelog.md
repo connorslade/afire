@@ -1,4 +1,7 @@
 # 0.2.2
+- Remove Debug Print Left in...
+- Small changes to features
+- This is mostly about the Debug Print
 
 # 0.2.1
 - Only Build common::remove_address_port if logger or rate-limiter are enabled

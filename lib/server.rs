@@ -588,11 +588,6 @@ fn handle_connection(
         Err(_) => return quick_err("Error Reading Stream", 500),
     };
 
-    println!(
-        "DUMP: {}",
-        String::from_utf8(buffer.clone()).unwrap_or_default()
-    );
-
     // Get Buffer as string for parseing content length header
     #[cfg(feature = "dynamic_resize")]
     let stream_string = match str::from_utf8(&buffer) {
