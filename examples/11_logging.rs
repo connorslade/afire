@@ -23,12 +23,12 @@ fn main() {
         // The level of logging this can be Debug or Info
         // Debug will give alot more information about the request
         .level(Level::Info)
-        // The file argument tells the logger should save to a file or not
-        // None is no file and Some(&str) is a file with the given name
-        // With logging to file it will wrtie to the file on every request...
-        .file(None)
-        // Tells the Logger if it should log to the console aswell
-        .console(true)
+        // The file argument tells the logger if it should save to a file
+        // Only one file can be defined per logger
+        // With logging to file it will wrtie to the file on every request... (for now)
+        .file("example.log")
+        // Tells the Logger it should log to the console aswell
+        .console()
         // This must be put at the end of your Logger Construction
         // It adds the Logger to your Server as Middleware
         .attach(&mut server);

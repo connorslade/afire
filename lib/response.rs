@@ -199,6 +199,27 @@ impl Response {
 
         self.headers(new)
     }
+
+    /// Set a Content Type on a Response
+    /// ## Example
+    /// ```
+    /// // Import Library
+    /// use afire::{Response, Content};
+    ///
+    /// // Create Response and type
+    /// let response = Response::new()
+    ///     .content(Content::HTML);
+    /// ```
+    #[cfg(feature = "content_type")]
+    pub fn content(self, content_type: crate::Content) -> Response {
+        let mut new_headers = self.headers;
+        new_headers.push(Header::new("Content-Type", content_type.as_type()));
+
+        Response {
+            headers: new_headers,
+            ..self
+        }
+    }
 }
 
 // Impl Default for Response

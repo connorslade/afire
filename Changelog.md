@@ -1,3 +1,7 @@
+# 0.2.3
+- Add content types
+- Update Logger syntax
+
 # 0.2.2
 - Remove Debug Print Left in...
 - Small changes to features

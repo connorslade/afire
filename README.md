@@ -8,7 +8,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.2.2"
+afire = "0.2.3"
 ```
 
 ## 📄 Info
@@ -59,7 +59,7 @@ For these you will need to enable the feature.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.2.2", features = ["rate_limit", "logging", "serve_static"] }
+afire = { version = "0.2.3", features = ["rate_limit", "logging", "serve_static"] }
 ```
 
 - Threading

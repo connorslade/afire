@@ -2,6 +2,7 @@
 use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
+use std::path::PathBuf;
 
 use crate::common::remove_address_port;
 use crate::{Request, Server};
@@ -30,7 +31,7 @@ pub struct Logger {
     level: Level,
 
     /// Optional file to write logs to
-    file: Option<&'static str>,
+    file: Option<PathBuf>,
 
     /// If logs should also be printed to stdout
     console: bool,
@@ -83,26 +84,35 @@ impl Logger {
     /// // Import Lib
     /// use afire::{Logger, Level};
     ///
-    /// // Create a new logger
+    /// // Create a new logger and enable logging to file
     /// let logger = Logger::new()
-    ///     .file(Some("nose.txt"));
+    ///     .file("nose.txt");
     /// ```
-    pub fn file(self, file: Option<&'static str>) -> Logger {
-        Logger { file, ..self }
+    pub fn file<T>(self, file: T) -> Logger
+    where
+        T: std::fmt::Display,
+    {
+        Logger {
+            file: Some(PathBuf::from(file.to_string())),
+            ..self
+        }
     }
 
-    /// Set the log Level of a logger
+    /// Enable writeing events to stdout
     /// ## Example
     /// ```rust
     /// // Import Lib
     /// use afire::{Logger, Level};
     ///
-    /// // Create a new logger
+    /// // Create a new logger and enable console
     /// let logger = Logger::new()
-    ///     .console(false);
+    ///     .console();
     /// ```
-    pub fn console(self, console: bool) -> Logger {
-        Logger { console, ..self }
+    pub fn console(self) -> Logger {
+        Logger {
+            console: true,
+            ..self
+        }
     }
 
     /// Attach a logger to a server
@@ -205,11 +215,14 @@ impl Logger {
                 .create(true)
                 .write(true)
                 .append(true)
-                .open(self.file.unwrap())
+                .open(self.file.clone().unwrap())
                 .unwrap();
 
             if writeln!(file, "{}", data).is_err() {
-                println!("[-] Erm... Error writhing to file '{}", self.file.unwrap())
+                println!(
+                    "[-] Erm... Error writhing to file '{}",
+                    self.file.clone().unwrap().as_os_str().to_string_lossy()
+                )
             }
         }
     }
