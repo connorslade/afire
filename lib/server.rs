@@ -15,10 +15,6 @@ use std::time::Duration;
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-// #[cfg(feature = "thread_pool")]
-// TODO: Add Back Threadpool
-// use super::threadpool::ThreadPool;
-
 // Import local files
 use super::common::reason_phrase;
 use super::header::{headers_to_string, Header};
@@ -29,12 +25,6 @@ use super::response::Response;
 use super::route::Route;
 use super::VERSION;
 
-/// Default Buffer Size
-///
-/// Needs to be big enough to hold a the request headers
-/// in order to read the content length (1024 seams to work)
-const BUFF_SIZE: usize = 1024;
-
 /// Defines a server.
 pub struct Server {
     /// Port to listen on.
@@ -42,6 +32,12 @@ pub struct Server {
 
     /// Ip address to listen on.
     pub ip: [u8; 4],
+
+    /// Default Buffer Size
+    ///
+    /// Needs to be big enough to hold a the request headers
+    /// in order to read the content length (1024 seams to work)
+    pub buff_size: usize,
 
     /// Routes to handle.
     pub routes: Vec<Route>,
@@ -105,6 +101,7 @@ impl Server {
         Server {
             port,
             ip,
+            buff_size: 1024,
             routes: Vec::new(),
             middleware: Vec::new(),
             run: true,
@@ -170,6 +167,7 @@ impl Server {
                 #[cfg(feature = "panic_handler")]
                 &self.error_handler,
                 &self.routes,
+                self.buff_size,
             );
 
             // Add default headers to response
@@ -198,7 +196,7 @@ impl Server {
 
             // Send the response
             let _ = stream.write_all(&response);
-            stream.flush().unwrap();
+            stream.flush().ok()?;
         }
 
         // We should Never Get Here
@@ -224,6 +222,26 @@ impl Server {
         format!("{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
     }
 
+    /// Set the satrting buffer size. The default is `1024`
+    ///
+    /// Needs to be big enough to hold a the request headers
+    /// in order to read the content length (1024 seams to work)
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080)
+    ///     .buffer(2048);
+    /// ```
+    pub fn buffer(self, buf: usize) -> Server {
+        Server {
+            buff_size: buf,
+            ..self
+        }
+    }
+
     /// Add a new default header to the response
     ///
     /// This will be added to every response
@@ -233,18 +251,23 @@ impl Server {
     /// use afire::{Server, Header};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Add a default header to the response
-    /// server.default_header(Header::new("Content-Type", "text/plain"));
+    /// let mut server: Server = Server::new("localhost", 8080)
+    ///     // Add a default header to the response
+    ///     .default_header(Header::new("Content-Type", "text/plain"));
     ///
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn default_header(&mut self, header: Header) {
-        self.default_headers.push(header);
+    pub fn default_header(self, header: Header) -> Server {
+        let mut headers = self.default_headers;
+        headers.push(header);
+
+        Server {
+            default_headers: headers,
+            ..self
+        }
     }
 
     /// Set the socket Read / Write Timeout
@@ -256,18 +279,20 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Set socket timeout
-    /// server.socket_timeout(Some(Duration::from_secs(1)));
+    /// let mut server: Server = Server::new("localhost", 8080)
+    ///     // Set socket timeout
+    ///     .socket_timeout(Duration::from_secs(1));
     ///
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn socket_timeout(&mut self, socket_timeout: Option<Duration>) {
-        self.socket_timeout = socket_timeout;
+    pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+        Server {
+            socket_timeout: Some(socket_timeout),
+            ..self
+        }
     }
 
     /// Keep a server from starting
@@ -290,6 +315,8 @@ impl Server {
     /// // 'Start' the server
     /// server.start().unwrap();
     /// ```
+    // I want to change this to be Server builder style
+    // But that will require modifying *every* example so that can wait...
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
     }
@@ -426,7 +453,7 @@ impl Server {
     /// ```
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_string(), Box::new(handler)));
+            .push(Route::new(Method::ANY, "*".to_owned(), Box::new(handler)));
     }
 
     /// Create a new route the runs for all methods and paths
@@ -466,7 +493,7 @@ impl Server {
     /// ```
     pub fn all_c(&mut self, handler: Box<dyn Fn(Request) -> Response>) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_string(), handler));
+            .push(Route::new(Method::ANY, "*".to_owned(), handler));
     }
 
     /// Create a new route for any type of request
@@ -578,9 +605,10 @@ fn handle_connection(
     middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
     #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
+    buff_size: usize,
 ) -> Response {
     // Init (first) Buffer
-    let mut buffer = vec![0; BUFF_SIZE];
+    let mut buffer = vec![0; buff_size];
 
     // Read stream into buffer
     match stream.read(&mut buffer) {
@@ -606,7 +634,7 @@ fn handle_connection(
         }
         let header_size = http::get_header_size(stream_string);
         let content_length = i.value.parse::<usize>().unwrap_or(0);
-        let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
+        let new_buffer_size = content_length as i64 + header_size as i64 - buff_size as i64;
         if new_buffer_size > 0 {
             let mut new_buffer = vec![0; new_buffer_size as usize];
             match stream.read(&mut new_buffer) {
@@ -636,17 +664,17 @@ fn handle_connection(
     let headers = http::get_request_headers(stream_string);
     #[cfg(feature = "cookies")]
     let cookies = http::get_request_cookies(stream_string);
-    let req = Request::new(
-        req_method,
-        &req_path,
-        req_query,
+    let req = Request {
+        method: req_method,
+        path: req_path,
+        query: req_query,
         headers,
         #[cfg(feature = "cookies")]
         cookies,
         body,
-        stream.peer_addr().unwrap().to_string(),
-        buffer,
-    );
+        address: stream.peer_addr().unwrap().to_string(),
+        raw_data: buffer,
+    };
 
     // Use middleware to handle request
     // If middleware returns a `None`, the request will be handled by earlier middleware then the routes

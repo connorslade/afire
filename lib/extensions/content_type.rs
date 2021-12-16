@@ -2,22 +2,31 @@
 pub enum Content {
     /// HTML - `text/html`
     HTML,
+
     /// CSS - `text/css`
     CSS,
+
     /// JS - `application/javascript`
     JS,
+
     /// PNG - `image/png`
     PNG,
+
     /// JPEG - `image/jpeg`
     JPG,
+
     /// GIF - `image/gif`
     GIF,
+
     /// ICO - `image/x-icon`
     ICO,
+
     /// SVG - `image/svg+xml`
     SVG,
+
     /// TXT - `text/plain`
     TXT,
+
     /// Custom Content Type
     Custom(String),
 }
@@ -41,47 +50,8 @@ impl Content {
     }
 }
 
-// AAC,
-// AVI,
-// BIN,
-// BMP,
-// BZ,
-// BZ2,
-// CDA,
-// CSV,
-// EPUB,
-// GZ,
-// ICS,
-// JAR,
-// JSON,
-// JSONLD,
-// MIDI,
-// MID,
-// MJS,
-// MP3,
-// MP4,
-// MPEG,
-// OGA,
-// OGV,
-// OGX,
-// OPUS,
-// OTF,
-// PDF,
-// RAR,
-// RTF,
-// SH,
-// SWF,
-// TAR,
-// TIF,
-// TIFF,
-// TS,
-// TTF,
-// WAV,
-// WEBA,
-// WEBM,
-// WEBP,
-// WOFF,
-// WOFF2,
-// XHTML,
-// XML,
-// ZIP
+// Other Types to add at somepoint
+// AAC, AVI, BIN, BMP, BZ, BZ2, CDA, CSV, EPUB, GZ, ICS, JAR, JSON,
+// JSONLD, MIDI, MID, MJS, MP3, MP4, MPEG, OGA, OGV, OGX, OPUS, OTF,
+// PDF, RAR, RTF, SH, SWF, TAR, TIF, TIFF, TS, TTF, WAV, WEBA, WEBM,
+// WEBP, WOFF, WOFF2, XHTML, XML, ZIP
