@@ -1,6 +1,5 @@
 use std::fmt;
 
-use super::common::cmp_vec;
 #[cfg(feature = "cookies")]
 use super::cookie::Cookie;
 use super::header::Header;
@@ -37,52 +36,6 @@ pub struct Request {
 }
 
 impl Request {
-    /// Quick and easy way to create a request.
-    ///
-    /// ```rust
-    /// use afire::{Request, Method, Query};
-    ///
-    /// let request = Request {
-    ///    method: Method::GET,
-    ///    path: "/".to_string(),
-    ///    query: Query::new_empty(),
-    ///    headers: vec![],
-    ///    # #[cfg(feature = "cookies")]
-    ///    cookies: vec![],
-    ///    body: Vec::new(),
-    ///    address: "127.0.0.1:8080".to_string(),
-    ///    raw_data: Vec::new(),
-    /// };
-    ///
-    /// # #[cfg(feature = "cookies")]
-    /// assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
-    /// # #[cfg(not(feature = "cookies"))]
-    /// # assert!(request.compare(&Request::new(Method::GET, "/", Query::new_empty(), vec![], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new())));
-    /// ```
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        method: Method,
-        path: &str,
-        query: Query,
-        headers: Vec<Header>,
-        #[cfg(feature = "cookies")] cookies: Vec<Cookie>,
-        body: Vec<u8>,
-        address: String,
-        raw_data: Vec<u8>,
-    ) -> Request {
-        Request {
-            method,
-            path: path.to_string(),
-            query,
-            headers,
-            #[cfg(feature = "cookies")]
-            cookies,
-            body,
-            address,
-            raw_data,
-        }
-    }
-
     /// Get request body data as a string!
     pub fn body_string(&self) -> Option<String> {
         String::from_utf8(self.body.clone()).ok()
@@ -97,10 +50,17 @@ impl Request {
     /// use afire::{Request, Header, Method, Query};
     ///
     /// // Create Request
-    /// # #[cfg(feature = "cookies")]
-    /// let request = Request::new(Method::GET, "/", Query::new_empty(), vec![Header::new("hello", "world")], Vec::new(), Vec::new(), "127.0.0.1:8080".to_string(), Vec::new());
-    /// # #[cfg(not(feature = "cookies"))]
-    /// # let request = Request::new(Method::GET, "/", Query::new_empty(), vec![Header::new("hello", "world")], Vec::new(), "127.0.0.1:8080".to_string(), Vec::new());
+    /// let request = Request {
+    ///     method: Method::GET,
+    ///     path: "/".to_owned(),
+    ///     query: Query::new_empty(),
+    ///     headers: vec![Header::new("hello", "world")],
+    ///     #[cfg(feature = "cookies")]
+    ///     cookies: Vec::new(),
+    ///     body: Vec::new(),
+    ///     address: "0.0.0.0".to_owned(),
+    ///     raw_data: Vec::new(),
+    /// };
     ///
     /// assert_eq!(request.header("hello").unwrap(), "world");
     /// ```
@@ -115,15 +75,6 @@ impl Request {
             }
         }
         None
-    }
-
-    /// Compare two requests.
-    pub fn compare(&self, other: &Request) -> bool {
-        self.method == other.method
-            && self.path == other.path
-            && cmp_vec(&self.headers, &other.headers)
-            && self.body == other.body
-            && self.address == other.address
     }
 }
 

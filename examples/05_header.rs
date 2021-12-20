@@ -5,7 +5,16 @@ use afire::{Header, Method, Response, Server};
 
 fn main() {
     // Create a new Server instance on localhost port 8080
-    let mut server: Server = Server::new("localhost", 8080);
+    let mut server: Server = Server::new("localhost", 8080)
+        // Define server wide default headers
+        // These will be send with every response
+        // If the same header is defined in the route it will be put before the default header
+        // Although it is not garunteed to be the one picked by the client it usually is
+        // At the bottom of this file is a representation of the order of the headers
+        .default_header(Header::new(
+            "X-Server-Header",
+            "This is a server wide header",
+        ));
 
     // Define a route to redirect to another website
     server.route(Method::GET, "/", |_req| {
@@ -49,16 +58,6 @@ fn main() {
             .text(body)
             .header(Header::new("Content-Type", "text/html"))
     });
-
-    // Define server wide default headers
-    // These will be send with every response
-    // If the same header is defined in the route it will be put before the default header
-    // Although it is not garunteed to be the one picked by the client it usually is
-    // At the bottom of this file is a representation of the order of the headers
-    server.default_header(Header::new(
-        "X-Server-Header",
-        "This is a server wide header",
-    ));
 
     // You can now goto http://localhost:8080 you should see a redirect to https://connorcode.com
     // And you can goto http://localhost:8080/headers to see the headers your client sent to the server

@@ -1,6 +1,8 @@
 # 0.2.3
 - Add content types
 - Update Logger syntax
+- Allow changing socket buffer size
+- Switch Server to more of a Builder
 
 # 0.2.2
 - Remove Debug Print Left in...
