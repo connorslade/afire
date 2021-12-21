@@ -1,19 +1,23 @@
 use std::fmt;
 
 #[cfg(feature = "cookies")]
-use super::cookie::Cookie;
-use super::header::Header;
-use super::method::Method;
-use super::query::Query;
+use crate::cookie::Cookie;
+use crate::header::Header;
+use crate::method::Method;
+use crate::query::Query;
 
 /// Http Request
-#[derive(Hash, PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Request {
     /// Request method
     pub method: Method,
 
     /// Request path
     pub path: String,
+
+    /// Path Prams
+    #[cfg(feature = "path_patterns")]
+    pub path_prams: Vec<(String, String)>,
 
     /// Request Query
     pub query: Query,
@@ -53,6 +57,8 @@ impl Request {
     /// let request = Request {
     ///     method: Method::GET,
     ///     path: "/".to_owned(),
+    ///     #[cfg(feature = "path_patterns")]
+    ///     path_prams: Vec::new(),
     ///     query: Query::new_empty(),
     ///     headers: vec![Header::new("hello", "world")],
     ///     #[cfg(feature = "cookies")]
@@ -76,42 +82,43 @@ impl Request {
         }
         None
     }
-}
 
-// Impl Clone for Request
-impl Clone for Request {
-    fn clone(&self) -> Request {
-        Request {
-            method: self.method.clone(),
-            path: self.path.clone(),
-            query: self.query.clone(),
-            headers: self.headers.clone(),
-            #[cfg(feature = "cookies")]
-            cookies: self.cookies.clone(),
-            body: self.body.clone(),
-            address: self.address.clone(),
-            raw_data: self.raw_data.clone(),
-        }
-    }
-}
-
-impl fmt::Debug for Request {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut headers = String::new();
-
-        for header in &self.headers {
-            headers.push_str(&format!("{}, ", header.to_string()));
-        }
-
-        let mut dbg = f.debug_struct("Request");
-        dbg.field("method", &self.method);
-        dbg.field("path", &self.path);
-        dbg.field("query", &self.query);
-        dbg.field("address", &self.address);
-        dbg.field("headers", &headers);
-        #[cfg(feature = "cookies")]
-        dbg.field("cookies", &self.cookies);
-        dbg.field("body", &self.body);
-        dbg.finish()
+    /// Get a path_prams value
+    ///
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Request, Response, Header, Method, Server};
+    ///
+    /// let mut server = Server::new("localhost", 8080);
+    ///
+    /// server.route(Method::GET, "/greet/{name}", |req| {
+    ///     // Get name Path Pram
+    ///     let name = req.path_pram("name").unwrap();
+    ///
+    ///     // Make a nice Messgae
+    ///     let message = format!("Hello, {}", name);
+    ///
+    ///     // Send Response
+    ///     Response::new()
+    ///         .text(message)
+    ///         .header(Header::new("Content-Type", "text/plain"))
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    #[cfg(feature = "path_patterns")]
+    pub fn path_pram<T>(&self, name: T) -> Option<String>
+    where
+        T: fmt::Display,
+    {
+        let name = name.to_string();
+        self.path_prams
+            .iter()
+            .find(|x| x.0 == name)
+            .map(|i| i.1.to_owned())
     }
 }

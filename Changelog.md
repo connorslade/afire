@@ -3,6 +3,10 @@
 - Update Logger syntax
 - Allow changing socket buffer size
 - Switch Server to more of a Builder
+- Add Path Prams
+- Redo Path Handling
+- Update Readme Example
+- Deprecate `.all` routes, Use .route(Method::Any, "*", ...)
 
 # 0.2.2
 - Remove Debug Print Left in...

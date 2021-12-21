@@ -17,7 +17,14 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = ["panic_handler", "content_type", "cookies", "dynamic_resize"]
+default = [
+  "panic_handler",
+  "content_type",
+  "cookies",
+  "dynamic_resize",
+  "path_patterns",
+  "ignore_trailing_path_slash"
+]
 
 # Extensions
 rate_limit = []
@@ -29,8 +36,10 @@ cookies = []
 dynamic_resize = []
 panic_handler = []
 content_type = []
+ignore_trailing_path_slash = []
 
 # Other
+path_patterns = []
 thread_pool = []
 
 [dev-dependencies]

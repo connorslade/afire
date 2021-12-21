@@ -451,6 +451,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
+    #[deprecated(since = "0.2.3", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
             .push(Route::new(Method::ANY, "*".to_owned(), Box::new(handler)));
@@ -491,6 +492,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
+    #[deprecated(since = "0.2.3", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all_c(&mut self, handler: Box<dyn Fn(Request) -> Response>) {
         self.routes
             .push(Route::new(Method::ANY, "*".to_owned(), handler));
@@ -674,7 +676,12 @@ fn handle_connection(
         body,
         address: stream.peer_addr().unwrap().to_string(),
         raw_data: buffer,
+        #[cfg(feature = "path_patterns")]
+        path_prams: Vec::new(),
     };
+
+    #[cfg(feature = "path_patterns")]
+    let mut req = req;
 
     // Use middleware to handle request
     // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
@@ -686,14 +693,22 @@ fn handle_connection(
     }
 
     // Loop through all routes and check if the request matches
+    println!();
     for route in routes.iter().rev() {
-        if (req.method == route.method || route.method == Method::ANY)
-            && (req.path == route.path || route.path == "*")
-        {
+        let start = std::time::Instant::now();
+        let path_match = route.path.match_path(req.path.clone());
+        println!("TIME: {}ns", start.elapsed().as_nanos());
+
+        if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
+            // Set the Pattern Prams of the Request
+            #[cfg(feature = "path_patterns")]
+            {
+                req.path_prams = path_match.unwrap_or_default();
+            }
+
             // Optionally enable automatic panic handling
             #[cfg(feature = "panic_handler")]
             {
-                // let handler = .clone();
                 let result =
                     panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
                 let err = match result {

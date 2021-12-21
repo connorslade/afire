@@ -17,7 +17,7 @@ fn main() {
     // This route will run for all requests but because any other route
     // will take priority it will only run when no other route is defined.
     /* PRIO 0 */
-    server.all(|_req| {
+    server.route(Method::ANY, "*", |_req| {
         Response::new()
             .status(404)
             .text("The page you are looking for does not exist :/")
@@ -25,7 +25,7 @@ fn main() {
     });
 
     // Define a route
-    // As this is defined last, it will take a high priority
+    // As this is defined last, it will take a higher priority
     /* PRIO 1 */
     server.route(Method::GET, "/", |_req| {
         Response::new()
