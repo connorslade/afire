@@ -630,12 +630,12 @@ fn handle_connection(
     // make a new buffer read the rest of the stream and add it to the first buffer
     // This could cause a performance hit but is actually seams to be fast enough
     #[cfg(feature = "dynamic_resize")]
-    for i in http::get_request_headers(stream_string) {
-        if i.name != "Content-Length" {
-            continue;
-        }
+    if let Some(dyn_buf) = http::get_request_headers(stream_string)
+        .iter()
+        .find(|x| x.name == "Content-Length")
+    {
         let header_size = http::get_header_size(stream_string);
-        let content_length = i.value.parse::<usize>().unwrap_or(0);
+        let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
         let new_buffer_size = content_length as i64 + header_size as i64 - buff_size as i64;
         if new_buffer_size > 0 {
             let mut new_buffer = vec![0; new_buffer_size as usize];
@@ -645,8 +645,7 @@ fn handle_connection(
             };
             buffer.append(&mut new_buffer);
         }
-        break;
-    }
+    };
 
     while buffer.ends_with(&[b'\0']) {
         buffer.pop();
@@ -693,12 +692,8 @@ fn handle_connection(
     }
 
     // Loop through all routes and check if the request matches
-    println!();
     for route in routes.iter().rev() {
-        let start = std::time::Instant::now();
         let path_match = route.path.match_path(req.path.clone());
-        println!("TIME: {}ns", start.elapsed().as_nanos());
-
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             // Set the Pattern Prams of the Request
             #[cfg(feature = "path_patterns")]

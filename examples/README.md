@@ -14,6 +14,7 @@
 | 10_threading      | Start a server with a thread-pool to handle requests              |
 | 11_logging        | Log requests to a file / console                                  |
 | 12_rate_limit     | Add a rate limit to your server                                   |
+| 13_path_prams     | Use Path Parameters on a route                                   |
 
 ## 01 - Basic
 
@@ -71,6 +72,10 @@ Using afire's built in middleware make and attach a logger to a server.
 ## 12 - Rate Limit
 
 Add a rate limit to your server with some built in middleware.
+
+## 13 - Path Prams
+
+Use Path Prams to send data through a route path.
 
 ## To add
 

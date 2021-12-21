@@ -124,6 +124,10 @@ pub use self::response::Response;
 mod query;
 pub use self::query::Query;
 
+// Content Types
+mod content_type;
+pub use content_type::Content;
+
 // Cookies 🍪
 #[cfg(feature = "cookies")]
 mod cookie;
@@ -141,6 +145,3 @@ pub use extensions::logger::{Level, Logger};
 
 #[cfg(feature = "serve_static")]
 pub use extensions::serve_static::ServeStatic;
-
-#[cfg(feature = "content_type")]
-pub use extensions::content_type::Content;

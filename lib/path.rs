@@ -6,9 +6,13 @@ pub struct Path {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PathPart {
+    // Normal Path Segment (/hi)
     Normal(String),
-    #[cfg(feature = "path_patterns")]
+
+    // Path Pram (/{name})
     Pram(String),
+
+    // Literly Anything (E)
     Any,
 }
 
@@ -57,10 +61,7 @@ impl Path {
                         return None;
                     }
                 }
-                #[cfg(feature = "path_patterns")]
-                PathPart::Pram(x) => {
-                    out.push((x.to_owned(), j.to_owned()));
-                }
+                PathPart::Pram(x) => out.push((x.to_owned(), j.to_owned())),
                 PathPart::Any => {}
             }
         }

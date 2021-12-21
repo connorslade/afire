@@ -7,6 +7,7 @@
 - Redo Path Handling
 - Update Readme Example
 - Deprecate `.all` routes, Use .route(Method::Any, "*", ...)
+- Make `content_type` a builtin (not an extension)
 
 # 0.2.2
 - Remove Debug Print Left in...

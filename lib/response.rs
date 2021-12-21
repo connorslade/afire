@@ -210,7 +210,6 @@ impl Response {
     /// let response = Response::new()
     ///     .content(Content::HTML);
     /// ```
-    #[cfg(feature = "content_type")]
     pub fn content(self, content_type: crate::Content) -> Response {
         let mut new_headers = self.headers;
         new_headers.push(Header::new("Content-Type", content_type.as_type()));
