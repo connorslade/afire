@@ -676,7 +676,7 @@ fn handle_connection(
         address: stream.peer_addr().unwrap().to_string(),
         raw_data: buffer,
         #[cfg(feature = "path_patterns")]
-        path_prams: Vec::new(),
+        path_params: Vec::new(),
     };
 
     #[cfg(feature = "path_patterns")]
@@ -695,10 +695,10 @@ fn handle_connection(
     for route in routes.iter().rev() {
         let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
-            // Set the Pattern Prams of the Request
+            // Set the Pattern params of the Request
             #[cfg(feature = "path_patterns")]
             {
-                req.path_prams = path_match.unwrap_or_default();
+                req.path_params = path_match.unwrap_or_default();
             }
 
             // Optionally enable automatic panic handling

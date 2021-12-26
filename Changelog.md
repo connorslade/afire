@@ -3,11 +3,12 @@
 - Update Logger syntax
 - Allow changing socket buffer size
 - Switch Server to more of a Builder
-- Add Path Prams
+- Add Path params
 - Redo Path Handling
 - Update Readme Example
 - Deprecate `.all` routes, Use .route(Method::Any, "*", ...)
 - Make `content_type` a builtin (not an extension)
+- Rename 'path pram' to Path Params
 
 # 0.2.2
 - Remove Debug Print Left in...
@@ -45,7 +46,7 @@
 - Update Readme in /examples
 - Add a dynamic buffer resize feature
 - Update Logger Middleware to be a builder
-- Add Path Pram Example in 04_data
+- Add Path param Example in 04_data
 
 # 0.1.7
 - Add Panic Message to Error Handel

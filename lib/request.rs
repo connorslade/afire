@@ -15,9 +15,9 @@ pub struct Request {
     /// Request path
     pub path: String,
 
-    /// Path Prams
+    /// Path Params
     #[cfg(feature = "path_patterns")]
-    pub path_prams: Vec<(String, String)>,
+    pub path_params: Vec<(String, String)>,
 
     /// Request Query
     pub query: Query,
@@ -58,7 +58,7 @@ impl Request {
     ///     method: Method::GET,
     ///     path: "/".to_owned(),
     ///     #[cfg(feature = "path_patterns")]
-    ///     path_prams: Vec::new(),
+    ///     path_params: Vec::new(),
     ///     query: Query::new_empty(),
     ///     headers: vec![Header::new("hello", "world")],
     ///     #[cfg(feature = "cookies")]
@@ -83,7 +83,7 @@ impl Request {
         None
     }
 
-    /// Get a path_prams value
+    /// Get a path_params value
     ///
     /// ## Example
     /// ```rust
@@ -93,8 +93,8 @@ impl Request {
     /// let mut server = Server::new("localhost", 8080);
     ///
     /// server.route(Method::GET, "/greet/{name}", |req| {
-    ///     // Get name Path Pram
-    ///     let name = req.path_pram("name").unwrap();
+    ///     // Get name Path param
+    ///     let name = req.path_param("name").unwrap();
     ///
     ///     // Make a nice Messgae
     ///     let message = format!("Hello, {}", name);
@@ -111,12 +111,12 @@ impl Request {
     /// server.start().unwrap();
     /// ```
     #[cfg(feature = "path_patterns")]
-    pub fn path_pram<T>(&self, name: T) -> Option<String>
+    pub fn path_param<T>(&self, name: T) -> Option<String>
     where
         T: fmt::Display,
     {
         let name = name.to_string();
-        self.path_prams
+        self.path_params
             .iter()
             .find(|x| x.0 == name)
             .map(|i| i.1.to_owned())

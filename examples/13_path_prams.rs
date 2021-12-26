@@ -1,6 +1,6 @@
 use afire::{Header, Method, Response, Server};
 
-// Use Path Prams to send data through a route path
+// Use Path params to send data through a route path
 // You can also add `*` segments to match with any text
 
 fn main() {
@@ -11,8 +11,8 @@ fn main() {
     // This will handel requests with anything where the {name} is
     // This includes "/greet/bob", "/greet/fin"
     server.route(Method::GET, "/greet/{name}", |req| {
-        // Get name path pram
-        let name = req.path_pram("name").unwrap();
+        // Get name path param
+        let name = req.path_param("name").unwrap();
 
         // Make a nice Message to send
         let message = format!("Hello, {}", name);

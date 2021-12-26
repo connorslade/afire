@@ -9,8 +9,8 @@ pub enum PathPart {
     // Normal Path Segment (/hi)
     Normal(String),
 
-    // Path Pram (/{name})
-    Pram(String),
+    // Path param (/{name})
+    Param(String),
 
     // Literly Anything (E)
     Any,
@@ -61,7 +61,7 @@ impl Path {
                         return None;
                     }
                 }
-                PathPart::Pram(x) => out.push((x.to_owned(), j.to_owned())),
+                PathPart::Param(x) => out.push((x.to_owned(), j.to_owned())),
                 PathPart::Any => {}
             }
         }
@@ -86,7 +86,7 @@ impl PathPart {
         }
 
         if seg.starts_with('{') && seg.ends_with('}') {
-            return PathPart::Pram(
+            return PathPart::Param(
                 seg.strip_prefix('{')
                     .unwrap()
                     .strip_suffix('}')

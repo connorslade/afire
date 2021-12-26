@@ -1,6 +1,6 @@
 use afire::{Header, Method, Query, Response, Server};
 
-// Send data to server with a Query String, Path Prams and Form Data
+// Send data to server with a Query String, Path params and Form Data
 
 fn main() {
     // Create a new Server instance on localhost port 8080
@@ -69,7 +69,7 @@ fn main() {
             return None;
         }
 
-        // Extract the pram value
+        // Extract the param value
         // This is getting the 2rd path value
         // Ex: /greet/Darren/
         let name = req.path.split("/").nth(2).unwrap();

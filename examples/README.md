@@ -1,20 +1,20 @@
 # 🔥 afire Examples
 
-| Name              | Description                                                       |
-| ----------------- | ----------------------------------------------------------------- |
-| 01_basic          | Start a basic web server that can serve text.                     |
-| 02_serve_file     | Serve a local file.                                               |
-| 03_routeing       | Learn about routing priority and add a 404 page                   |
-| 04_data           | Send data to server with a Query String, Path Prams and Form Data |
-| 05_header         | Make and Read Headers to send extra data                          |
-| 06_error_handling | Catch panics in routes                                            |
-| 07_serve_static   | Serve static files from a dir                                     |
-| 08_middleware     | Use Middleware to log requests                                    |
-| 09_cookie         | Read and Write cookies to the client                              |
-| 10_threading      | Start a server with a thread-pool to handle requests              |
-| 11_logging        | Log requests to a file / console                                  |
-| 12_rate_limit     | Add a rate limit to your server                                   |
-| 13_path_prams     | Use Path Parameters on a route                                   |
+| Name              | Description                                                        |
+| ----------------- | ------------------------------------------------------------------ |
+| 01_basic          | Start a basic web server that can serve text.                      |
+| 02_serve_file     | Serve a local file.                                                |
+| 03_routeing       | Learn about routing priority and add a 404 page                    |
+| 04_data           | Send data to server with a Query String, Path params and Form Data |
+| 05_header         | Make and Read Headers to send extra data                           |
+| 06_error_handling | Catch panics in routes                                             |
+| 07_serve_static   | Serve static files from a dir                                      |
+| 08_middleware     | Use Middleware to log requests                                     |
+| 09_cookie         | Read and Write cookies to the client                               |
+| 10_threading      | Start a server with a thread-pool to handle requests               |
+| 11_logging        | Log requests to a file / console                                   |
+| 12_rate_limit     | Add a rate limit to your server                                    |
+| 13_path_params    | Use Path Parameters on a route                                     |
 
 ## 01 - Basic
 
@@ -32,7 +32,7 @@ Learn about routing priority and add a 404 page.
 
 ## 04 - Data
 
-Use Query Strings, Path Prams and HTML forms to send data to the server from a webpage.
+Use Query Strings, Path params and HTML forms to send data to the server from a webpage.
 
 ## 05 - Headers
 
@@ -73,9 +73,9 @@ Using afire's built in middleware make and attach a logger to a server.
 
 Add a rate limit to your server with some built in middleware.
 
-## 13 - Path Prams
+## 13 - Path params
 
-Use Path Prams to send data through a route path.
+Use Path params to send data through a route path.
 
 ## To add
 
