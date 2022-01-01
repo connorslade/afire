@@ -6,8 +6,8 @@ use afire::{Header, Method, Response, Server};
 // This means that if you have two routes that could run for a request
 // the one defined last will run.
 
-// To explain this bettor I will label the routes with numbers to represent their priority.
-// Note: In the afire backend code thane is no priority number its just the order in which they are defined
+// To explain this better I will label the routes with numbers to represent their priority.
+// Note: In the afire backend code thare is no priority number its just the order in which they are defined
 
 fn main() {
     // Create a new Server instance on localhost port 8080

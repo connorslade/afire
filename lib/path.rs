@@ -17,23 +17,15 @@ pub enum PathPart {
 }
 
 impl Path {
-    pub(crate) fn new(mut path: String) -> Path {
+    pub(crate) fn new(path: String) -> Path {
+        let path = normalize_path(path);
         let mut out = Vec::new();
-
-        // Normalize Path
-        #[cfg(feature = "ignore_trailing_path_slash")]
-        if path.ends_with('/') {
-            path.pop();
-        }
-
-        if !path.starts_with('/') {
-            path.insert(0, '/');
-        }
 
         // Split off into Path Parts
         for i in path.split('/') {
             #[cfg(feature = "path_patterns")]
             out.push(PathPart::from_segment(i));
+
             #[cfg(not(feature = "path_patterns"))]
             out.push(PathPart::Normal(i.to_owned()));
         }
@@ -46,6 +38,7 @@ impl Path {
 
     #[cfg(feature = "path_patterns")]
     pub(crate) fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
+        let path = normalize_path(path);
         let mut out = Vec::new();
 
         let path = path.split('/');
@@ -97,4 +90,17 @@ impl PathPart {
 
         PathPart::Normal(seg.to_owned())
     }
+}
+
+pub(crate) fn normalize_path(mut path: String) -> String {
+    #[cfg(feature = "ignore_trailing_path_slash")]
+    if path.ends_with('/') {
+        path.pop();
+    }
+
+    if !path.starts_with('/') {
+        path.insert(0, '/');
+    }
+
+    path
 }

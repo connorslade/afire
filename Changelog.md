@@ -9,6 +9,7 @@
 - Deprecate `.all` routes, Use .route(Method::Any, "*", ...)
 - Make `content_type` a builtin (not an extension)
 - Rename 'path pram' to Path Params
+- Update Data Example with Path Params
 
 # 0.2.2
 - Remove Debug Print Left in...
