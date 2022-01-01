@@ -9,7 +9,7 @@ fn main() {
 
     // Define a route to show request cookies as a table
     server.route(Method::GET, "/", |req| {
-        // Return all cookies in a html table
+        // Return all cookies in a *messy* html table
         let mut html = String::new();
         html.push_str("<style>table, th, td {border:1px solid black;}</style>");
         html.push_str("<table>");

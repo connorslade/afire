@@ -11,10 +11,9 @@
 | 07_serve_static   | Serve static files from a dir                                      |
 | 08_middleware     | Use Middleware to log requests                                     |
 | 09_cookie         | Read and Write cookies to the client                               |
-| 10_threading      | Start a server with a thread-pool to handle requests               |
-| 11_logging        | Log requests to a file / console                                   |
-| 12_rate_limit     | Add a rate limit to your server                                    |
-| 13_path_params    | Use Path Parameters on a route                                     |
+| 10_logging        | Log requests to a file / console                                   |
+| 11_rate_limit     | Add a rate limit to your server                                    |
+| 12_path_params    | Use Path Parameters on a route                                     |
 
 ## 01 - Basic
 
@@ -59,21 +58,15 @@ Learn about Middleware and how to use it to log requests.
 Get cookies from the client and make a HTML table.
 Also set new cookies with extra options.
 
-## 10 - Threading
-
-Like Example 01 but the server is started with a thread-pool to handle requests.
-
-This feature is still experimental and doesn't yet support any Middleware : /
-
-## 11 - Logging
+## 10 - Logging
 
 Using afire's built in middleware make and attach a logger to a server.
 
-## 12 - Rate Limit
+## 11 - Rate Limit
 
 Add a rate limit to your server with some built in middleware.
 
-## 13 - Path params
+## 12 - Path params
 
 Use Path params to send data through a route path.
 

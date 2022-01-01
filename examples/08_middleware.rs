@@ -23,6 +23,8 @@ fn main() {
     // Now to add some middleware
     // For this example we will add a middleware that will print all requests to the console
     server.middleware(Box::new(|req| {
+        // Note: req.address also has the client port
+        // Ex: 127.0.0.1:6264
         println!("[{}] {} {}", req.address, req.method, req.path);
 
         // Return None to forward the request to the next middleware or route

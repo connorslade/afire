@@ -45,12 +45,11 @@ fn main() {
     // Now to define a route to handle client headers
     // This will just echo the headers back to the client
     server.route(Method::GET, "/headers", |req| {
-        let mut body = "".to_string();
-
         // Get the headers from the request and make a html string
-        for i in req.headers {
-            body += &format!("{:?}<br />", i);
-        }
+        let body = req
+            .headers
+            .iter()
+            .fold(String::new(), |old, new| old + &format!("{:?}<br />", new));
 
         // Create a response with the headers
         Response::new()

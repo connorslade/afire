@@ -11,10 +11,7 @@ fn main() {
     let mut server: Server = Server::new("localhost", 8080);
 
     // Define a route that will panic
-    server.route(Method::GET, "/panic", |_req| {
-        // This will panic
-        panic!("This is a panic!");
-    });
+    server.route(Method::GET, "/panic", |_req| panic!("This is a panic!"));
 
     // Give the server a main page
     server.route(Method::GET, "/", |_req| {
