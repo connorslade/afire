@@ -11,6 +11,8 @@
 - Rename 'path pram' to Path Params
 - Update Data Example with Path Params
 - Remove Threading Example
+- Update Ratelimit to be a Builder
+- Update Ratelimit Example
 
 # 0.2.2
 - Remove Debug Print Left in...

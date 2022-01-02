@@ -14,26 +14,27 @@ fn main() {
             .header(Header::new("Content-Type", "text/plain"))
     });
 
-    // Add the rate limiter middleware
     // For this example, we'll limit requests to 1 every 2 seconds
-    // RateLimiter::attach(&mut server, RateLimiter::new(1, 2));
 
-    // We can even add a custom handler for when the rate limiter is exceeded
-    RateLimiter::attach(
-        &mut server,
-        RateLimiter::new_handler(
-            1,
-            2,
-            Box::new(|_req| {
-                Some(
-                    Response::new()
-                        .status(429)
-                        .text("AHHHH!!! Too Many Requests")
-                        .header(Header::new("Content-Type", "text/plain")),
-                )
-            }),
-        ),
-    );
+    // Make a new Ratelimater
+    // Default Limit is 10
+    // Default Timeout is 60 sec
+    RateLimiter::new()
+        // Overide the Limit to 1
+        .limit(1)
+        // Overide the timeout to 2
+        .timeout(2)
+        // Overide thge Handler
+        .handler(Box::new(|_req| {
+            Some(
+                Response::new()
+                    .status(429)
+                    .text("AHHHH!!! Too Many Requests")
+                    .header(Header::new("Content-Type", "text/plain")),
+            )
+        }))
+        // Attach to the server
+        .attach(&mut server);
 
     // Now if you goto http://localhost:8080/ and reload a bunch of times,
     // you'll see the rate limiter kicking in.
