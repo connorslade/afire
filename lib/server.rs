@@ -17,6 +17,7 @@ use std::panic;
 
 // Import local files
 use super::common::reason_phrase;
+use super::content_type::Content;
 use super::header::{headers_to_string, Header};
 use super::http;
 use super::method::Method;
@@ -59,7 +60,7 @@ pub struct Server {
     /// Run server
     ///
     /// Really just for testing.
-    run: bool,
+    pub run: bool,
 }
 
 /// Implementations for Server
@@ -218,8 +219,11 @@ impl Server {
     /// assert_eq!("127.0.0.1", server.ip_string());
     /// ```
     pub fn ip_string(&self) -> String {
-        let ip = self.ip;
-        format!("{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
+        self.ip
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join(".")
     }
 
     /// Set the satrting buffer size. The default is `1024`
@@ -743,5 +747,5 @@ fn quick_err(text: &str, code: u16) -> Response {
     Response::new()
         .status(code)
         .text(text)
-        .header(Header::new("Content-Type", "text/plain"))
+        .content(Content::TXT)
 }

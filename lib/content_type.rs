@@ -1,5 +1,6 @@
 /// Common MIME types
-pub enum Content {
+#[derive(Debug, PartialEq, Eq)]
+pub enum Content<'a> {
     /// HTML - `text/html`
     HTML,
     /// TXT - `text/plain`
@@ -11,10 +12,10 @@ pub enum Content {
     /// XML - `application/xml`
     XML,
     /// Custom Content Type
-    Custom(String),
+    Custom(&'a str),
 }
 
-impl Content {
+impl Content<'_> {
     /// Get Content as a MIME Type
     pub fn as_type(&self) -> String {
         match self {

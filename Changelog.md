@@ -13,6 +13,10 @@
 - Remove Threading Example
 - Update Ratelimit to be a Builder
 - Update Ratelimit Example
+- Remove threadpool from project (for now)
+- Make Custom Content Type use &str not String
+- Make VERSION Public
+- Add External Unit Tests
 
 # 0.2.2
 - Remove Debug Print Left in...

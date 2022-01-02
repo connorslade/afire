@@ -90,7 +90,8 @@ server.start().unwrap();
 
 #![warn(missing_docs)]
 
-pub(crate) const VERSION: &str = "0.2.3*";
+#[doc(hidden)]
+pub const VERSION: &str = "0.2.3*";
 
 mod common;
 mod http;
