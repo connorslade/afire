@@ -146,3 +146,7 @@ pub use extensions::logger::{Level, Logger};
 
 #[cfg(feature = "serve_static")]
 pub use extensions::serve_static::ServeStatic;
+
+// Unit Tests
+#[cfg(test)]
+mod tests;

@@ -1,4 +1,4 @@
-use afire::Header;
+use crate::Header;
 
 #[test]
 fn header_new() {

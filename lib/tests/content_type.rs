@@ -1,4 +1,4 @@
-use afire::Content;
+use crate::Content;
 
 #[test]
 fn content_type() {
