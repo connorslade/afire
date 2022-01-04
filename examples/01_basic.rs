@@ -21,13 +21,7 @@ fn main() {
             .header(Header::new("Content-Type", "text/plain"))
     });
 
-    println!(
-        "[01] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
-
-    println!("{:?}", server.routes);
+    println!("[01] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

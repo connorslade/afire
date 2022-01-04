@@ -7,7 +7,7 @@ fn server_new() {
     let server = Server::new("localhost", 8080);
 
     assert_eq!(server.port, 8080);
-    assert_eq!(server.ip, [127, 0, 0, 1]);
+    assert_eq!(server.ip.octets(), [127, 0, 0, 1]);
 }
 
 #[test]
@@ -15,8 +15,8 @@ fn server_ip_string() {
     let server = Server::new("localhost", 8080);
     let server2 = Server::new("1.2.3.4", 8080);
 
-    assert_eq!(server.ip_string(), "127.0.0.1");
-    assert_eq!(server2.ip_string(), "1.2.3.4");
+    assert_eq!(server.ip.to_string(), "127.0.0.1");
+    assert_eq!(server2.ip.to_string(), "1.2.3.4");
 }
 
 #[test]

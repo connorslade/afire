@@ -29,11 +29,7 @@ fn main() {
         Response::new().text("Hello, Darren. You are very cool")
     });
 
-    println!(
-        "[13] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[13] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

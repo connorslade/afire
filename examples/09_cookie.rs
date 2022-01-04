@@ -56,11 +56,7 @@ fn main() {
     // Now goto http://localhost:8080/set?name=hello&value=world
     // Then goto http://localhost:8080/ and you should see a table with the cookie
 
-    println!(
-        "[09] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[09] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

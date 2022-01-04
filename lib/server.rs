@@ -1,13 +1,7 @@
 // Import STD libraries
 use std::fmt;
-use std::io;
-use std::io::Read;
-use std::io::Write;
-use std::net::IpAddr;
-use std::net::Ipv4Addr;
-use std::net::SocketAddr;
-use std::net::TcpListener;
-use std::net::TcpStream;
+use std::io::{Read, Write};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::str;
 use std::time::Duration;
 
@@ -32,7 +26,7 @@ pub struct Server {
     pub port: u16,
 
     /// Ip address to listen on.
-    pub ip: [u8; 4],
+    pub ip: Ipv4Addr,
 
     /// Default Buffer Size
     ///
@@ -99,6 +93,8 @@ impl Server {
             ip[i] = octet;
         }
 
+        let ip = Ipv4Addr::from(ip);
+
         Server {
             port,
             ip,
@@ -152,7 +148,7 @@ impl Server {
             return Some(());
         }
 
-        let listener = init_listener(self.ip, self.port).ok()?;
+        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         for event in listener.incoming() {
             // Read stream into buffer
@@ -218,8 +214,10 @@ impl Server {
     /// // Get the ip a server is listening on as a string
     /// assert_eq!("127.0.0.1", server.ip_string());
     /// ```
+    #[deprecated(since = "0.2.3", note = "Instead use .ip.to_string()")]
     pub fn ip_string(&self) -> String {
         self.ip
+            .octets()
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
@@ -732,14 +730,6 @@ fn handle_connection(
         .status(404)
         .text(format!("Cannot {} {}", req.method, req.path))
         .header(Header::new("Content-Type", "text/plain"))
-}
-
-/// Init Listener
-fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
-    TcpListener::bind(SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(ip[0], ip[1], ip[2], ip[3])),
-        port,
-    ))
 }
 
 /// Quick function to get a basic error response

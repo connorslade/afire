@@ -37,11 +37,7 @@ fn main() {
     // You can now goto http://localhost:8080/panic
     // This will cause the route to panic and return a 500 error
 
-    println!(
-        "[06] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[06] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

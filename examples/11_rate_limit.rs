@@ -39,11 +39,7 @@ fn main() {
     // Now if you goto http://localhost:8080/ and reload a bunch of times,
     // you'll see the rate limiter kicking in.
 
-    println!(
-        "[11] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[11] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

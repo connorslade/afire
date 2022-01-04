@@ -192,6 +192,12 @@ impl RateLimiter {
     }
 }
 
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // Allow printing of RateLimiter for debugging
 impl fmt::Debug for RateLimiter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

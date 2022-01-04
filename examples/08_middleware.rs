@@ -34,11 +34,7 @@ fn main() {
     // You can now goto http://localhost:8080 you should see that the request is printed to the console
     // It should look something like this: `[127.0.0.1:xxxxx] GET /`
 
-    println!(
-        "[08] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[08] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

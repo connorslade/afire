@@ -17,6 +17,8 @@
 - Make Custom Content Type use &str not String
 - Make VERSION Public
 - Add External Unit Tests
+- Use the builtin `IpAddr` enum for server Ip
+- Remove `.ip_string()` for `.ip.to_string()`
 
 # 0.2.2
 - Remove Debug Print Left in...

@@ -61,11 +61,7 @@ fn main() {
     // You can now goto http://localhost:8080 you should see a redirect to https://connorcode.com
     // And you can goto http://localhost:8080/headers to see the headers your client sent to the server
 
-    println!(
-        "[05] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[05] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

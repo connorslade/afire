@@ -35,11 +35,7 @@ fn main() {
 
     // Now if you goto http://localhost:8080/ you should see the log message in console.
 
-    println!(
-        "[11] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[11] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

@@ -37,11 +37,7 @@ fn main() {
     // Now goto http://localhost:8080/ and you should see "Hello World"
     // But if you go to http://localhost:8080/somthing-else you should see the 404 page
 
-    println!(
-        "[03] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[03] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

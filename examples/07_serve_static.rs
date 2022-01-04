@@ -37,11 +37,7 @@ fn main() {
         // Attatch the middleware to the server
         .attach(&mut server);
 
-    println!(
-        "[07] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[07] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread
