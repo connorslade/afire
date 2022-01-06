@@ -19,6 +19,7 @@
 - Add External Unit Tests
 - Use the builtin `IpAddr` enum for server Ip
 - Remove `.ip_string()` for `.ip.to_string()`
+- Add `Response.close()` for closeing a stream with no response
 
 # 0.2.2
 - Remove Debug Print Left in...

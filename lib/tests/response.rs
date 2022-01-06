@@ -67,6 +67,13 @@ fn response_headers() {
 }
 
 #[test]
+fn response_close() {
+    let response = Response::new().close();
+
+    assert!(response.close);
+}
+
+#[test]
 fn response_cookie() {
     let response = Response::new().cookie(SetCookie::new("Name", "Value"));
 

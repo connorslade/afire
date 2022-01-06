@@ -18,6 +18,9 @@ pub struct Response {
 
     /// Response Reason
     pub reason: Option<String>,
+
+    /// Force Close Connection
+    pub close: bool,
 }
 
 impl Response {
@@ -42,6 +45,7 @@ impl Response {
             data: vec![79, 75],
             headers: Vec::new(),
             reason: None,
+            close: false,
         }
     }
 
@@ -161,6 +165,25 @@ impl Response {
         }
     }
 
+    /// Close the connection without sendng a Response
+    ///
+    /// Will ignore any other options defined on the Response
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Response};
+    ///
+    /// // Create Response
+    /// let response = Response::new()
+    ///   .close();
+    /// ```
+    pub fn close(self) -> Response {
+        Response {
+            close: true,
+            ..self
+        }
+    }
+
     /// Add a cookie to a response.
     /// ## Example
     /// ```
@@ -236,6 +259,7 @@ impl Clone for Response {
             data: self.data.clone(),
             headers: self.headers.clone(),
             reason: self.reason.clone(),
+            close: self.close,
         }
     }
 }

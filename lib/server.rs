@@ -167,6 +167,10 @@ impl Server {
                 self.buff_size,
             );
 
+            if res.close {
+                continue;
+            }
+
             // Add default headers to response
             let mut headers = res.headers;
             headers.append(&mut self.default_headers.clone());
