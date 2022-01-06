@@ -97,9 +97,6 @@ mod common;
 mod http;
 mod path;
 
-mod middleware;
-pub use middleware::Middleware;
-
 // The main server
 mod server;
 pub use self::server::Server;
@@ -131,6 +128,9 @@ pub use self::query::Query;
 // Content Types
 mod content_type;
 pub use content_type::Content;
+
+// Middleware and stuff
+pub mod middleware;
 
 // Cookies 🍪
 #[cfg(feature = "cookies")]

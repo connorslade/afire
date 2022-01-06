@@ -2,15 +2,30 @@ use std::cell::RefCell;
 
 use crate::{Request, Response, Server};
 
+pub enum MiddleResponse {
+    Continue,
+    Add(Response),
+    Send(Response),
+}
+
+pub enum MiddleRequest {
+    Continue,
+    Add(Request),
+    Send(Response),
+}
+
 pub trait Middleware {
-    fn pre(&mut self, req: Request) -> Request {
-        req
+    /// Middleware to run Before Routes
+    fn pre(&mut self, req: Request) -> MiddleRequest {
+        MiddleRequest::Continue
     }
 
-    fn post(&mut self, res: Response) -> Response {
-        res
+    /// Middleware to run After Routes
+    fn post(&mut self, res: Response) -> MiddleResponse {
+        MiddleResponse::Continue
     }
 
+    /// Attatch Middleware to a Server
     fn attach(self, server: &mut Server)
     where
         Self: Sized + 'static,

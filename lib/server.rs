@@ -16,7 +16,7 @@ use super::content_type::Content;
 use super::header::{headers_to_string, Header};
 use super::http;
 use super::method::Method;
-use super::middleware::Middleware;
+use super::middleware::{MiddleRequest, MiddleResponse, Middleware};
 use super::request::Request;
 use super::response::Response;
 use super::route::Route;
@@ -175,7 +175,14 @@ impl Server {
 
             // bEFORE cLOSE?
             for middleware in &mut self.middleware.iter().rev() {
-                res = middleware.borrow_mut().post(res);
+                match middleware.borrow_mut().post(res) {
+                    MiddleResponse::Continue => {}
+                    MiddleResponse::Add(i) => res = i,
+                    MiddleResponse::Send(i) => {
+                        res = i;
+                        break;
+                    }
+                }
             }
 
             // Add default headers to response
@@ -695,7 +702,11 @@ fn handle_connection(
     // Use middleware to handle request
     // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
     for middleware in middleware.iter().rev() {
-        req = middleware.borrow_mut().pre(req);
+        match middleware.borrow_mut().pre(req) {
+            MiddleRequest::Continue => {}
+            MiddleRequest::Add(i) => req = i,
+            MiddleRequest::Send(i) => return i,
+        }
     }
 
     // Loop through all routes and check if the request matches
