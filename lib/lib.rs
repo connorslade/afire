@@ -97,6 +97,9 @@ mod common;
 mod http;
 mod path;
 
+mod middleware;
+pub use middleware::Middleware;
+
 // The main server
 mod server;
 pub use self::server::Server;

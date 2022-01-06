@@ -1,4 +1,5 @@
 // Import STD libraries
+use std::cell::RefCell;
 use std::fmt;
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
@@ -15,6 +16,7 @@ use super::content_type::Content;
 use super::header::{headers_to_string, Header};
 use super::http;
 use super::method::Method;
+use super::middleware::Middleware;
 use super::request::Request;
 use super::response::Response;
 use super::route::Route;
@@ -39,7 +41,7 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<Box<dyn Fn(&Request) -> Option<Response>>>,
+    pub middleware: Vec<Box<RefCell<dyn Middleware>>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
@@ -169,6 +171,11 @@ impl Server {
 
             if res.close {
                 continue;
+            }
+
+            // bEFORE cLOSE?
+            for middleware in &mut self.middleware.iter().rev() {
+                res = middleware.borrow_mut().post(res);
             }
 
             // Add default headers to response
@@ -354,9 +361,9 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn middleware(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
-        self.middleware.push(handler);
-    }
+    // pub fn middleware(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
+    //     self.middleware.push(handler);
+    // }
 
     /// Set the panic handler response
     ///
@@ -610,7 +617,7 @@ impl Server {
 /// Handle a request
 fn handle_connection(
     mut stream: &TcpStream,
-    middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
+    middleware: &[Box<RefCell<dyn Middleware>>],
     #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
     buff_size: usize,
@@ -671,7 +678,7 @@ fn handle_connection(
     let headers = http::get_request_headers(stream_string);
     #[cfg(feature = "cookies")]
     let cookies = http::get_request_cookies(stream_string);
-    let req = Request {
+    let mut req = Request {
         method: req_method,
         path: req_path,
         query: req_query,
@@ -685,16 +692,10 @@ fn handle_connection(
         path_params: Vec::new(),
     };
 
-    #[cfg(feature = "path_patterns")]
-    let mut req = req;
-
     // Use middleware to handle request
     // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
     for middleware in middleware.iter().rev() {
-        match (middleware)(&req) {
-            None => (),
-            Some(res) => return res,
-        }
+        req = middleware.borrow_mut().pre(req);
     }
 
     // Loop through all routes and check if the request matches
