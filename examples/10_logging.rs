@@ -1,4 +1,4 @@
-use afire::{Header, Level, Logger, Method, Response, Server};
+use afire::{Header, Level, Logger, Method, Middleware, Response, Server};
 
 // Use some of afire's built-in middleware to log requests.
 
@@ -28,7 +28,7 @@ fn main() {
         // With logging to file it will wrtie to the file on every request... (for now)
         .file("example.log")
         // Tells the Logger it should log to the console aswell
-        .console()
+        .console(true)
         // This must be put at the end of your Logger Construction
         // It adds the Logger to your Server as Middleware
         .attach(&mut server);

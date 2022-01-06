@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 
 use crate::common::remove_address_port;
-use crate::{Request, Server};
+use crate::{Middleware, Request, Server};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -108,37 +108,8 @@ impl Logger {
     /// let logger = Logger::new()
     ///     .console();
     /// ```
-    pub fn console(self) -> Logger {
-        Logger {
-            console: true,
-            ..self
-        }
-    }
-
-    /// Attach a logger to a server
-    /// ## Example
-    /// ```rust
-    /// // Import Lib
-    /// use afire::{Logger, Level, Server};
-    ///
-    /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
-    ///
-    /// // Create a new logger and attach it to the server
-    /// Logger::new().attach(&mut server);
-    ///
-    /// // Start the server
-    /// // This is *still* blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn attach(self, server: &mut Server) {
-        let logger = RefCell::new(self);
-
-        server.middleware(Box::new(move |req| {
-            logger.borrow_mut().log(req);
-            None
-        }));
+    pub fn console(self, console: bool) -> Logger {
+        Logger { console, ..self }
     }
 
     /// Take a request and log it
@@ -225,6 +196,14 @@ impl Logger {
                 )
             }
         }
+    }
+}
+
+impl Middleware for Logger {
+    fn pre(&mut self, req: Request) -> Request {
+        self.log(&req);
+
+        req
     }
 }
 

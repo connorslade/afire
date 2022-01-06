@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use crate::common::remove_address_port;
-use crate::{Header, Request, Response, Server};
+use crate::{Header, Middleware, Request, Response, Server};
 
 // Handler Type
 type Handler = Box<dyn Fn(&Request) -> Option<Response>>;
@@ -150,23 +150,23 @@ impl RateLimiter {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn attach(self, server: &mut Server) {
-        let cell = RefCell::new(self);
-
-        server.middleware(Box::new(move |req| {
-            let ip = remove_address_port(&req.address);
-
-            cell.borrow_mut().check_reset();
-
-            if cell.borrow_mut().is_over_limit(ip.clone()) {
-                return (cell.borrow().handler)(req);
-            }
-
-            cell.borrow_mut().add_request(ip);
-
-            None
-        }));
-    }
+    // pub fn attach(self, server: &mut Server) {
+    //     let cell = RefCell::new(self);
+    //
+    //     server.middleware(Box::new(move |req| {
+    // let ip = remove_address_port(&req.address);
+    //
+    // cell.borrow_mut().check_reset();
+    //
+    // if cell.borrow_mut().is_over_limit(ip.clone()) {
+    //     return (cell.borrow().handler)(req);
+    // }
+    //
+    // cell.borrow_mut().add_request(ip);
+    //
+    //         None
+    //     }));
+    // }
 
     /// Count a request.
     fn add_request(&mut self, ip: String) {
@@ -190,6 +190,25 @@ impl RateLimiter {
     fn is_over_limit(&self, ip: String) -> bool {
         self.requests.get(&ip).unwrap_or(&0) >= &self.req_limit
     }
+}
+
+impl Middleware for RateLimiter {
+    // fn pre(&mut self, req: Request) -> Request {
+    //     let ip = remove_address_port(&req.address);
+    //
+    //     self.check_reset();
+    //
+    //     if self.is_over_limit(ip.clone()) {
+    //         return match (self.handler)(&req) {
+    //             Some(i) => i,
+    //             None => req,
+    //         };
+    //     }
+    //
+    //     self.add_request(ip);
+    //
+    //     req
+    // }
 }
 
 impl Default for RateLimiter {

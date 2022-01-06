@@ -1,4 +1,4 @@
-use afire::{Header, Method, Middleware, Response, Server};
+use afire::{Header, Logger, Method, Middleware, Response, Server};
 
 struct Log(usize);
 
@@ -28,7 +28,8 @@ fn main() {
             .header(Header::new("Content-Type", "text/plain"))
     });
 
-    Log::new().attach(&mut server);
+    // Log::new().attach(&mut server);
+    Logger::new().attach(&mut server);
 
     server.start().unwrap();
 }
