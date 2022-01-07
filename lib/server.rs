@@ -441,7 +441,7 @@ impl Server {
     #[deprecated(since = "0.2.3", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_owned(), Box::new(handler)));
+            .push(Route::new(Method::ANY, "**".to_owned(), Box::new(handler)));
     }
 
     /// Create a new route the runs for all methods and paths
@@ -482,7 +482,7 @@ impl Server {
     #[deprecated(since = "0.2.3", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all_c(&mut self, handler: Box<dyn Fn(Request) -> Response>) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_owned(), handler));
+            .push(Route::new(Method::ANY, "**".to_owned(), handler));
     }
 
     /// Create a new route for any type of request

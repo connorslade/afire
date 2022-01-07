@@ -52,6 +52,10 @@ impl Path {
         let path = normalize_path(path);
         let mut out = Vec::new();
 
+        if self.raw == "/**" {
+            return Some(Vec::new());
+        }
+
         let path = path.split('/');
 
         if path.clone().count() != self.parts.len() {

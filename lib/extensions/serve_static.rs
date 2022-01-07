@@ -359,7 +359,7 @@ impl ServeStatic {
 
         server.route_c(
             Method::ANY,
-            "*",
+            "**",
             Box::new(move |req| {
                 let mut res = process_req(req.clone(), cell.clone());
 
