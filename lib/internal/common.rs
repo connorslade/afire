@@ -12,7 +12,7 @@ use std::fmt;
 /// - 400-417
 /// - 500-505
 ///
-/// From https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1
+/// From <https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1>
 pub fn reason_phrase(status: u16) -> String {
     match status {
         100 => "Continue",
@@ -72,11 +72,11 @@ pub fn remove_address_port<T>(address: T) -> String
 where
     T: fmt::Display,
 {
-    address
-        .to_string()
-        .split(':')
-        .next()
-        .unwrap_or("null")
+    let raw = address.to_string();
+
+    raw.rsplit_once(':')
+        .unwrap_or((raw.as_str(), "null"))
+        .0
         .to_string()
 }
 

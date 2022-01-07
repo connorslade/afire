@@ -11,14 +11,9 @@ use crate::query::Query;
 ///
 /// Defaults to GET if no method found
 pub fn get_request_method(raw_data: &str) -> Method {
-    let method_str = raw_data
-        .split(' ')
-        .next()
-        .unwrap_or("GET")
-        .to_string()
-        .to_uppercase();
+    let method_str = raw_data.split(' ').next().unwrap_or("GET").to_string();
 
-    match method_str.as_str() {
+    match method_str.to_uppercase().as_str() {
         "GET" => Method::GET,
         "POST" => Method::POST,
         "PUT" => Method::PUT,

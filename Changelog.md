@@ -21,6 +21,7 @@
 - Remove `.ip_string()` for `.ip.to_string()`
 - Add `Response.close()` for closeing a stream with no response
 - Completly Redo Middleware, Now it can modify Requests / Responses
+- Removed Server.middleware
 - Export Internal Functions
 
 # 0.2.2

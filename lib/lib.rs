@@ -96,7 +96,8 @@ pub const VERSION: &str = "0.2.3*";
 // Export Internal Functions
 pub mod internal;
 
-// Import for internal use
+// Import Internal Functions
+mod handle;
 use internal::common;
 use internal::http;
 use internal::path;

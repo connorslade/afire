@@ -1,8 +1,8 @@
 // Import STD libraries
 use std::cell::RefCell;
 use std::fmt;
-use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::io::Write;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::time::Duration;
 
@@ -11,16 +11,15 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use super::common::reason_phrase;
-use super::content_type::Content;
-use super::header::{headers_to_string, Header};
-use super::http;
-use super::method::Method;
-use super::middleware::{MiddleRequest, MiddleResponse, Middleware};
-use super::request::Request;
-use super::response::Response;
-use super::route::Route;
-use super::VERSION;
+use crate::common::reason_phrase;
+use crate::handle::handle_connection;
+use crate::header::{headers_to_string, Header};
+use crate::method::Method;
+use crate::middleware::{MiddleResponse, Middleware};
+use crate::request::Request;
+use crate::response::Response;
+use crate::route::Route;
+use crate::VERSION;
 
 /// Defines a server.
 pub struct Server {
@@ -169,11 +168,6 @@ impl Server {
                 self.buff_size,
             );
 
-            if res.close {
-                continue;
-            }
-
-            // bEFORE cLOSE?
             for middleware in &mut self.middleware.iter().rev() {
                 match middleware.borrow_mut().post(res.clone()) {
                     MiddleResponse::Continue => {}
@@ -183,6 +177,10 @@ impl Server {
                         break;
                     }
                 }
+            }
+
+            if res.close {
+                continue;
             }
 
             // Add default headers to response
@@ -340,37 +338,6 @@ impl Server {
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
     }
-
-    /// Add a new middleware to the server
-    ///
-    /// Will be executed before any routes are handled
-    ///
-    /// You will have access to the request object
-    /// You can send a response but it will keep normal routes from being handled
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::{Server};
-    ///
-    /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Add some middleware
-    /// server.middleware(Box::new(|req| {
-    ///     // Do something with the request
-    ///     // Return a `None` to continue to the next middleware / route
-    ///     // Return a `Some` to send a response
-    ///    None
-    ///}));
-    ///
-    /// // Starts the server
-    /// // This is blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    // pub fn middleware(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
-    //     self.middleware.push(handler);
-    // }
 
     /// Set the panic handler response
     ///
@@ -619,139 +586,4 @@ impl Server {
         self.routes
             .push(Route::new(method, path.to_string(), handler));
     }
-}
-
-/// Handle a request
-fn handle_connection(
-    mut stream: &TcpStream,
-    middleware: &[Box<RefCell<dyn Middleware>>],
-    #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
-    routes: &[Route],
-    buff_size: usize,
-) -> Response {
-    // Init (first) Buffer
-    let mut buffer = vec![0; buff_size];
-
-    // Read stream into buffer
-    match stream.read(&mut buffer) {
-        Ok(_) => {}
-        Err(_) => return quick_err("Error Reading Stream", 500),
-    };
-
-    // Get Buffer as string for parseing content length header
-    #[cfg(feature = "dynamic_resize")]
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
-
-    // Get Content-Length header
-    // If header shows thar more space is needed,
-    // make a new buffer read the rest of the stream and add it to the first buffer
-    // This could cause a performance hit but is actually seams to be fast enough
-    #[cfg(feature = "dynamic_resize")]
-    if let Some(dyn_buf) = http::get_request_headers(stream_string)
-        .iter()
-        .find(|x| x.name == "Content-Length")
-    {
-        let header_size = http::get_header_size(stream_string);
-        let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
-        let new_buffer_size = content_length as i64 + header_size as i64 - buff_size as i64;
-        if new_buffer_size > 0 {
-            let mut new_buffer = vec![0; new_buffer_size as usize];
-            match stream.read(&mut new_buffer) {
-                Ok(_) => {}
-                Err(_) => return quick_err("Error Reading Stream", 500),
-            };
-            buffer.append(&mut new_buffer);
-        }
-    };
-
-    while buffer.ends_with(&[b'\0']) {
-        buffer.pop();
-    }
-
-    // Get Buffer as string for parseing Path, Method, Query, etc
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
-
-    // Make Request Object
-    let req_method = http::get_request_method(stream_string);
-    let req_path = http::get_request_path(stream_string);
-    let req_query = http::get_request_query(stream_string);
-    let body = http::get_request_body(&buffer);
-    let headers = http::get_request_headers(stream_string);
-    #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(stream_string);
-    let mut req = Request {
-        method: req_method,
-        path: req_path,
-        query: req_query,
-        headers,
-        #[cfg(feature = "cookies")]
-        cookies,
-        body,
-        address: stream.peer_addr().unwrap().to_string(),
-        raw_data: buffer,
-        #[cfg(feature = "path_patterns")]
-        path_params: Vec::new(),
-    };
-
-    // Use middleware to handle request
-    // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
-    for middleware in middleware.iter().rev() {
-        match middleware.borrow_mut().pre(req.clone()) {
-            MiddleRequest::Continue => {}
-            MiddleRequest::Add(i) => req = i,
-            MiddleRequest::Send(i) => return i,
-        }
-    }
-
-    // Loop through all routes and check if the request matches
-    for route in routes.iter().rev() {
-        let path_match = route.path.match_path(req.path.clone());
-        if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
-            // Set the Pattern params of the Request
-            #[cfg(feature = "path_patterns")]
-            {
-                req.path_params = path_match.unwrap_or_default();
-            }
-
-            // Optionally enable automatic panic handling
-            #[cfg(feature = "panic_handler")]
-            {
-                let result =
-                    panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
-                let err = match result {
-                    Ok(i) => return i,
-                    Err(e) => match e.downcast_ref::<&str>() {
-                        Some(err) => err,
-                        None => "",
-                    },
-                };
-                return (error_handler)(req, err.to_string());
-            }
-
-            #[cfg(not(feature = "panic_handler"))]
-            {
-                return (route.handler)(req);
-            }
-        }
-    }
-
-    // If no route was found, return a default 404
-    Response::new()
-        .status(404)
-        .text(format!("Cannot {} {}", req.method, req.path))
-        .header(Header::new("Content-Type", "text/plain"))
-}
-
-/// Quick function to get a basic error response
-fn quick_err(text: &str, code: u16) -> Response {
-    Response::new()
-        .status(code)
-        .text(text)
-        .content(Content::TXT)
 }

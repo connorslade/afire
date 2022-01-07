@@ -106,7 +106,7 @@ impl Logger {
     ///
     /// // Create a new logger and enable console
     /// let logger = Logger::new()
-    ///     .console();
+    ///     .console(true );
     /// ```
     pub fn console(self, console: bool) -> Logger {
         Logger { console, ..self }
