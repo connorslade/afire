@@ -1,23 +1,33 @@
+//! HTTP Path stuff
+
+/// Http Path
 #[derive(Debug, PartialEq, Eq)]
 pub struct Path {
+    /// Raw Path String
     pub raw: String,
+
+    /// Path Segments
     pub parts: Vec<PathPart>,
 }
 
+/// Segment of a path
+///
+/// Ex: `/hello/{name}` => [Normal::("hello"), Param::("name")]
 #[derive(Debug, PartialEq, Eq)]
 pub enum PathPart {
-    // Normal Path Segment (/hi)
+    /// Normal Path Segment (/hi)
     Normal(String),
 
-    // Path param (/{name})
+    /// Path param (/{name})
     Param(String),
 
-    // Literly Anything (E)
+    /// Literly Anything (E)
     Any,
 }
 
 impl Path {
-    pub(crate) fn new(path: String) -> Path {
+    /// Make a new path
+    pub fn new(path: String) -> Path {
         let path = normalize_path(path);
         let mut out = Vec::new();
 
@@ -36,8 +46,9 @@ impl Path {
         }
     }
 
+    /// Match Path
     #[cfg(feature = "path_patterns")]
-    pub(crate) fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
+    pub fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
         let path = normalize_path(path);
         let mut out = Vec::new();
 
@@ -62,8 +73,9 @@ impl Path {
         Some(out)
     }
 
+    /// Match Path
     #[cfg(not(feature = "path_patterns"))]
-    pub(crate) fn match_path(&self, path: String) -> Option<()> {
+    pub fn match_path(&self, path: String) -> Option<()> {
         if self.raw == path {
             return Some(());
         }
@@ -72,8 +84,9 @@ impl Path {
 }
 
 impl PathPart {
+    /// Decode Path Segment into PathPart
     #[cfg(feature = "path_patterns")]
-    pub(crate) fn from_segment(seg: &str) -> PathPart {
+    pub fn from_segment(seg: &str) -> PathPart {
         if seg == "*" {
             return PathPart::Any;
         }
@@ -92,7 +105,10 @@ impl PathPart {
     }
 }
 
-pub(crate) fn normalize_path(mut path: String) -> String {
+/// Normalize a Path
+///
+/// Makes it start and optinaly end with a slash
+pub fn normalize_path(mut path: String) -> String {
     #[cfg(feature = "ignore_trailing_path_slash")]
     if path.ends_with('/') {
         path.pop();

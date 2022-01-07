@@ -1,3 +1,5 @@
+//! Some little functions used here and thare
+
 #[cfg(any(feature = "rate_limit", feature = "logging"))]
 use std::fmt;
 
@@ -11,7 +13,7 @@ use std::fmt;
 /// - 500-505
 ///
 /// From https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1
-pub(crate) fn reason_phrase(status: u16) -> String {
+pub fn reason_phrase(status: u16) -> String {
     match status {
         100 => "Continue",
         101 => "Switching Protocols",
@@ -66,7 +68,7 @@ pub(crate) fn reason_phrase(status: u16) -> String {
 ///
 /// '192.168.1.26:1234' -> '192.168.1.26'
 #[cfg(any(feature = "rate_limit", feature = "logging"))]
-pub(crate) fn remove_address_port<T>(address: T) -> String
+pub fn remove_address_port<T>(address: T) -> String
 where
     T: fmt::Display,
 {

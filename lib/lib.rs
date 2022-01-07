@@ -93,9 +93,13 @@ server.start().unwrap();
 #[doc(hidden)]
 pub const VERSION: &str = "0.2.3*";
 
-mod common;
-mod http;
-mod path;
+// Export Internal Functions
+pub mod internal;
+
+// Import for internal use
+use internal::common;
+use internal::http;
+use internal::path;
 
 // The main server
 mod server;

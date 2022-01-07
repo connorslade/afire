@@ -1,8 +1,8 @@
 //! Stuff for working with Raw HTTP data
 
-#[cfg(feature = "cookies")]
-use super::cookie::Cookie;
 use crate::common;
+#[cfg(feature = "cookies")]
+use crate::cookie::Cookie;
 use crate::header::Header;
 use crate::method::Method;
 use crate::query::Query;
@@ -60,7 +60,7 @@ pub fn get_request_path(raw_data: &str) -> String {
     common::decode_url(new_path)
 }
 
-// Get The Query Data of a raw HTTP request.
+/// Get The Query Data of a raw HTTP request.
 pub fn get_request_query(raw_data: &str) -> Query {
     let mut path_str = raw_data.split(' ');
     if path_str.clone().count() <= 1 {
@@ -73,7 +73,7 @@ pub fn get_request_query(raw_data: &str) -> Query {
     if path.clone().count() <= 1 {
         return Query::new_empty();
     }
-    Query::new(path.nth(1).unwrap_or_default()).unwrap_or_else(|| Query { data: Vec::new() })
+    Query::new(path.nth(1).unwrap_or_default()).unwrap_or_else(|| Query(Vec::new()))
 }
 
 /// Get the body of a raw HTTP request.

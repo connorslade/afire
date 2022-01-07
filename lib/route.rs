@@ -23,11 +23,7 @@ pub struct Route {
 
 impl Route {
     /// Creates a new route.
-    pub(crate) fn new(
-        method: Method,
-        path: String,
-        handler: Box<dyn Fn(Request) -> Response>,
-    ) -> Route {
+    pub fn new(method: Method, path: String, handler: Box<dyn Fn(Request) -> Response>) -> Route {
         Route {
             method,
             path: Path::new(path),

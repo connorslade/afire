@@ -1,4 +1,5 @@
 use afire::{
+    internal::common::remove_address_port,
     middleware::{MiddleRequest, Middleware},
     Header, Method, Request, Response, Server,
 };
@@ -25,9 +26,15 @@ impl Middleware for Log {
     // (Runs before Routes)
     fn pre(&mut self, req: Request) -> MiddleRequest {
         // Print some info
-        println!("[{}] {} {}", req.address, req.method, req.path);
+        println!(
+            "[{}] {} {}",
+            remove_address_port(req.address),
+            req.method,
+            req.path
+        );
         // Note: req.address also has the client port
-        // Ex: 127.0.0.1:6264
+        // This is being removed with
+        // Ex: 127.0.0.1:6264 => 127.0.0.1
 
         // Continue to forward the request to the next middleware or route
         MiddleRequest::Continue

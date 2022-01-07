@@ -1,3 +1,6 @@
+//! Middleware is code that runs before and after the routes.
+//! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
+
 use std::cell::RefCell;
 
 use crate::{Request, Response, Server};
