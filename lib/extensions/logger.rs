@@ -1,11 +1,11 @@
 // If file logging is enabled
-use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
 use crate::common::remove_address_port;
-use crate::{Middleware, Request, Server};
+use crate::middleware::{MiddleRequest, Middleware};
+use crate::Request;
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -200,10 +200,10 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn pre(&mut self, req: Request) -> Request {
+    fn pre(&mut self, req: Request) -> MiddleRequest {
         self.log(&req);
 
-        req
+        MiddleRequest::Continue
     }
 }
 

@@ -131,6 +131,7 @@ pub use content_type::Content;
 
 // Middleware and stuff
 pub mod middleware;
+pub use middleware::Middleware;
 
 // Cookies 🍪
 #[cfg(feature = "cookies")]

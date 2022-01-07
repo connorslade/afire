@@ -1,11 +1,10 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::common::remove_address_port;
-use crate::{Header, Middleware, Request, Response, Server};
+use crate::middleware::{MiddleRequest, Middleware};
+use crate::{Header, Request, Response};
 
 // Handler Type
 type Handler = Box<dyn Fn(&Request) -> Option<Response>>;
@@ -131,43 +130,6 @@ impl RateLimiter {
         RateLimiter { handler, ..self }
     }
 
-    /// Attach the rate limiter to a server.
-    /// ## Example
-    /// ```rust
-    /// // Import Lib
-    /// use afire::{Server, RateLimiter};
-    ///
-    /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
-    ///
-    /// // Add a rate limiter
-    /// RateLimiter::new()
-    ///     // Attatch it to the server
-    ///     .attach(&mut server);
-    ///
-    /// // Start Server
-    /// // This is blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    // pub fn attach(self, server: &mut Server) {
-    //     let cell = RefCell::new(self);
-    //
-    //     server.middleware(Box::new(move |req| {
-    // let ip = remove_address_port(&req.address);
-    //
-    // cell.borrow_mut().check_reset();
-    //
-    // if cell.borrow_mut().is_over_limit(ip.clone()) {
-    //     return (cell.borrow().handler)(req);
-    // }
-    //
-    // cell.borrow_mut().add_request(ip);
-    //
-    //         None
-    //     }));
-    // }
-
     /// Count a request.
     fn add_request(&mut self, ip: String) {
         self.requests
@@ -193,22 +155,22 @@ impl RateLimiter {
 }
 
 impl Middleware for RateLimiter {
-    // fn pre(&mut self, req: Request) -> Request {
-    //     let ip = remove_address_port(&req.address);
-    //
-    //     self.check_reset();
-    //
-    //     if self.is_over_limit(ip.clone()) {
-    //         return match (self.handler)(&req) {
-    //             Some(i) => i,
-    //             None => req,
-    //         };
-    //     }
-    //
-    //     self.add_request(ip);
-    //
-    //     req
-    // }
+    fn pre(&mut self, req: Request) -> MiddleRequest {
+        let ip = remove_address_port(&req.address);
+
+        self.check_reset();
+
+        if self.is_over_limit(ip.clone()) {
+            return match (self.handler)(&req) {
+                Some(i) => MiddleRequest::Send(i),
+                None => MiddleRequest::Continue,
+            };
+        }
+
+        self.add_request(ip);
+
+        MiddleRequest::Continue
+    }
 }
 
 impl Default for RateLimiter {

@@ -1,4 +1,4 @@
-use afire::{Header, Method, RateLimiter, Response, Server};
+use afire::{Header, Method, Middleware, RateLimiter, Response, Server};
 
 // Use some of afire's built-in middleware to log requests.
 

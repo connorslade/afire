@@ -175,7 +175,7 @@ impl Server {
 
             // bEFORE cLOSE?
             for middleware in &mut self.middleware.iter().rev() {
-                match middleware.borrow_mut().post(res) {
+                match middleware.borrow_mut().post(res.clone()) {
                     MiddleResponse::Continue => {}
                     MiddleResponse::Add(i) => res = i,
                     MiddleResponse::Send(i) => {
@@ -702,7 +702,7 @@ fn handle_connection(
     // Use middleware to handle request
     // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
     for middleware in middleware.iter().rev() {
-        match middleware.borrow_mut().pre(req) {
+        match middleware.borrow_mut().pre(req.clone()) {
             MiddleRequest::Continue => {}
             MiddleRequest::Add(i) => req = i,
             MiddleRequest::Send(i) => return i,

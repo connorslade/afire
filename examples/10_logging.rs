@@ -16,7 +16,6 @@ fn main() {
 
     // Make a logger and attach it to the server
 
-    // In this example all of the arguments for the Logger are being manually set
     // By defult Log Level is INFO, File is None and Console is true
     // This could be condenced to `Logger::new().attach(&mut server);` as it uses al defult values
     Logger::new()
