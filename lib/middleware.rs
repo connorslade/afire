@@ -39,7 +39,7 @@ pub trait Middleware {
     }
 
     /// Middleware to run After Routes
-    fn post(&mut self, _res: Response) -> MiddleResponse {
+    fn post(&mut self, _req: Request, _res: Response) -> MiddleResponse {
         MiddleResponse::Continue
     }
 

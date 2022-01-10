@@ -159,7 +159,7 @@ impl Server {
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let mut res = handle_connection(
+            let (req, mut res) = handle_connection(
                 &stream,
                 &self.middleware,
                 #[cfg(feature = "panic_handler")]
@@ -169,7 +169,7 @@ impl Server {
             );
 
             for middleware in &mut self.middleware.iter().rev() {
-                match middleware.borrow_mut().post(res.clone()) {
+                match middleware.borrow_mut().post(req.clone(), res.clone()) {
                     MiddleResponse::Continue => {}
                     MiddleResponse::Add(i) => res = i,
                     MiddleResponse::Send(i) => {

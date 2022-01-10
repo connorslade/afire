@@ -25,7 +25,7 @@ pub(crate) fn handle_connection(
     #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
     buff_size: usize,
-) -> Response {
+) -> (Request, Response) {
     // Init (first) Buffer
     let mut buffer = vec![0; buff_size];
 
@@ -102,7 +102,7 @@ pub(crate) fn handle_connection(
         match middleware.borrow_mut().pre(req.clone()) {
             MiddleRequest::Continue => {}
             MiddleRequest::Add(i) => req = i,
-            MiddleRequest::Send(i) => return i,
+            MiddleRequest::Send(i) => return (req, i),
         }
     }
 
@@ -122,13 +122,13 @@ pub(crate) fn handle_connection(
                 let result =
                     panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
                 let err = match result {
-                    Ok(i) => return i,
+                    Ok(i) => return (req, i),
                     Err(e) => match e.downcast_ref::<&str>() {
                         Some(err) => err,
                         None => "",
                     },
                 };
-                return (error_handler)(req, err.to_string());
+                return (req.clone(), (error_handler)(req.clone(), err.to_string()));
             }
 
             #[cfg(not(feature = "panic_handler"))]
@@ -139,16 +139,22 @@ pub(crate) fn handle_connection(
     }
 
     // If no route was found, return a default 404
-    Response::new()
-        .status(404)
-        .text(format!("Cannot {} {}", req.method, req.path))
-        .header(Header::new("Content-Type", "text/plain"))
+    (
+        req.clone(),
+        Response::new()
+            .status(404)
+            .text(format!("Cannot {} {}", req.method, req.path))
+            .header(Header::new("Content-Type", "text/plain")),
+    )
 }
 
 /// Quick function to get a basic error response
-fn quick_err(text: &str, code: u16) -> Response {
-    Response::new()
-        .status(code)
-        .text(text)
-        .content(Content::TXT)
+fn quick_err(text: &str, code: u16) -> (Request, Response) {
+    (
+        Request::new_empty(),
+        Response::new()
+            .status(code)
+            .text(text)
+            .content(Content::TXT),
+    )
 }
