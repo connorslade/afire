@@ -8,7 +8,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.2.3"
+afire = "0.3.0"
 ```
 
 ## 📄 Info
@@ -57,7 +57,7 @@ For these you will need to enable the features.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.2.3", features = ["rate_limit", "logging", "serve_static"] }
+afire = { version = "0.3.0", features = ["rate_limit", "logging", "serve_static"] }
 ```
 
 - Content Types

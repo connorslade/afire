@@ -230,7 +230,7 @@ impl Server {
     /// // Get the ip a server is listening on as a string
     /// assert_eq!("127.0.0.1", server.ip_string());
     /// ```
-    #[deprecated(since = "0.2.3", note = "Instead use .ip.to_string()")]
+    #[deprecated(since = "0.3.0", note = "Instead use .ip.to_string()")]
     pub fn ip_string(&self) -> String {
         self.ip
             .octets()
@@ -438,7 +438,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    #[deprecated(since = "0.2.3", note = "Instead use .route(Method::ANY, \"*\", ...)")]
+    #[deprecated(since = "0.3.0", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
             .push(Route::new(Method::ANY, "**".to_owned(), Box::new(handler)));
@@ -479,7 +479,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    #[deprecated(since = "0.2.3", note = "Instead use .route(Method::ANY, \"*\", ...)")]
+    #[deprecated(since = "0.3.0", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all_c(&mut self, handler: Box<dyn Fn(Request) -> Response>) {
         self.routes
             .push(Route::new(Method::ANY, "**".to_owned(), handler));
