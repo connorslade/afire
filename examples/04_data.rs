@@ -1,6 +1,6 @@
 use afire::{Header, Method, Query, Response, Server};
 
-// Send data to server with a Query String, Path Prams and Form Data
+// Send data to server with a Query String, Path params and Form Data
 
 fn main() {
     // Create a new Server instance on localhost port 8080
@@ -13,13 +13,10 @@ fn main() {
         let text = format!(
             "<h1>Hello, {}!</h1>",
             // Get the query value of name and default to "Nobody" if not found
-            req.query
-                .get("name")
-                .unwrap_or_else(|| "Nobody".to_string())
+            req.query.get("name").unwrap_or_else(|| "Nobody".to_owned())
         );
 
         Response::new()
-            .status(200)
             .text(text)
             .header(Header::new("Content-Type", "text/html"))
     });
@@ -39,7 +36,6 @@ fn main() {
         let text = format!("<h1>Hello, {}</h1>", name);
 
         Response::new()
-            .status(200)
             .text(text)
             .header(Header::new("Content-Type", "text/html"))
     });
@@ -54,43 +50,26 @@ fn main() {
       </form>"#;
 
         Response::new()
-            .status(200)
             .text(page)
             .header(Header::new("Content-Type", "text/html"))
     });
 
     // Define a page with path params
-    // As this is not built into afire you will need to use middleware (for now :P)
-    // This is like "/greet/:name"
-    server.middleware(Box::new(|req| {
-        // Move on if path dosent start with /path or the method is not get
-        // You could also do this with a regex (but afire is dependency free so I wont show that in this example)
-        if !req.path.starts_with("/greet/") || req.method != Method::GET {
-            return None;
-        }
+    server.route(Method::GET, "/greet/{name}", |req| {
+        // As this route would ever run without all the path params being filled
+        // It is safe to unwrap if the name is in the path
+        let data = format!("<h1>Hello, {}</h1>", req.path_param("name").unwrap());
 
-        // Extract the pram value
-        // This is getting the 2rd path value
-        // Ex: /greet/Darren/
-        let name = req.path.split("/").nth(2).unwrap();
-
-        // Respond with "Hello, {{NAME}}"
-        Some(
-            Response::new()
-                .text(format!("<h1>Hello, {}</h1>", name))
-                .header(Header::new("Content-Type", "text/html")),
-        )
-    }));
+        Response::new()
+            .text(data)
+            .header(Header::new("Content-Type", "text/html"))
+    });
 
     // You can now goto http://localhost:8080?name=John and should see "Hello, John"
     // If you goto http://localhost:8080/form and submit the form you should see "Hello, {NAME}"
     // Also goto http://localhost:8080/greet/John and you should see "Hello, John"
 
-    println!(
-        "[04] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[04] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

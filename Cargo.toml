@@ -1,6 +1,6 @@
 [package]
 name = "afire"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 
@@ -17,18 +17,28 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = ["panic_handler", "thread_pool", "cookies", "dynamic_resize"]
+default = [
+  "panic_handler",
+  "cookies",
+  "dynamic_resize",
+  "path_patterns",
+  "ignore_trailing_path_slash"
+]
 
-# Extions
+# Extensions
 rate_limit = []
 logging = []
 serve_static = []
 
 # Default On
-panic_handler = []
 cookies = []
-thread_pool = []
 dynamic_resize = []
+panic_handler = []
+ignore_trailing_path_slash = []
+
+# Other
+path_patterns = []
+thread_pool = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples

@@ -1,12 +1,45 @@
-use afire::{Header, Method, Response, Server};
+use afire::{
+    internal::common::remove_address_port,
+    middleware::{MiddleRequest, Middleware},
+    Header, Method, Request, Response, Server,
+};
 
-// Define middleware that will be executed before the request handler.
-// In afire middleware is run before the normal routes and they can ether
-// send a response or pass the request to the next middleware / route.
+// In afire Middleware is a trait that is implemented and can modify / overwrite Requests and Response
+// The Middleware functions for this are `pre` and `post` for before and after the routes
+// These functions will return a MiddleResponse / MiddleRequest which is an enum with the following
+//  - `Continue` to not affect the Request / Response
+//  - `Add(Request | Response)` to modify the Request / Response and continue to run Middleware (if any)
+//  - `Send(Response)` to send a Response to the client immediately
 // Just like routes, middleware is executed in reverse order that they are defined.
 // So the most recently defined middleware is executed first.
 
-// You could use middleware to Log all requests, or to check if a user is logged in, Implement ReteLimiting, add Analytics, etc.
+// You could use middleware to log requests, check if a user is logged in, Implement RateLimiting, add Analytics, etc.
+// In this example, we will make a very simple Request Logger
+
+// First we define the Struct to Implement Middleware on
+// It can have values, but in this case that is not needed
+struct Log;
+
+// Now we will Implement Middleware for Log
+impl Middleware for Log {
+    // Redefine the `pre` function
+    // (Runs before Routes)
+    fn pre(&mut self, req: Request) -> MiddleRequest {
+        // Print some info
+        println!(
+            "[{}] {} {}",
+            remove_address_port(req.address),
+            req.method,
+            req.path
+        );
+        // Note: req.address also has the client port
+        // This is being removed with
+        // Ex: 127.0.0.1:6264 => 127.0.0.1
+
+        // Continue to forward the request to the next middleware or route
+        MiddleRequest::Continue
+    }
+}
 
 fn main() {
     // Create a new Server instance on localhost port 8080
@@ -20,23 +53,14 @@ fn main() {
             .header(Header::new("Content-Type", "text/plain"))
     });
 
-    // Now to add some middleware
-    // For this example we will add a middleware that will print all requests to the console
-    server.middleware(Box::new(|req| {
-        println!("[{}] {} {}", req.address, req.method, req.path);
-
-        // Return None to forward the request to the next middleware or route
-        None
-    }));
+    // Here is where we will attach our Middleware to the Server
+    // This is super easy
+    Log.attach(&mut server);
 
     // You can now goto http://localhost:8080 you should see that the request is printed to the console
-    // It should look something like this: `[127.0.0.1:xxxxx] GET /`
+    // It should look something like this: `[127.0.0.1:xxxxx] GET `
 
-    println!(
-        "[08] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[08] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

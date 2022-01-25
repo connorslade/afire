@@ -5,7 +5,16 @@ use afire::{Header, Method, Response, Server};
 
 fn main() {
     // Create a new Server instance on localhost port 8080
-    let mut server: Server = Server::new("localhost", 8080);
+    let mut server: Server = Server::new("localhost", 8080)
+        // Define server wide default headers
+        // These will be send with every response
+        // If the same header is defined in the route it will be put before the default header
+        // Although it is not garunteed to be the one picked by the client it usually is
+        // At the bottom of this file is a representation of the order of the headers
+        .default_header(Header::new(
+            "X-Server-Header",
+            "This is a server wide header",
+        ));
 
     // Define a route to redirect to another website
     server.route(Method::GET, "/", |_req| {
@@ -36,12 +45,11 @@ fn main() {
     // Now to define a route to handle client headers
     // This will just echo the headers back to the client
     server.route(Method::GET, "/headers", |req| {
-        let mut body = "".to_string();
-
         // Get the headers from the request and make a html string
-        for i in req.headers {
-            body += &format!("{:?}<br />", i);
-        }
+        let body = req
+            .headers
+            .iter()
+            .fold(String::new(), |old, new| old + &format!("{:?}<br />", new));
 
         // Create a response with the headers
         Response::new()
@@ -50,24 +58,10 @@ fn main() {
             .header(Header::new("Content-Type", "text/html"))
     });
 
-    // Define server wide default headers
-    // These will be send with every response
-    // If the same header is defined in the route it will be put before the default header
-    // Although it is not garunteed to be the one picked by the client it usually is
-    // At the bottom of this file is a representation of the order of the headers
-    server.default_header(Header::new(
-        "X-Server-Header",
-        "This is a server wide header",
-    ));
-
     // You can now goto http://localhost:8080 you should see a redirect to https://connorcode.com
     // And you can goto http://localhost:8080/headers to see the headers your client sent to the server
 
-    println!(
-        "[05] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[05] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

@@ -11,7 +11,7 @@ fn main() {
 
     // Make a new static file server with a path
     ServeStatic::new(STATIC_DIR)
-        // Middleware here works much diffrnetly to afire middleware
+        // Middleware here works much diffrently to afire middleware
         // The middleware priority is still by most recently defined
         // But this middleware takes functions only - no closures
         // and resultes of the middleware are put togther so more then one ac affect thre response
@@ -25,6 +25,7 @@ fn main() {
             println!("Staticly Served: {}", req.path);
 
             // Return none to not mess with response
+            // Or in this case add a header and pass through the sucess value
             Some((res.header(Header::new("X-Static-Serve", "true")), suc))
         })
         // Function that runs when no file is found to serve
@@ -36,11 +37,7 @@ fn main() {
         // Attatch the middleware to the server
         .attach(&mut server);
 
-    println!(
-        "[07] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[07] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

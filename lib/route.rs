@@ -3,6 +3,7 @@ use std::fmt;
 use super::method::Method;
 use super::request::Request;
 use super::response::Response;
+use crate::path::Path;
 
 /// Defines a route.
 ///
@@ -14,7 +15,7 @@ pub struct Route {
     pub method: Method,
 
     /// Route Path
-    pub path: String,
+    pub path: Path,
 
     /// Route Handler
     pub handler: Box<dyn Fn(Request) -> Response>,
@@ -22,19 +23,10 @@ pub struct Route {
 
 impl Route {
     /// Creates a new route.
-    pub(super) fn new(
-        method: Method,
-        path: String,
-        handler: Box<dyn Fn(Request) -> Response>,
-    ) -> Route {
-        let mut path = path;
-        if path.chars().last().unwrap_or_default() == '/' {
-            path.pop();
-        }
-
+    pub fn new(method: Method, path: String, handler: Box<dyn Fn(Request) -> Response>) -> Route {
         Route {
             method,
-            path,
+            path: Path::new(path),
             handler,
         }
     }

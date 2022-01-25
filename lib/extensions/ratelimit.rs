@@ -1,11 +1,13 @@
-    use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::common::remove_address_port;
-use crate::{Header, Request, Response, Server};
+use crate::middleware::{MiddleRequest, Middleware};
+use crate::{Header, Request, Response};
+
+// Handler Type
+type Handler = Box<dyn Fn(&Request) -> Option<Response>>;
 
 /// Limit the amount of requests handled by the server.
 pub struct RateLimiter {
@@ -15,23 +17,25 @@ pub struct RateLimiter {
     /// Time of last reset
     last_reset: u64,
 
-    /// How often to reset the counters
+    /// How often to reset the counters (sec)
     req_timeout: u64,
 
     /// Table of requests per IP
     requests: HashMap<String, u64>,
 
     /// Handler for when the limit is reached
-    handler: Box<dyn Fn(&Request) -> Option<Response>>,
+    handler: Handler,
 }
 
 impl RateLimiter {
     /// Make a new RateLimiter.
-    pub fn new(req_limit: u64, req_timeout: u64) -> RateLimiter {
+    ///
+    /// Default limit is 10 and timeout is 60
+    pub fn new() -> RateLimiter {
         RateLimiter {
-            req_limit,
             last_reset: 0,
-            req_timeout,
+            req_limit: 10,
+            req_timeout: 60,
             requests: HashMap::new(),
             handler: Box::new(|_| {
                 Some(
@@ -44,19 +48,86 @@ impl RateLimiter {
         }
     }
 
-    /// Make a new RateLimiter with a custom handler.
-    pub fn new_handler(
-        req_limit: u64,
-        req_timeout: u64,
-        handler: Box<dyn Fn(&Request) -> Option<Response>>,
-    ) -> RateLimiter {
+    /// Set the request limit per timeout
+    /// Attach the rate limiter to a server.
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Server, RateLimiter, Middleware};
+    ///
+    /// // Create a new server
+    /// let mut server: Server = Server::new("localhost", 1234);
+    ///
+    /// // Add a rate limiter
+    /// RateLimiter::new()
+    ///     // Overide limit to 100 requests
+    ///     .limit(100)
+    ///     // Attatch it to the server
+    ///     .attach(&mut server);
+    ///
+    /// // Start Server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn limit(self, limit: u64) -> RateLimiter {
         RateLimiter {
-            req_limit,
-            last_reset: 0,
-            req_timeout,
-            requests: HashMap::new(),
-            handler,
+            req_limit: limit,
+            ..self
         }
+    }
+
+    /// Set the Ratelimit refresh peroid
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Server, RateLimiter, Middleware};
+    ///
+    /// // Create a new server
+    /// let mut server: Server = Server::new("localhost", 1234);
+    ///
+    /// // Add a rate limiter
+    /// RateLimiter::new()
+    ///     // Overide timeout to 60 seconds
+    ///     .timeout(60)
+    ///     // Attatch it to the server
+    ///     .attach(&mut server);
+    ///
+    /// // Start Server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn timeout(self, timeout: u64) -> RateLimiter {
+        RateLimiter {
+            req_timeout: timeout,
+            ..self
+        }
+    }
+
+    /// Define a Custom Handler for when a client has exceded the ratelimit
+    /// ## Example
+    /// ```rust
+    /// // Import Lib
+    /// use afire::{Server, Response, RateLimiter, Middleware};
+    ///
+    /// // Create a new server
+    /// let mut server: Server = Server::new("localhost", 1234);
+    ///
+    /// // Add a rate limiter
+    /// RateLimiter::new()
+    ///     // Overide the handler for requests exceding the limit
+    ///     .handler(Box::new(|_req| Some(Response::new().text("much request"))))
+    ///     // Attatch it to the server
+    ///     .attach(&mut server);
+    ///
+    /// // Start Server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn handler(self, handler: Handler) -> RateLimiter {
+        RateLimiter { handler, ..self }
     }
 
     /// Count a request.
@@ -81,41 +152,30 @@ impl RateLimiter {
     fn is_over_limit(&self, ip: String) -> bool {
         self.requests.get(&ip).unwrap_or(&0) >= &self.req_limit
     }
+}
 
-    /// Attach the rate limiter to a server.
-    /// ## Example
-    /// ```rust
-    /// // Import Lib
-    /// use afire::{Server, RateLimiter};
-    ///
-    /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
-    ///
-    /// // Enable Rate Limiting
-    /// // This will limit the number of requests per IP to 5 per 10 seconds
-    /// RateLimiter::attach(&mut server, RateLimiter::new(5, 10));
-    ///
-    /// // Start Server
-    /// // This is blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn attach(server: &mut Server, limiter: RateLimiter) {
-        let cell = RefCell::new(limiter);
+impl Middleware for RateLimiter {
+    fn pre(&mut self, req: Request) -> MiddleRequest {
+        let ip = remove_address_port(&req.address);
 
-        server.middleware(Box::new(move |req| {
-            let ip = remove_address_port(&req.address);
+        self.check_reset();
 
-            cell.borrow_mut().check_reset();
+        if self.is_over_limit(ip.clone()) {
+            return match (self.handler)(&req) {
+                Some(i) => MiddleRequest::Send(i),
+                None => MiddleRequest::Continue,
+            };
+        }
 
-            if cell.borrow_mut().is_over_limit(ip.clone()) {
-                return (cell.borrow().handler)(req);
-            }
+        self.add_request(ip);
 
-            cell.borrow_mut().add_request(ip);
+        MiddleRequest::Continue
+    }
+}
 
-            None
-        }));
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

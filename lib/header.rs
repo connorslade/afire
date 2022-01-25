@@ -3,7 +3,7 @@ use std::fmt;
 /// Http header
 ///
 /// Has a name and a value.
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, Clone, PartialEq, Eq)]
 pub struct Header {
     /// Name of the Header
     pub name: String,
@@ -30,24 +30,6 @@ impl Header {
         Header {
             name: name.to_string(),
             value: value.to_string(),
-        }
-    }
-
-    /// Convert a header ref to a header
-    /// ## Example
-    /// ```rust
-    /// // Import Modules
-    /// use afire::Header;
-    ///
-    /// let header1 = &Header::new("Content-Type", "text/html");
-    /// let header2 = Header::new("Content-Type", "text/html");
-    ///
-    /// assert!(header1.copy() == header2);
-    /// ```
-    pub fn copy(&self) -> Header {
-        Header {
-            name: self.name.clone(),
-            value: self.value.clone(),
         }
     }
 
@@ -106,16 +88,6 @@ impl fmt::Display for Header {
 pub fn headers_to_string(headers: Vec<Header>) -> String {
     let headers_string: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
     headers_string.join("\r\n")
-}
-
-// Impl clone for Header
-impl Clone for Header {
-    fn clone(&self) -> Header {
-        Header {
-            name: self.name.clone(),
-            value: self.value.clone(),
-        }
-    }
 }
 
 impl fmt::Debug for Header {

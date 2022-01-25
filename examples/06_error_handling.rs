@@ -11,10 +11,7 @@ fn main() {
     let mut server: Server = Server::new("localhost", 8080);
 
     // Define a route that will panic
-    server.route(Method::GET, "/panic", |_req| {
-        // This will panic
-        panic!("This is a panic!");
-    });
+    server.route(Method::GET, "/panic", |_req| panic!("This is a panic!"));
 
     // Give the server a main page
     server.route(Method::GET, "/", |_req| {
@@ -40,11 +37,7 @@ fn main() {
     // You can now goto http://localhost:8080/panic
     // This will cause the route to panic and return a 500 error
 
-    println!(
-        "[06] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[06] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

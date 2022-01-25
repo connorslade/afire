@@ -28,11 +28,7 @@ fn main() {
         }
     });
 
-    println!(
-        "[02] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[02] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

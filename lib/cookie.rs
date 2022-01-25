@@ -64,7 +64,7 @@ impl Cookie {
     /// Make a Vec of Cookies from a String
     ///
     /// Intended for making Cookie Vec from HTTP Headers
-    pub(crate) fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
+    pub fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
         if let Some(cookie_string) = cookie_string.strip_prefix("Cookie: ") {
             let cookies = cookie_string.split("; ").collect::<Vec<&str>>();
             let mut final_cookies = Vec::new();

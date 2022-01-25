@@ -11,6 +11,7 @@ fn main() {
     server.route(Method::GET, "/", |_req| {
         Response::new()
             // By default the status is 200
+            // You can also define it yourself with the status method
             .status(200)
             // By default the reason phrase is derived from the status
             .reason("OK!")
@@ -20,11 +21,7 @@ fn main() {
             .header(Header::new("Content-Type", "text/plain"))
     });
 
-    println!(
-        "[01] Listening on http://{}:{}",
-        server.ip_string(),
-        server.port
-    );
+    println!("[01] Listening on http://{}:{}", server.ip, server.port);
 
     // Start the server
     // This will block the current thread

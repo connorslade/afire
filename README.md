@@ -8,7 +8,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.2.2"
+afire = "0.3.0"
 ```
 
 ## 📄 Info
@@ -21,30 +21,27 @@ For more information on this lib check the docs [here](https://crates.io/crates/
 
 For some examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
 
-Here is a super simple examples:
+Here is a super simple example:
 
 ```rust
 // Import Lib
-use afire::{Server, Method, Response, Header};
+use afire::{Server, Method, Response, Header, Content};
 
 // Create Server
 let mut server: Server = Server::new("localhost", 8080);
 
 // Add a route
-server.route(Method::GET, "/", |_req| {
+server.route(Method::GET, "/greet/{name}", |req| {
+  let name = req.path_param("name").unwrap();
+
   Response::new()
-    .status(200)
-    .text("Hello World!")
-    .header(Header::new("Content-Type", "text/plain"))
+    .text(format!("Hello, {}", name))
+    .content(Content::TXT)
 });
 
 // Start the server
 // This is blocking
-
 server.start().unwrap();
-
-// Or use multi threading *experimental*
-// server.start_threaded(8);
 ```
 
 ## 🔧 Features
@@ -54,22 +51,35 @@ Here I will outline interesting features that are available in afire.
 - Builtin Middleware
 
 afire comes with some builtin extensions in the form of middleware.
-For these you will need to enable the feature.
+Currently the builtin middleware includes [rate_limit](), [logging](), and [serve_static]().
+For these you will need to enable the features.
 
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.2.2", features = ["rate_limit", "logging", "serve_static"] }
+afire = { version = "0.3.0", features = ["rate_limit", "logging", "serve_static"] }
 ```
 
-- Threading
+- Content Types
 
-Just start the server like this. This will spawn a pool of threads to handle the requests. This is currently experimental and does not support middleware...
+As an easy way to set the Content-Type of a Response you can use the `.content` methood of the Response.
+Then you can put one of the common predefined types.
 
 ```rust
-use afire::{Server, Method, Response, Header};
+// Import Lib
+use afire::{Server, Method, Response, Header, Content};
 
+// Create Server
 let mut server: Server = Server::new("localhost", 8080);
 
-// server.start_threaded(8);
+// Add a route
+server.route(Method::GET, "/", |_req| {
+  Response::new()
+    .text("Hello, World!")
+    .content(Content::TXT)
+});
+
+// Start the server
+// This is blocking
+server.start().unwrap();
 ```

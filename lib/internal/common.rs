@@ -1,3 +1,5 @@
+//! Some little functions used here and thare
+
 #[cfg(any(feature = "rate_limit", feature = "logging"))]
 use std::fmt;
 
@@ -10,8 +12,8 @@ use std::fmt;
 /// - 400-417
 /// - 500-505
 ///
-/// From https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1
-pub(crate) fn reason_phrase(status: u16) -> String {
+/// From <https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1>
+pub fn reason_phrase(status: u16) -> String {
     match status {
         100 => "Continue",
         101 => "Switching Protocols",
@@ -66,30 +68,16 @@ pub(crate) fn reason_phrase(status: u16) -> String {
 ///
 /// '192.168.1.26:1234' -> '192.168.1.26'
 #[cfg(any(feature = "rate_limit", feature = "logging"))]
-pub(crate) fn remove_address_port<T>(address: T) -> String
+pub fn remove_address_port<T>(address: T) -> String
 where
     T: fmt::Display,
 {
-    address
-        .to_string()
-        .split(':')
-        .next()
-        .unwrap_or("null")
-        .to_string()
-}
+    let raw = address.to_string();
 
-/// Compares two Vectors
-pub(crate) fn cmp_vec<T: std::cmp::PartialEq>(vec: &[T], vec2: &[T]) -> bool {
-    if vec.len() != vec2.len() {
-        return false;
-    }
-
-    for i in 0..vec.len() {
-        if vec[i] != vec2[i] {
-            return false;
-        }
-    }
-    true
+    raw.rsplit_once(':')
+        .unwrap_or((raw.as_str(), "null"))
+        .0
+        .to_string()
 }
 
 /// Decode a url encoded string

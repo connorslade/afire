@@ -1,10 +1,7 @@
 use std::cell::RefCell;
 use std::fs;
 
-use crate::Header;
-use crate::Request;
-use crate::Response;
-use crate::Server;
+use crate::{Header, Method, Request, Response, Server};
 
 type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
@@ -360,17 +357,21 @@ impl ServeStatic {
     pub fn attach(self, server: &mut Server) {
         let cell = RefCell::new(self);
 
-        server.all_c(Box::new(move |req| {
-            let mut res = process_req(req.clone(), cell.clone());
+        server.route_c(
+            Method::ANY,
+            "**",
+            Box::new(move |req| {
+                let mut res = process_req(req.clone(), cell.clone());
 
-            for i in cell.borrow().middleware.clone().iter().rev() {
-                if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                    res = i
-                };
-            }
+                for i in cell.borrow().middleware.clone().iter().rev() {
+                    if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                        res = i
+                    };
+                }
 
-            res.0
-        }));
+                res.0
+            }),
+        );
     }
 }
 

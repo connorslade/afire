@@ -1,13 +1,8 @@
 // Import STD libraries
+use std::cell::RefCell;
 use std::fmt;
-use std::io;
-use std::io::Read;
 use std::io::Write;
-use std::net::IpAddr;
-use std::net::Ipv4Addr;
-use std::net::SocketAddr;
-use std::net::TcpListener;
-use std::net::TcpStream;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::time::Duration;
 
@@ -15,25 +10,16 @@ use std::time::Duration;
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-// #[cfg(feature = "thread_pool")]
-// TODO: Add Back Threadpool
-// use super::threadpool::ThreadPool;
-
 // Import local files
-use super::common::reason_phrase;
-use super::header::{headers_to_string, Header};
-use super::http;
-use super::method::Method;
-use super::request::Request;
-use super::response::Response;
-use super::route::Route;
-use super::VERSION;
-
-/// Default Buffer Size
-///
-/// Needs to be big enough to hold a the request headers
-/// in order to read the content length (1024 seams to work)
-const BUFF_SIZE: usize = 1024;
+use crate::common::reason_phrase;
+use crate::handle::handle_connection;
+use crate::header::{headers_to_string, Header};
+use crate::method::Method;
+use crate::middleware::{MiddleResponse, Middleware};
+use crate::request::Request;
+use crate::response::Response;
+use crate::route::Route;
+use crate::VERSION;
 
 /// Defines a server.
 pub struct Server {
@@ -41,14 +27,20 @@ pub struct Server {
     pub port: u16,
 
     /// Ip address to listen on.
-    pub ip: [u8; 4],
+    pub ip: Ipv4Addr,
+
+    /// Default Buffer Size
+    ///
+    /// Needs to be big enough to hold a the request headers
+    /// in order to read the content length (1024 seams to work)
+    pub buff_size: usize,
 
     /// Routes to handle.
     pub routes: Vec<Route>,
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<Box<dyn Fn(&Request) -> Option<Response>>>,
+    pub middleware: Vec<Box<RefCell<dyn Middleware>>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
@@ -63,7 +55,7 @@ pub struct Server {
     /// Run server
     ///
     /// Really just for testing.
-    run: bool,
+    pub run: bool,
 }
 
 /// Implementations for Server
@@ -102,9 +94,12 @@ impl Server {
             ip[i] = octet;
         }
 
+        let ip = Ipv4Addr::from(ip);
+
         Server {
             port,
             ip,
+            buff_size: 1024,
             routes: Vec::new(),
             middleware: Vec::new(),
             run: true,
@@ -154,7 +149,7 @@ impl Server {
             return Some(());
         }
 
-        let listener = init_listener(self.ip, self.port).ok()?;
+        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         for event in listener.incoming() {
             // Read stream into buffer
@@ -164,13 +159,29 @@ impl Server {
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let mut res = handle_connection(
+            let (req, mut res) = handle_connection(
                 &stream,
                 &self.middleware,
                 #[cfg(feature = "panic_handler")]
                 &self.error_handler,
                 &self.routes,
+                self.buff_size,
             );
+
+            for middleware in &mut self.middleware.iter().rev() {
+                match middleware.borrow_mut().post(req.clone(), res.clone()) {
+                    MiddleResponse::Continue => {}
+                    MiddleResponse::Add(i) => res = i,
+                    MiddleResponse::Send(i) => {
+                        res = i;
+                        break;
+                    }
+                }
+            }
+
+            if res.close {
+                continue;
+            }
 
             // Add default headers to response
             let mut headers = res.headers;
@@ -198,7 +209,7 @@ impl Server {
 
             // Send the response
             let _ = stream.write_all(&response);
-            stream.flush().unwrap();
+            stream.flush().ok()?;
         }
 
         // We should Never Get Here
@@ -219,9 +230,34 @@ impl Server {
     /// // Get the ip a server is listening on as a string
     /// assert_eq!("127.0.0.1", server.ip_string());
     /// ```
+    #[deprecated(since = "0.3.0", note = "Instead use .ip.to_string()")]
     pub fn ip_string(&self) -> String {
-        let ip = self.ip;
-        format!("{}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3])
+        self.ip
+            .octets()
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join(".")
+    }
+
+    /// Set the satrting buffer size. The default is `1024`
+    ///
+    /// Needs to be big enough to hold a the request headers
+    /// in order to read the content length (1024 seams to work)
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080)
+    ///     .buffer(2048);
+    /// ```
+    pub fn buffer(self, buf: usize) -> Server {
+        Server {
+            buff_size: buf,
+            ..self
+        }
     }
 
     /// Add a new default header to the response
@@ -233,18 +269,23 @@ impl Server {
     /// use afire::{Server, Header};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Add a default header to the response
-    /// server.default_header(Header::new("Content-Type", "text/plain"));
+    /// let mut server: Server = Server::new("localhost", 8080)
+    ///     // Add a default header to the response
+    ///     .default_header(Header::new("Content-Type", "text/plain"));
     ///
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn default_header(&mut self, header: Header) {
-        self.default_headers.push(header);
+    pub fn default_header(self, header: Header) -> Server {
+        let mut headers = self.default_headers;
+        headers.push(header);
+
+        Server {
+            default_headers: headers,
+            ..self
+        }
     }
 
     /// Set the socket Read / Write Timeout
@@ -256,18 +297,20 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Set socket timeout
-    /// server.socket_timeout(Some(Duration::from_secs(1)));
+    /// let mut server: Server = Server::new("localhost", 8080)
+    ///     // Set socket timeout
+    ///     .socket_timeout(Duration::from_secs(1));
     ///
     /// // Start the server
     /// // As always, this is blocking
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn socket_timeout(&mut self, socket_timeout: Option<Duration>) {
-        self.socket_timeout = socket_timeout;
+    pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+        Server {
+            socket_timeout: Some(socket_timeout),
+            ..self
+        }
     }
 
     /// Keep a server from starting
@@ -290,39 +333,10 @@ impl Server {
     /// // 'Start' the server
     /// server.start().unwrap();
     /// ```
+    // I want to change this to be Server builder style
+    // But that will require modifying *every* example so that can wait...
     pub fn set_run(&mut self, run: bool) {
         self.run = run;
-    }
-
-    /// Add a new middleware to the server
-    ///
-    /// Will be executed before any routes are handled
-    ///
-    /// You will have access to the request object
-    /// You can send a response but it will keep normal routes from being handled
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::{Server};
-    ///
-    /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Add some middleware
-    /// server.middleware(Box::new(|req| {
-    ///     // Do something with the request
-    ///     // Return a `None` to continue to the next middleware / route
-    ///     // Return a `Some` to send a response
-    ///    None
-    ///}));
-    ///
-    /// // Starts the server
-    /// // This is blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn middleware(&mut self, handler: Box<dyn Fn(&Request) -> Option<Response>>) {
-        self.middleware.push(handler);
     }
 
     /// Set the panic handler response
@@ -424,9 +438,10 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
+    #[deprecated(since = "0.3.0", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all(&mut self, handler: fn(Request) -> Response) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_string(), Box::new(handler)));
+            .push(Route::new(Method::ANY, "**".to_owned(), Box::new(handler)));
     }
 
     /// Create a new route the runs for all methods and paths
@@ -464,9 +479,10 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
+    #[deprecated(since = "0.3.0", note = "Instead use .route(Method::ANY, \"*\", ...)")]
     pub fn all_c(&mut self, handler: Box<dyn Fn(Request) -> Response>) {
         self.routes
-            .push(Route::new(Method::ANY, "*".to_string(), handler));
+            .push(Route::new(Method::ANY, "**".to_owned(), handler));
     }
 
     /// Create a new route for any type of request
@@ -570,140 +586,4 @@ impl Server {
         self.routes
             .push(Route::new(method, path.to_string(), handler));
     }
-}
-
-/// Handle a request
-fn handle_connection(
-    mut stream: &TcpStream,
-    middleware: &[Box<dyn Fn(&Request) -> Option<Response>>],
-    #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
-    routes: &[Route],
-) -> Response {
-    // Init (first) Buffer
-    let mut buffer = vec![0; BUFF_SIZE];
-
-    // Read stream into buffer
-    match stream.read(&mut buffer) {
-        Ok(_) => {}
-        Err(_) => return quick_err("Error Reading Stream", 500),
-    };
-
-    // Get Buffer as string for parseing content length header
-    #[cfg(feature = "dynamic_resize")]
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
-
-    // Get Content-Length header
-    // If header shows thar more space is needed,
-    // make a new buffer read the rest of the stream and add it to the first buffer
-    // This could cause a performance hit but is actually seams to be fast enough
-    #[cfg(feature = "dynamic_resize")]
-    for i in http::get_request_headers(stream_string) {
-        if i.name != "Content-Length" {
-            continue;
-        }
-        let header_size = http::get_header_size(stream_string);
-        let content_length = i.value.parse::<usize>().unwrap_or(0);
-        let new_buffer_size = content_length as i64 + header_size as i64 - BUFF_SIZE as i64;
-        if new_buffer_size > 0 {
-            let mut new_buffer = vec![0; new_buffer_size as usize];
-            match stream.read(&mut new_buffer) {
-                Ok(_) => {}
-                Err(_) => return quick_err("Error Reading Stream", 500),
-            };
-            buffer.append(&mut new_buffer);
-        }
-        break;
-    }
-
-    while buffer.ends_with(&[b'\0']) {
-        buffer.pop();
-    }
-
-    // Get Buffer as string for parseing Path, Method, Query, etc
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
-
-    // Make Request Object
-    let req_method = http::get_request_method(stream_string);
-    let req_path = http::get_request_path(stream_string);
-    let req_query = http::get_request_query(stream_string);
-    let body = http::get_request_body(&buffer);
-    let headers = http::get_request_headers(stream_string);
-    #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(stream_string);
-    let req = Request::new(
-        req_method,
-        &req_path,
-        req_query,
-        headers,
-        #[cfg(feature = "cookies")]
-        cookies,
-        body,
-        stream.peer_addr().unwrap().to_string(),
-        buffer,
-    );
-
-    // Use middleware to handle request
-    // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
-    for middleware in middleware.iter().rev() {
-        match (middleware)(&req) {
-            None => (),
-            Some(res) => return res,
-        }
-    }
-
-    // Loop through all routes and check if the request matches
-    for route in routes.iter().rev() {
-        if (req.method == route.method || route.method == Method::ANY)
-            && (req.path == route.path || route.path == "*")
-        {
-            // Optionally enable automatic panic handling
-            #[cfg(feature = "panic_handler")]
-            {
-                // let handler = .clone();
-                let result =
-                    panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
-                let err = match result {
-                    Ok(i) => return i,
-                    Err(e) => match e.downcast_ref::<&str>() {
-                        Some(err) => err,
-                        None => "",
-                    },
-                };
-                return (error_handler)(req, err.to_string());
-            }
-
-            #[cfg(not(feature = "panic_handler"))]
-            {
-                return (route.handler)(req);
-            }
-        }
-    }
-
-    // If no route was found, return a default 404
-    Response::new()
-        .status(404)
-        .text(format!("Cannot {} {}", req.method, req.path))
-        .header(Header::new("Content-Type", "text/plain"))
-}
-
-/// Init Listener
-fn init_listener(ip: [u8; 4], port: u16) -> Result<TcpListener, io::Error> {
-    TcpListener::bind(SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(ip[0], ip[1], ip[2], ip[3])),
-        port,
-    ))
-}
-
-/// Quick function to get a basic error response
-fn quick_err(text: &str, code: u16) -> Response {
-    Response::new()
-        .status(code)
-        .text(text)
-        .header(Header::new("Content-Type", "text/plain"))
 }

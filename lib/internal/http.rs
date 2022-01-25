@@ -1,8 +1,8 @@
 //! Stuff for working with Raw HTTP data
 
-#[cfg(feature = "cookies")]
-use super::cookie::Cookie;
 use crate::common;
+#[cfg(feature = "cookies")]
+use crate::cookie::Cookie;
 use crate::header::Header;
 use crate::method::Method;
 use crate::query::Query;
@@ -11,14 +11,9 @@ use crate::query::Query;
 ///
 /// Defaults to GET if no method found
 pub fn get_request_method(raw_data: &str) -> Method {
-    let method_str = raw_data
-        .split(' ')
-        .next()
-        .unwrap_or("GET")
-        .to_string()
-        .to_uppercase();
+    let method_str = raw_data.split(' ').next().unwrap_or("GET").to_string();
 
-    match method_str.as_str() {
+    match method_str.to_uppercase().as_str() {
         "GET" => Method::GET,
         "POST" => Method::POST,
         "PUT" => Method::PUT,
@@ -52,6 +47,7 @@ pub fn get_request_path(raw_data: &str) -> String {
     }
 
     // Trim trailing slash
+    #[cfg(feature = "ignore_trailing_path_slash")]
     if new_path.chars().last().unwrap_or_default() == '/' {
         new_path.pop();
     }
@@ -59,7 +55,7 @@ pub fn get_request_path(raw_data: &str) -> String {
     common::decode_url(new_path)
 }
 
-// Get The Query Data of a raw HTTP request.
+/// Get The Query Data of a raw HTTP request.
 pub fn get_request_query(raw_data: &str) -> Query {
     let mut path_str = raw_data.split(' ');
     if path_str.clone().count() <= 1 {
@@ -72,7 +68,7 @@ pub fn get_request_query(raw_data: &str) -> Query {
     if path.clone().count() <= 1 {
         return Query::new_empty();
     }
-    Query::new(path.nth(1).unwrap_or_default()).unwrap_or_else(|| Query { data: Vec::new() })
+    Query::new(path.nth(1).unwrap_or_default()).unwrap_or_else(|| Query(Vec::new()))
 }
 
 /// Get the body of a raw HTTP request.

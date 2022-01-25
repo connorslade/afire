@@ -1,10 +1,11 @@
 // If file logging is enabled
-use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
+use std::path::PathBuf;
 
 use crate::common::remove_address_port;
-use crate::{Request, Server};
+use crate::middleware::{MiddleRequest, Middleware};
+use crate::Request;
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -30,7 +31,7 @@ pub struct Logger {
     level: Level,
 
     /// Optional file to write logs to
-    file: Option<&'static str>,
+    file: Option<PathBuf>,
 
     /// If logs should also be printed to stdout
     console: bool,
@@ -83,52 +84,32 @@ impl Logger {
     /// // Import Lib
     /// use afire::{Logger, Level};
     ///
-    /// // Create a new logger
+    /// // Create a new logger and enable logging to file
     /// let logger = Logger::new()
-    ///     .file(Some("nose.txt"));
+    ///     .file("nose.txt");
     /// ```
-    pub fn file(self, file: Option<&'static str>) -> Logger {
-        Logger { file, ..self }
+    pub fn file<T>(self, file: T) -> Logger
+    where
+        T: std::fmt::Display,
+    {
+        Logger {
+            file: Some(PathBuf::from(file.to_string())),
+            ..self
+        }
     }
 
-    /// Set the log Level of a logger
+    /// Enable writeing events to stdout
     /// ## Example
     /// ```rust
     /// // Import Lib
     /// use afire::{Logger, Level};
     ///
-    /// // Create a new logger
+    /// // Create a new logger and enable console
     /// let logger = Logger::new()
-    ///     .console(false);
+    ///     .console(true );
     /// ```
     pub fn console(self, console: bool) -> Logger {
         Logger { console, ..self }
-    }
-
-    /// Attach a logger to a server
-    /// ## Example
-    /// ```rust
-    /// // Import Lib
-    /// use afire::{Logger, Level, Server};
-    ///
-    /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
-    ///
-    /// // Create a new logger and attach it to the server
-    /// Logger::new().attach(&mut server);
-    ///
-    /// // Start the server
-    /// // This is *still* blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn attach(self, server: &mut Server) {
-        let logger = RefCell::new(self);
-
-        server.middleware(Box::new(move |req| {
-            logger.borrow_mut().log(req);
-            None
-        }));
     }
 
     /// Take a request and log it
@@ -152,7 +133,7 @@ impl Logger {
 
                 // Format Query as string
                 let mut query = "".to_string();
-                for i in &req.query.data {
+                for i in &req.query.0 {
                     query += &format!("{}: {}, ", i[0], i[1]);
                 }
                 if query.len() >= 2 {
@@ -205,13 +186,24 @@ impl Logger {
                 .create(true)
                 .write(true)
                 .append(true)
-                .open(self.file.unwrap())
+                .open(self.file.clone().unwrap())
                 .unwrap();
 
             if writeln!(file, "{}", data).is_err() {
-                println!("[-] Erm... Error writhing to file '{}", self.file.unwrap())
+                println!(
+                    "[-] Erm... Error writhing to file '{}",
+                    self.file.clone().unwrap().as_os_str().to_string_lossy()
+                )
             }
         }
+    }
+}
+
+impl Middleware for Logger {
+    fn pre(&mut self, req: Request) -> MiddleRequest {
+        self.log(&req);
+
+        MiddleRequest::Continue
     }
 }
 

@@ -2,10 +2,8 @@ use crate::common;
 use std::fmt;
 
 /// Struct for holding query data
-#[derive(Hash, PartialEq, Eq)]
-pub struct Query {
-    pub(crate) data: Vec<[String; 2]>,
-}
+#[derive(Hash, PartialEq, Eq, Clone)]
+pub struct Query(pub Vec<[String; 2]>);
 
 /// Implementation for Query
 impl Query {
@@ -51,7 +49,7 @@ impl Query {
             data.push([key, value])
         }
 
-        Some(Query { data })
+        Some(Query(data))
     }
 
     /// Create a new blank query
@@ -61,7 +59,7 @@ impl Query {
     /// let query = Query::new_empty();
     /// ```
     pub fn new_empty() -> Query {
-        Query { data: Vec::new() }
+        Query(Vec::new())
     }
 
     /// Get a value from a key
@@ -78,7 +76,7 @@ impl Query {
     {
         let key = key.to_string();
 
-        for i in self.data.clone() {
+        for i in self.0.clone() {
             if *i.first()? == key {
                 return Some(i[1].clone());
             }
@@ -87,20 +85,11 @@ impl Query {
     }
 }
 
-// Impl Clone for Query
-impl Clone for Query {
-    fn clone(&self) -> Query {
-        Query {
-            data: self.data.clone(),
-        }
-    }
-}
-
 // Implement fmt::Display for Query
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut output = String::from("?");
-        for i in self.data.clone() {
+        for i in self.0.clone() {
             output.push_str(&format!("{}={}&", i[0], i[1]));
         }
         output.pop();
@@ -111,6 +100,6 @@ impl fmt::Display for Query {
 /// Implement the fmt::Display trait for Query
 impl fmt::Debug for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Query").field("data", &self.data).finish()
+        f.debug_struct("Query").field("data", &self.0).finish()
     }
 }
