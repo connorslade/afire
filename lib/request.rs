@@ -40,6 +40,22 @@ pub struct Request {
 }
 
 impl Request {
+    /// Make a new Empty Request
+    pub fn new_empty() -> Request {
+        Request {
+            method: Method::CUSTOM("NONE".to_owned()),
+            path: "".to_owned(),
+            path_params: Vec::new(),
+            query: Query::new_empty(),
+            headers: Vec::new(),
+            #[cfg(feature = "cookies")]
+            cookies: Vec::new(),
+            body: Vec::new(),
+            address: "".to_owned(),
+            raw_data: Vec::new(),
+        }
+    }
+
     /// Get request body data as a string!
     pub fn body_string(&self) -> Option<String> {
         String::from_utf8(self.body.clone()).ok()
