@@ -1,3 +1,7 @@
+# 0.3.1
+
+- Make serve static types public
+
 # 0.3.0
 
 - Add content types
