@@ -154,8 +154,11 @@ impl Server {
         for event in listener.incoming() {
             // Read stream into buffer
             let mut stream = event.ok()?;
-            stream.set_read_timeout(self.socket_timeout).unwrap();
-            stream.set_write_timeout(self.socket_timeout).unwrap();
+
+            if self.socket_timeout.is_some() {
+                stream.set_read_timeout(self.socket_timeout).unwrap();
+                stream.set_write_timeout(self.socket_timeout).unwrap();
+            }
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request

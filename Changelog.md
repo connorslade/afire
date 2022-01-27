@@ -1,6 +1,7 @@
 # 0.3.1
 
 - Make serve static types public
+- Fix File Uploading stuff
 
 # 0.3.0
 

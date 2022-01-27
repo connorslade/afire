@@ -107,3 +107,9 @@ fn try_push(vec: &mut String, c: Option<&char>) {
         vec.push(*c);
     }
 }
+
+pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {
+    while bytes.last() == Some(&b'\0') {
+        bytes.pop();
+    }
+}

@@ -9,6 +9,7 @@ use std::str;
 use std::panic;
 
 // Import local files
+use crate::common::trim_end_bytes;
 use crate::content_type::Content;
 use crate::header::Header;
 use crate::http;
@@ -36,52 +37,41 @@ pub(crate) fn handle_connection(
     };
 
     // Get Buffer as string for parseing content length header
-    #[cfg(feature = "dynamic_resize")]
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
+    let stream_string = String::from_utf8_lossy(&buffer);
 
     // Get Content-Length header
     // If header shows thar more space is needed,
     // make a new buffer read the rest of the stream and add it to the first buffer
     // This could cause a performance hit but is actually seams to be fast enough
-    #[cfg(feature = "dynamic_resize")]
-    if let Some(dyn_buf) = http::get_request_headers(stream_string)
+    if let Some(dyn_buf) = http::get_request_headers(&stream_string)
         .iter()
         .find(|x| x.name == "Content-Length")
     {
-        let header_size = http::get_header_size(stream_string);
+        let header_size = http::get_header_size(&stream_string);
         let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
-        let new_buffer_size = content_length as i64 + header_size as i64 - buff_size as i64;
-        if new_buffer_size > 0 {
-            let mut new_buffer = vec![0; new_buffer_size as usize];
-            match stream.read(&mut new_buffer) {
-                Ok(_) => {}
-                Err(_) => return quick_err("Error Reading Stream", 500),
-            };
-            buffer.append(&mut new_buffer);
-        }
-    };
+        let new_buffer_size = (content_length as i64 + header_size as i64) as usize;
 
-    while buffer.ends_with(&[b'\0']) {
-        buffer.pop();
-    }
+        if new_buffer_size > buff_size {
+            buffer.reserve(content_length + header_size);
+        }
+
+        trim_end_bytes(&mut buffer);
+        let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
+        stream.read_exact(&mut new_buffer).unwrap();
+        buffer.extend(new_buffer);
+    };
 
     // Get Buffer as string for parseing Path, Method, Query, etc
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
+    let stream_string = String::from_utf8_lossy(&buffer);
 
     // Make Request Object
-    let req_method = http::get_request_method(stream_string);
-    let req_path = http::get_request_path(stream_string);
-    let req_query = http::get_request_query(stream_string);
+    let req_method = http::get_request_method(&stream_string);
+    let req_path = http::get_request_path(&stream_string);
+    let req_query = http::get_request_query(&stream_string);
     let body = http::get_request_body(&buffer);
-    let headers = http::get_request_headers(stream_string);
+    let headers = http::get_request_headers(&stream_string);
     #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(stream_string);
+    let cookies = http::get_request_cookies(&stream_string);
     let mut req = Request {
         method: req_method,
         path: req_path,
