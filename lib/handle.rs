@@ -36,30 +36,33 @@ pub(crate) fn handle_connection(
         Err(_) => return quick_err("Error Reading Stream", 500),
     };
 
-    // Get Buffer as string for parseing content length header
-    let stream_string = String::from_utf8_lossy(&buffer);
-
-    // Get Content-Length header
-    // If header shows thar more space is needed,
-    // make a new buffer read the rest of the stream and add it to the first buffer
-    // This could cause a performance hit but is actually seams to be fast enough
-    if let Some(dyn_buf) = http::get_request_headers(&stream_string)
-        .iter()
-        .find(|x| x.name == "Content-Length")
+    #[cfg(feature = "dynamic_resize")]
     {
-        let header_size = http::get_header_size(&stream_string);
-        let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
-        let new_buffer_size = (content_length as i64 + header_size as i64) as usize;
+        // Get Buffer as string for parseing content length header
+        let stream_string = String::from_utf8_lossy(&buffer);
 
-        if new_buffer_size > buff_size {
-            buffer.reserve(content_length + header_size);
-        }
+        // Get Content-Length header
+        // If header shows thar more space is needed,
+        // make a new buffer read the rest of the stream and add it to the first buffer
+        // This could cause a performance hit but is actually seams to be fast enough
+        if let Some(dyn_buf) = http::get_request_headers(&stream_string)
+            .iter()
+            .find(|x| x.name == "Content-Length")
+        {
+            let header_size = http::get_header_size(&stream_string);
+            let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
+            let new_buffer_size = (content_length as i64 + header_size as i64) as usize;
 
-        trim_end_bytes(&mut buffer);
-        let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
-        stream.read_exact(&mut new_buffer).unwrap();
-        buffer.extend(new_buffer);
-    };
+            if new_buffer_size > buff_size {
+                buffer.reserve(content_length + header_size);
+            }
+
+            trim_end_bytes(&mut buffer);
+            let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
+            stream.read_exact(&mut new_buffer).unwrap();
+            buffer.extend(new_buffer);
+        };
+    }
 
     // Get Buffer as string for parseing Path, Method, Query, etc
     let stream_string = String::from_utf8_lossy(&buffer);
