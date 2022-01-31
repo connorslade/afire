@@ -52,3 +52,28 @@ fn get_request_method() {
 //         ))
 //     });
 // }
+//
+// #[bench]
+// fn bench_request_body(b: &mut Bencher) {
+//     b.iter(|| {
+//         test::black_box(http::get_request_body(
+//             r#"GET /path HTTP/1.1
+// Hello: World
+//
+// B O D Y"#
+//                 .as_bytes(),
+//         ))
+//     });
+// }
+//
+// #[bench]
+// fn bench_request_size(b: &mut Bencher) {
+//     b.iter(|| {
+//         test::black_box(http::get_header_size(
+//             r#"GET /path HTTP/1.1
+// Hello: World
+//
+// B O D Y"#,
+//         ))
+//     });
+// }

@@ -85,7 +85,6 @@ pub fn get_request_query(raw_data: &str) -> Query {
 /// Get the body of a raw HTTP request.
 pub fn get_request_body(raw_data: &[u8]) -> Vec<u8> {
     let mut raw_data = raw_data.iter().map(|x| x.to_owned());
-    let mut data = Vec::new();
     for _ in raw_data.clone() {
         // much jank
         if raw_data.next() == Some(b'\r')
@@ -93,12 +92,11 @@ pub fn get_request_body(raw_data: &[u8]) -> Vec<u8> {
             && raw_data.next() == Some(b'\r')
             && raw_data.next() == Some(b'\n')
         {
-            data = raw_data.collect();
-            break;
+            return raw_data.collect();
         }
     }
 
-    data
+    Vec::new()
 }
 
 /// Get the headers of a raw HTTP request.
@@ -139,6 +137,8 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
 /// Get the byte size of the headers of a raw HTTP request.
 #[cfg(feature = "dynamic_resize")]
 pub fn get_header_size(raw_data: &str) -> usize {
-    let mut headers = raw_data.split("\r\n\r\n");
-    headers.next().unwrap_or_default().len() + 4
+    match raw_data.split_once("\r\n\r\n") {
+        Some(i) => i.0.len() + 4,
+        None => 0,
+    }
 }

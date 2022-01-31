@@ -66,6 +66,7 @@ pub(crate) fn handle_connection(
     }
 
     // TODO: Parse Bytes
+    // TODO: Have one mut HTTP string that is chipted away at theough parseing
 
     // Get Buffer as string for parseing Path, Method, Query, etc
     let stream_string = String::from_utf8_lossy(&buffer);
@@ -78,6 +79,7 @@ pub(crate) fn handle_connection(
     let headers = http::get_request_headers(&stream_string);
     #[cfg(feature = "cookies")]
     let cookies = http::get_request_cookies(&stream_string);
+
     let mut req = Request {
         method: req_method,
         path: req_path,
