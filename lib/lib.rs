@@ -145,6 +145,15 @@ mod cookie;
 #[cfg(feature = "cookies")]
 pub use self::cookie::{Cookie, SetCookie};
 
+// TODO: Finish Discription
+/// Prelude
+pub mod prelude {
+    pub use crate::{
+        middleware::{MiddleRequest, MiddleResponse, Middleware},
+        Content, Header, Method, Response, Server,
+    };
+}
+
 // Extra Features
 mod extensions;
 

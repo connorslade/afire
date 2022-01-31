@@ -46,7 +46,6 @@ pub(crate) fn handle_connection(
         // Get Content-Length header
         // If header shows thar more space is needed,
         // make a new buffer read the rest of the stream and add it to the first buffer
-        // This could cause a performance hit but is actually seams to be fast enough
         if let Some(dyn_buf) = http::get_request_headers(&stream_string)
             .iter()
             .find(|x| x.name == "Content-Length")

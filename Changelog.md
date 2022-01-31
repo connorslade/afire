@@ -2,6 +2,7 @@
 
 - Make serve static types public
 - Fix File Uploading stuff
+- Add a Prelude for afire essentials
 
 # 0.3.0
 
