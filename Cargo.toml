@@ -18,10 +18,11 @@ path = "lib/lib.rs"
 
 [features]
 default = [
-  "panic_handler",
   "cookies",
-  "dynamic_resize",
+  "panic_handler",
   "path_patterns",
+  "dynamic_resize",
+  "path_decode_url",
   "ignore_trailing_path_slash"
 ]
 
@@ -32,8 +33,9 @@ serve_static = []
 
 # Default On
 cookies = []
-dynamic_resize = []
 panic_handler = []
+dynamic_resize = []
+path_decode_url = []
 ignore_trailing_path_slash = []
 
 # Other

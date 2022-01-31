@@ -88,6 +88,7 @@ server.start().unwrap();
 ```
 */
 
+// #![feature(test)]
 #![warn(missing_docs)]
 
 #[doc(hidden)]

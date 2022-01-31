@@ -38,6 +38,8 @@ pub(crate) fn handle_connection(
 
     #[cfg(feature = "dynamic_resize")]
     {
+        // TODO: Make this not crash
+
         // Get Buffer as string for parseing content length header
         let stream_string = String::from_utf8_lossy(&buffer);
 
@@ -63,6 +65,8 @@ pub(crate) fn handle_connection(
             buffer.extend(new_buffer);
         };
     }
+
+    // TODO: Parse Bytes
 
     // Get Buffer as string for parseing Path, Method, Query, etc
     let stream_string = String::from_utf8_lossy(&buffer);
