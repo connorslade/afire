@@ -131,7 +131,7 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
             return cookie;
         }
     }
-    
+
     Vec::new()
 }
 

@@ -5,3 +5,4 @@ mod http;
 mod path;
 mod response;
 mod server;
+mod query;
