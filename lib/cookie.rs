@@ -24,6 +24,7 @@ pub struct Cookie {
 ///
 /// Has more information than a normal Cookie
 /// (e.g. max-age, domain, path, secure)
+#[derive(Hash, PartialEq, Eq)]
 pub struct SetCookie {
     /// Base Cookie
     pub cookie: Cookie,
@@ -65,18 +66,18 @@ impl Cookie {
     ///
     /// Intended for making Cookie Vec from HTTP Headers
     pub fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
-        if let Some(cookie_string) = cookie_string.strip_prefix("Cookie: ") {
-            let cookies = cookie_string.split("; ").collect::<Vec<&str>>();
+        if let Some(cookie_string) = cookie_string.strip_prefix("Cookie:") {
+            let cookies = cookie_string.trim().split("; ").collect::<Vec<&str>>();
             let mut final_cookies = Vec::new();
             for i in cookies {
                 let mut cookie_parts = i.splitn(2, '=');
                 let name = match cookie_parts.next() {
-                    Some(i) => i,
+                    Some(i) => i.trim(),
                     None => continue,
                 };
 
                 let value = match &cookie_parts.next() {
-                    Some(i) => i,
+                    Some(i) => i.trim(),
                     None => continue,
                 }
                 .trim_end_matches(';');
@@ -140,28 +141,6 @@ impl SetCookie {
         }
     }
 
-    /// Make a new SetCookie with all fields
-    /// ## Example
-    /// ```
-    /// use afire::{SetCookie, Cookie};
-    /// let cookie = SetCookie::full_new(Cookie::new("name", "value"), 10*60, "domain", "path", true);
-    /// ```
-    pub fn full_new(
-        cookie: Cookie,
-        max_age: u64,
-        domain: &str,
-        path: &str,
-        secure: bool,
-    ) -> SetCookie {
-        SetCookie {
-            cookie,
-            max_age: Some(max_age),
-            domain: Some(domain.to_string()),
-            path: Some(path.to_string()),
-            secure,
-        }
-    }
-
     /// Set the Max-Age field of a SetCookie
     ///
     /// This is the number of seconds the cookie should be valid for.
@@ -174,9 +153,10 @@ impl SetCookie {
     /// assert_eq!(cookie.max_age, Some(10*60));
     /// ```
     pub fn max_age(self, max_age: u64) -> SetCookie {
-        let mut new = self;
-        new.max_age = Some(max_age);
-        new
+        SetCookie {
+            max_age: Some(max_age),
+            ..self
+        }
     }
 
     /// Set the Domain field of a SetCookie
@@ -192,9 +172,10 @@ impl SetCookie {
     where
         T: fmt::Display,
     {
-        let mut new = self;
-        new.domain = Some(domain.to_string());
-        new
+        SetCookie {
+            domain: Some(domain.to_string()),
+            ..self
+        }
     }
 
     /// Set the Path field of a SetCookie
@@ -210,9 +191,10 @@ impl SetCookie {
     where
         T: fmt::Display,
     {
-        let mut new = self;
-        new.path = Some(path.to_string());
-        new
+        SetCookie {
+            path: Some(path.to_string()),
+            ..self
+        }
     }
 
     /// Set the Secure field of a SetCookie
