@@ -40,6 +40,7 @@ fn get_request_query() {
         Query(vec![["Hello".to_owned(), "World".to_owned()]])
     );
     assert_eq!(http::get_request_query(HTTP3), Query(Vec::new()));
+    assert_eq!(http::get_request_query(""), Query(Vec::new()));
 }
 
 #[test]
@@ -53,6 +54,7 @@ fn get_request_body() {
         vec![67, 32, 79, 32, 79, 32, 76, 32, 32, 32, 66, 32, 69, 32, 65, 32, 78, 32, 83, 10]
     );
     assert_eq!(http::get_request_body(HTTP3.as_bytes()), vec![]);
+    assert_eq!(http::get_request_body(&vec![]), vec![]);
 }
 
 #[test]
@@ -91,6 +93,7 @@ fn get_header_size() {
     assert_eq!(http::get_header_size(HTTP), 56);
     assert_eq!(http::get_header_size(HTTP2), 50);
     assert_eq!(http::get_header_size(HTTP3), 58);
+    assert_eq!(http::get_header_size("abcd"), 4);
 }
 
 // extern crate test;

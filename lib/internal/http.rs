@@ -131,6 +131,7 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
             return cookie;
         }
     }
+    
     Vec::new()
 }
 
@@ -139,6 +140,6 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
 pub fn get_header_size(raw_data: &str) -> usize {
     match raw_data.split_once("\r\n\r\n") {
         Some(i) => i.0.len() + 4,
-        None => 0,
+        None => raw_data.len(),
     }
 }
