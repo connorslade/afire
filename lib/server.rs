@@ -21,6 +21,8 @@ use crate::response::Response;
 use crate::route::Route;
 use crate::VERSION;
 
+pub(crate) type ErrorHandler = dyn Fn(Request, String) -> Response;
+
 /// Defines a server.
 pub struct Server {
     /// Port to listen on.

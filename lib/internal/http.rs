@@ -101,13 +101,13 @@ pub fn get_request_body(raw_data: &[u8]) -> Vec<u8> {
 
 /// Get the headers of a raw HTTP request.
 pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
-    let raw_headers = match raw_data.splitn(3, "\r\n\r\n").nth(1) {
-        Some(i) => i,
+    let raw_headers = match raw_data.split_once("\r\n\r\n") {
+        Some(i) => i.0,
         None => return Vec::new(),
     };
 
     let mut headers = Vec::new();
-    for header in raw_headers.split("\r\n") {
+    for header in raw_headers.split("\r\n").skip(1) {
         if let Some(header) = Header::from_string(header.trim_matches(char::from(0))) {
             headers.push(header)
         }
