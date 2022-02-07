@@ -9,7 +9,7 @@ use std::str;
 use std::panic;
 
 // Import local files
-use crate::common::trim_end_bytes;
+use crate::common::{any_string, trim_end_bytes};
 use crate::content_type::Content;
 use crate::header::Header;
 use crate::http;
@@ -98,10 +98,17 @@ pub(crate) fn handle_connection(
     // Use middleware to handle request
     // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
     for middleware in middleware.iter().rev() {
-        match middleware.borrow_mut().pre(req.clone()) {
-            MiddleRequest::Continue => {}
-            MiddleRequest::Add(i) => req = i,
-            MiddleRequest::Send(i) => return (req, i),
+        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+            middleware.borrow_mut().pre(req.clone())
+        }));
+
+        match result {
+            Ok(i) => match i {
+                MiddleRequest::Continue => {}
+                MiddleRequest::Add(i) => req = i,
+                MiddleRequest::Send(i) => return (req, i),
+            },
+            Err(e) => return (req.clone(), (error_handler)(req.clone(), any_string(e))),
         }
     }
 
@@ -118,16 +125,7 @@ pub(crate) fn handle_connection(
             // Optionally enable automatic panic handling
             #[cfg(feature = "panic_handler")]
             {
-                let result =
-                    panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
-                let err = match result {
-                    Ok(i) => return (req, i),
-                    Err(e) => match e.downcast_ref::<&str>() {
-                        Some(err) => err,
-                        None => "",
-                    },
-                };
-                return (req.clone(), (error_handler)(req.clone(), err.to_string()));
+                return error_handle(&route.handler, error_handler, req);
             }
 
             #[cfg(not(feature = "panic_handler"))]
@@ -145,6 +143,23 @@ pub(crate) fn handle_connection(
             .text(format!("Cannot {} {}", req.method, req.path))
             .header(Header::new("Content-Type", "text/plain")),
     )
+}
+
+pub(crate) fn error_handle<T, M>(fun: M, handle: T, req: Request) -> (Request, Response)
+where
+    T: Fn(Request, String) -> Response,
+    M: Fn(Request) -> Response,
+{
+    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| (fun)(req.clone())));
+    let err = match result {
+        Ok(i) => return (req, i),
+        Err(e) => match e.downcast_ref::<&str>() {
+            Some(err) => err,
+            None => "",
+        },
+    };
+
+    (req.clone(), (handle)(req.clone(), err.to_owned()))
 }
 
 /// Quick function to get a basic error response

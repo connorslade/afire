@@ -113,3 +113,17 @@ pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {
         bytes.pop();
     }
 }
+
+pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
+    match any.downcast_ref::<String>() {
+        Some(i) => return i.to_owned(),
+        None => {}
+    }
+
+    match any.downcast_ref::<&str>() {
+        Some(i) => return i.to_owned().to_owned(),
+        None => {}
+    }
+
+    "".to_owned()
+}
