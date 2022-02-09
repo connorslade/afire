@@ -174,20 +174,36 @@ impl Server {
             );
 
             for middleware in &mut self.middleware.iter().rev() {
-                let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    middleware.borrow_mut().post(req.clone(), res.clone())
-                }));
+                #[cfg(feature = "panic_handler")]
+                {
+                    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        middleware.borrow_mut().post(req.clone(), res.clone())
+                    }));
 
-                match result {
-                    Ok(i) => match i {
+                    match result {
+                        Ok(i) => match i {
+                            MiddleResponse::Continue => {}
+                            MiddleResponse::Add(i) => res = i,
+                            MiddleResponse::Send(i) => {
+                                res = i;
+                                break;
+                            }
+                        },
+                        Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
+                    }
+                }
+
+                #[cfg(not(feature = "panic_handler"))]
+                {
+                    let result = middleware.borrow_mut().post(req.clone(), res.clone());
+                    match result {
                         MiddleResponse::Continue => {}
                         MiddleResponse::Add(i) => res = i,
                         MiddleResponse::Send(i) => {
                             res = i;
                             break;
                         }
-                    },
-                    Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
+                    }
                 }
             }
 

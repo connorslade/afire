@@ -115,14 +115,12 @@ pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {
 }
 
 pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
-    match any.downcast_ref::<String>() {
-        Some(i) => return i.to_owned(),
-        None => {}
+    if let Some(i) = any.downcast_ref::<String>() {
+        return i.to_owned();
     }
 
-    match any.downcast_ref::<&str>() {
-        Some(i) => return i.to_owned().to_owned(),
-        None => {}
+    if let Some(i) = any.downcast_ref::<&str>() {
+        return i.to_owned().to_owned();
     }
 
     "".to_owned()
