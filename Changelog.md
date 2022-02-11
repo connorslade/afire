@@ -4,6 +4,8 @@
 - Fix File Uploading stuff
 - Add a Prelude for afire essentials
 - Optimize HTTP parser *(saving nanoseconds!)*
+- More unit tests
+- Middleware Error Handling!
 
 # 0.3.0
 
