@@ -9,7 +9,7 @@ use std::str;
 use std::panic;
 
 // Import local files
-use crate::common::trim_end_bytes;
+use crate::common::{any_string, trim_end_bytes};
 use crate::content_type::Content;
 use crate::header::Header;
 use crate::http;
@@ -96,12 +96,31 @@ pub(crate) fn handle_connection(
     };
 
     // Use middleware to handle request
-    // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
     for middleware in middleware.iter().rev() {
-        match middleware.borrow_mut().pre(req.clone()) {
-            MiddleRequest::Continue => {}
-            MiddleRequest::Add(i) => req = i,
-            MiddleRequest::Send(i) => return (req, i),
+        #[cfg(feature = "panic_handler")]
+        {
+            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                middleware.borrow_mut().pre(req.clone())
+            }));
+
+            match result {
+                Ok(i) => match i {
+                    MiddleRequest::Continue => {}
+                    MiddleRequest::Add(i) => req = i,
+                    MiddleRequest::Send(i) => return (req, i),
+                },
+                Err(e) => return (req.clone(), (error_handler)(req.clone(), any_string(e))),
+            }
+        }
+
+        #[cfg(not(feature = "panic_handler"))]
+        {
+            let result = middleware.borrow_mut().pre(req.clone());
+            match result {
+                MiddleRequest::Continue => {}
+                MiddleRequest::Add(i) => req = i,
+                MiddleRequest::Send(i) => return (req, i),
+            }
         }
     }
 
@@ -119,20 +138,18 @@ pub(crate) fn handle_connection(
             #[cfg(feature = "panic_handler")]
             {
                 let result =
-                    panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
+                    panic::catch_unwind(panic::AssertUnwindSafe(|| (&route.handler)(req.clone())));
                 let err = match result {
                     Ok(i) => return (req, i),
-                    Err(e) => match e.downcast_ref::<&str>() {
-                        Some(err) => err,
-                        None => "",
-                    },
+                    Err(e) => any_string(e),
                 };
-                return (req.clone(), (error_handler)(req.clone(), err.to_string()));
+
+                return (req.clone(), (error_handler)(req.clone(), err));
             }
 
             #[cfg(not(feature = "panic_handler"))]
             {
-                return (route.handler)(req);
+                return (req.clone(), (route.handler)(req));
             }
         }
     }

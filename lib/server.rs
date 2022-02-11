@@ -11,7 +11,7 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use crate::common::reason_phrase;
+use crate::common::{any_string, reason_phrase};
 use crate::handle::handle_connection;
 use crate::header::{headers_to_string, Header};
 use crate::method::Method;
@@ -174,12 +174,35 @@ impl Server {
             );
 
             for middleware in &mut self.middleware.iter().rev() {
-                match middleware.borrow_mut().post(req.clone(), res.clone()) {
-                    MiddleResponse::Continue => {}
-                    MiddleResponse::Add(i) => res = i,
-                    MiddleResponse::Send(i) => {
-                        res = i;
-                        break;
+                #[cfg(feature = "panic_handler")]
+                {
+                    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        middleware.borrow_mut().post(req.clone(), res.clone())
+                    }));
+
+                    match result {
+                        Ok(i) => match i {
+                            MiddleResponse::Continue => {}
+                            MiddleResponse::Add(i) => res = i,
+                            MiddleResponse::Send(i) => {
+                                res = i;
+                                break;
+                            }
+                        },
+                        Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
+                    }
+                }
+
+                #[cfg(not(feature = "panic_handler"))]
+                {
+                    let result = middleware.borrow_mut().post(req.clone(), res.clone());
+                    match result {
+                        MiddleResponse::Continue => {}
+                        MiddleResponse::Add(i) => res = i,
+                        MiddleResponse::Send(i) => {
+                            res = i;
+                            break;
+                        }
                     }
                 }
             }
