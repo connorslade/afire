@@ -164,6 +164,8 @@ pub use extensions::ratelimit::RateLimiter;
 pub use extensions::logger::{Level, Logger};
 
 #[cfg(feature = "serve_static")]
+pub use extensions::serve_static;
+#[cfg(feature = "serve_static")]
 pub use extensions::serve_static::ServeStatic;
 
 // Unit Tests
