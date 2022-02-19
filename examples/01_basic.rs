@@ -1,4 +1,4 @@
-use afire::{Header, Method, Response, Server};
+use afire::{Method, Response, Server};
 
 // Create a new basic server
 // It will just serve the text "Hi :P:
@@ -18,7 +18,7 @@ fn main() {
             // Although is is named `text` it takes any type that impls Display
             // So for example numbers work too
             .text("Hi :P")
-            .header(Header::new("Content-Type", "text/plain"))
+            .header("Content-Type", "text/plain")
     });
 
     println!("[01] Listening on http://{}:{}", server.ip, server.port);

@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::fs;
 
-use crate::{Header, Method, Request, Response, Server};
+use crate::{Method, Request, Response, Server};
 
 type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
@@ -53,7 +53,7 @@ impl ServeStatic {
                 Response::new()
                     .status(404)
                     .text(format!("The page `{}` was not found...", req.path))
-                    .header(Header::new("Content-Type", "text/plain"))
+                    .header("Content-Type", "text/plain")
             },
             middleware: Vec::new(),
             types: TYPES
@@ -301,21 +301,17 @@ impl ServeStatic {
     pub fn attach(self, server: &mut Server) {
         let cell = RefCell::new(self);
 
-        server.route_c(
-            Method::ANY,
-            "**",
-            Box::new(move |req| {
-                let mut res = process_req(req.clone(), cell.clone());
+        server.route(Method::ANY, "**", move |req| {
+            let mut res = process_req(req.clone(), cell.clone());
 
-                for i in cell.borrow().middleware.clone().iter().rev() {
-                    if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                        res = i
-                    };
-                }
+            for i in cell.borrow().middleware.clone().iter().rev() {
+                if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                    res = i
+                };
+            }
 
-                res.0
-            }),
-        );
+            res.0
+        });
     }
 }
 
@@ -346,10 +342,9 @@ fn process_req(req: Request, cell: RefCell<ServeStatic>) -> (Response, bool) {
     match fs::read(&path) {
         // If its found send it as response
         Ok(content) => (
-            Response::new().bytes(content).header(Header::new(
-                "Content-Type",
-                get_type(&path, &cell.borrow().types),
-            )),
+            Response::new()
+                .bytes(content)
+                .header("Content-Type", get_type(&path, &cell.borrow().types)),
             true,
         ),
 

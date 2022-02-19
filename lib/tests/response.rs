@@ -55,8 +55,8 @@ fn response_bytes() {
 #[test]
 fn response_header() {
     let response = Response::new()
-        .header(Header::new("Name", "Value"))
-        .header(Header::new("Hello", "World"));
+        .header("Name", "Value")
+        .header("Hello", "World");
 
     assert_eq!(
         response.headers,

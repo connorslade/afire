@@ -29,8 +29,8 @@ fn server_buff_resize() {
 #[test]
 fn server_default_headers() {
     let server = Server::new("localhost", 8080)
-        .default_header(Header::new("Hello", "World"))
-        .default_header(Header::new("Server", "Magic"));
+        .default_header("Hello", "World")
+        .default_header("Server", "Magic");
 
     assert_eq!(
         server.default_headers,

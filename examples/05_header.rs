@@ -11,10 +11,7 @@ fn main() {
         // If the same header is defined in the route it will be put before the default header
         // Although it is not garunteed to be the one picked by the client it usually is
         // At the bottom of this file is a representation of the order of the headers
-        .default_header(Header::new(
-            "X-Server-Header",
-            "This is a server wide header",
-        ));
+        .default_header("X-Server-Header", "This is a server wide header");
 
     // Define a route to redirect to another website
     server.route(Method::GET, "/", |_req| {
@@ -55,7 +52,7 @@ fn main() {
         Response::new()
             .status(200)
             .text(body)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // You can now goto http://localhost:8080 you should see a redirect to https://connorcode.com

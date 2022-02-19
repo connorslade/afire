@@ -1,4 +1,4 @@
-use afire::{Header, Method, Response, Server};
+use afire::{Method, Response, Server};
 use std::fs;
 
 // Serve a local file
@@ -18,13 +18,13 @@ fn main() {
             Ok(content) => Response::new()
                 .status(200)
                 .bytes(content)
-                .header(Header::new("Content-Type", "text/html")),
+                .header("Content-Type", "text/html"),
 
             // If not send a 404 error
             Err(_) => Response::new()
                 .status(404)
                 .text("Not Found :/")
-                .header(Header::new("Content-Type", "text/html")),
+                .header("Content-Type", "text/html"),
         }
     });
 

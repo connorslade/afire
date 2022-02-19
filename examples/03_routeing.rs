@@ -1,4 +1,4 @@
-use afire::{Header, Method, Response, Server};
+use afire::{Method, Response, Server};
 
 // Introduce the way routing works in afire
 
@@ -21,7 +21,7 @@ fn main() {
         Response::new()
             .status(404)
             .text("The page you are looking for does not exist :/")
-            .header(Header::new("Content-Type", "text/plain"))
+            .header("Content-Type", "text/plain")
     });
 
     // Define a route
@@ -31,7 +31,7 @@ fn main() {
         Response::new()
             .status(200)
             .text("Hello World!")
-            .header(Header::new("Content-Type", "text/plain"))
+            .header("Content-Type", "text/plain")
     });
 
     // Now goto http://localhost:8080/ and you should see "Hello World"
