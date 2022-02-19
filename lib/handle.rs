@@ -2,27 +2,27 @@
 use std::cell::RefCell;
 use std::io::Read;
 use std::net::TcpStream;
-use std::str;
 
 // Feature Imports
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
 // Import local files
+use crate::common::{any_string, trim_end_bytes};
 use crate::content_type::Content;
-use crate::header::Header;
 use crate::http;
 use crate::method::Method;
 use crate::middleware::{MiddleRequest, Middleware};
 use crate::request::Request;
 use crate::response::Response;
 use crate::route::Route;
+use crate::server::ErrorHandler;
 
 /// Handle a request
 pub(crate) fn handle_connection(
     mut stream: &TcpStream,
     middleware: &[Box<RefCell<dyn Middleware>>],
-    #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
+    #[cfg(feature = "panic_handler")] error_handler: &ErrorHandler,
     routes: &[Route],
     buff_size: usize,
 ) -> (Request, Response) {
@@ -32,56 +32,61 @@ pub(crate) fn handle_connection(
     // Read stream into buffer
     match stream.read(&mut buffer) {
         Ok(_) => {}
-        Err(_) => return quick_err("Error Reading Stream", 500),
-    };
-
-    // Get Buffer as string for parseing content length header
-    #[cfg(feature = "dynamic_resize")]
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
-
-    // Get Content-Length header
-    // If header shows thar more space is needed,
-    // make a new buffer read the rest of the stream and add it to the first buffer
-    // This could cause a performance hit but is actually seams to be fast enough
-    #[cfg(feature = "dynamic_resize")]
-    if let Some(dyn_buf) = http::get_request_headers(stream_string)
-        .iter()
-        .find(|x| x.name == "Content-Length")
-    {
-        let header_size = http::get_header_size(stream_string);
-        let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
-        let new_buffer_size = content_length as i64 + header_size as i64 - buff_size as i64;
-        if new_buffer_size > 0 {
-            let mut new_buffer = vec![0; new_buffer_size as usize];
-            match stream.read(&mut new_buffer) {
-                Ok(_) => {}
-                Err(_) => return quick_err("Error Reading Stream", 500),
-            };
-            buffer.append(&mut new_buffer);
+        Err(_) => {
+            return (
+                Request::new_empty(),
+                Response::new()
+                    .status(500)
+                    .text("Error Reading Stream")
+                    .content(Content::TXT),
+            )
         }
     };
 
-    while buffer.ends_with(&[b'\0']) {
-        buffer.pop();
+    #[cfg(feature = "dynamic_resize")]
+    {
+        // TODO: Make this not crash
+
+        // Get Buffer as string for parseing content length header
+        let stream_string = String::from_utf8_lossy(&buffer);
+
+        // Get Content-Length header
+        // If header shows thar more space is needed,
+        // make a new buffer read the rest of the stream and add it to the first buffer
+        if let Some(dyn_buf) = http::get_request_headers(&stream_string)
+            .iter()
+            .find(|x| x.name == "Content-Length")
+        {
+            let header_size = http::get_header_size(&stream_string);
+            let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
+            let new_buffer_size = (content_length as i64 + header_size as i64) as usize;
+
+            if new_buffer_size > buff_size {
+                buffer.reserve(content_length + header_size);
+            }
+
+            trim_end_bytes(&mut buffer);
+            let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
+            stream.read_exact(&mut new_buffer).unwrap();
+            buffer.extend(new_buffer);
+        };
     }
 
+    // TODO: Parse Bytes
+    // TODO: Have one mut HTTP string that is chipted away at theough parseing
+
     // Get Buffer as string for parseing Path, Method, Query, etc
-    let stream_string = match str::from_utf8(&buffer) {
-        Ok(s) => s,
-        Err(_) => return quick_err("Currently no support for non utf-8 characters...", 500),
-    };
+    let stream_string = String::from_utf8_lossy(&buffer);
 
     // Make Request Object
-    let req_method = http::get_request_method(stream_string);
-    let req_path = http::get_request_path(stream_string);
-    let req_query = http::get_request_query(stream_string);
+    let req_method = http::get_request_method(&stream_string);
+    let req_path = http::get_request_path(&stream_string);
+    let req_query = http::get_request_query(&stream_string);
     let body = http::get_request_body(&buffer);
-    let headers = http::get_request_headers(stream_string);
+    let headers = http::get_request_headers(&stream_string);
     #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(stream_string);
+    let cookies = http::get_request_cookies(&stream_string);
+
     let mut req = Request {
         method: req_method,
         path: req_path,
@@ -97,12 +102,31 @@ pub(crate) fn handle_connection(
     };
 
     // Use middleware to handle request
-    // If middleware returns a `None`, the request will be handled by earlier middleware then the routes
     for middleware in middleware.iter().rev() {
-        match middleware.borrow_mut().pre(req.clone()) {
-            MiddleRequest::Continue => {}
-            MiddleRequest::Add(i) => req = i,
-            MiddleRequest::Send(i) => return (req, i),
+        #[cfg(feature = "panic_handler")]
+        {
+            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                middleware.borrow_mut().pre(req.clone())
+            }));
+
+            match result {
+                Ok(i) => match i {
+                    MiddleRequest::Continue => {}
+                    MiddleRequest::Add(i) => req = i,
+                    MiddleRequest::Send(i) => return (req, i),
+                },
+                Err(e) => return (req.clone(), (error_handler)(req.clone(), any_string(e))),
+            }
+        }
+
+        #[cfg(not(feature = "panic_handler"))]
+        {
+            let result = middleware.borrow_mut().pre(req.clone());
+            match result {
+                MiddleRequest::Continue => {}
+                MiddleRequest::Add(i) => req = i,
+                MiddleRequest::Send(i) => return (req, i),
+            }
         }
     }
 
@@ -120,20 +144,18 @@ pub(crate) fn handle_connection(
             #[cfg(feature = "panic_handler")]
             {
                 let result =
-                    panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(req.clone())));
+                    panic::catch_unwind(panic::AssertUnwindSafe(|| (&route.handler)(req.clone())));
                 let err = match result {
                     Ok(i) => return (req, i),
-                    Err(e) => match e.downcast_ref::<&str>() {
-                        Some(err) => err,
-                        None => "",
-                    },
+                    Err(e) => any_string(e),
                 };
-                return (req.clone(), (error_handler)(req.clone(), err.to_string()));
+
+                return (req.clone(), (error_handler)(req.clone(), err));
             }
 
             #[cfg(not(feature = "panic_handler"))]
             {
-                return (route.handler)(req);
+                return (req.clone(), (route.handler)(req));
             }
         }
     }
@@ -144,17 +166,6 @@ pub(crate) fn handle_connection(
         Response::new()
             .status(404)
             .text(format!("Cannot {} {}", req.method, req.path))
-            .header(Header::new("Content-Type", "text/plain")),
-    )
-}
-
-/// Quick function to get a basic error response
-fn quick_err(text: &str, code: u16) -> (Request, Response) {
-    (
-        Request::new_empty(),
-        Response::new()
-            .status(code)
-            .text(text)
-            .content(Content::TXT),
+            .header("Content-Type", "text/plain"),
     )
 }

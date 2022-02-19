@@ -1,7 +1,9 @@
+//! Extention to serve static files from disk
+
 use std::cell::RefCell;
 use std::fs;
 
-use crate::{Header, Method, Request, Response, Server};
+use crate::{Method, Request, Response, Server};
 
 type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
@@ -53,70 +55,14 @@ impl ServeStatic {
                 Response::new()
                     .status(404)
                     .text(format!("The page `{}` was not found...", req.path))
-                    .header(Header::new("Content-Type", "text/plain"))
+                    .header("Content-Type", "text/plain")
             },
             middleware: Vec::new(),
-            types: vec![
-                ("html", "text/html"),
-                ("css", "text/css"),
-                ("js", "application/javascript"),
-                ("png", "image/png"),
-                ("jpg", "image/jpeg"),
-                ("jpeg", "image/jpeg"),
-                ("gif", "image/gif"),
-                ("ico", "image/x-icon"),
-                ("svg", "image/svg+xml"),
-                ("txt", "text/plain"),
-                ("aac", "audio/aac"),
-                ("avi", "video/x-msvideo"),
-                ("bin", "application/octet-stream"),
-                ("bmp", "image/bmp"),
-                ("bz", "application/x-bzip"),
-                ("bz2", "application/x-bzip2"),
-                ("cda", "application/x-cdf"),
-                ("csv", "text/csv"),
-                ("epub", "application/epub+zip"),
-                ("gz", "application/gzip"),
-                ("htm", "text/html"),
-                ("ics", "text/calendar"),
-                ("jar", "application/java-archive"),
-                ("json", "application/json"),
-                ("jsonld", "application/ld+json"),
-                ("midi", "audio/midi audio/x-midi"),
-                ("mid", "audio/midi audio/x-midi"),
-                ("mjs", "text/javascript"),
-                ("mp3", "audio/mpeg"),
-                ("mp4", "video/mp4"),
-                ("mpeg", "video/mpeg"),
-                ("oga", "audio/ogg"),
-                ("ogv", "video/ogg"),
-                ("ogx", "application/ogg"),
-                ("opus", "audio/opus"),
-                ("otf", "font/otf"),
-                ("pdf", "application/pdf"),
-                ("rar", "application/vnd.rar"),
-                ("rtf", "application/rtf"),
-                ("sh", "application/x-sh"),
-                ("swf", "application/x-shockwave-flash"),
-                ("tar", "application/x-tar"),
-                ("tif", "image/tiff"),
-                ("tiff", "image/tiff"),
-                ("ts", "text/x-typescript"),
-                ("ttf", "font/ttf"),
-                ("wav", "audio/wav"),
-                ("weba", "audio/webm"),
-                ("webm", "video/webm"),
-                ("webp", "image/webp"),
-                ("woff", "font/woff"),
-                ("woff2", "font/woff2"),
-                ("xhtml", "application/xhtml+xml"),
-                ("xml", "application/xml"),
-                ("zip", "application/zip"),
-                ("7z", "application/x-7z-compressed"),
-            ]
-            .iter()
-            .map(|x| (x.0.to_owned(), x.1.to_owned()))
-            .collect(),
+            types: TYPES
+                .to_vec()
+                .iter()
+                .map(|x| (x.0.to_owned(), x.1.to_owned()))
+                .collect(),
         }
     }
 
@@ -357,21 +303,17 @@ impl ServeStatic {
     pub fn attach(self, server: &mut Server) {
         let cell = RefCell::new(self);
 
-        server.route_c(
-            Method::ANY,
-            "**",
-            Box::new(move |req| {
-                let mut res = process_req(req.clone(), cell.clone());
+        server.route(Method::ANY, "**", move |req| {
+            let mut res = process_req(req.clone(), cell.clone());
 
-                for i in cell.borrow().middleware.clone().iter().rev() {
-                    if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                        res = i
-                    };
-                }
+            for i in cell.borrow().middleware.clone().iter().rev() {
+                if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                    res = i
+                };
+            }
 
-                res.0
-            }),
-        );
+            res.0
+        });
     }
 }
 
@@ -402,10 +344,9 @@ fn process_req(req: Request, cell: RefCell<ServeStatic>) -> (Response, bool) {
     match fs::read(&path) {
         // If its found send it as response
         Ok(content) => (
-            Response::new().bytes(content).header(Header::new(
-                "Content-Type",
-                get_type(&path, &cell.borrow().types),
-            )),
+            Response::new()
+                .bytes(content)
+                .header("Content-Type", get_type(&path, &cell.borrow().types)),
             true,
         ),
 
@@ -423,3 +364,65 @@ fn get_type(path: &str, types: &[(String, String)]) -> String {
 
     "application/octet-stream".to_owned()
 }
+
+/// Common MIME Types
+///
+/// Used by Servestatic Extentions
+pub const TYPES: [(&str, &str); 56] = [
+    ("html", "text/html"),
+    ("css", "text/css"),
+    ("js", "application/javascript"),
+    ("png", "image/png"),
+    ("jpg", "image/jpeg"),
+    ("jpeg", "image/jpeg"),
+    ("gif", "image/gif"),
+    ("ico", "image/x-icon"),
+    ("svg", "image/svg+xml"),
+    ("txt", "text/plain"),
+    ("aac", "audio/aac"),
+    ("avi", "video/x-msvideo"),
+    ("bin", "application/octet-stream"),
+    ("bmp", "image/bmp"),
+    ("bz", "application/x-bzip"),
+    ("bz2", "application/x-bzip2"),
+    ("cda", "application/x-cdf"),
+    ("csv", "text/csv"),
+    ("epub", "application/epub+zip"),
+    ("gz", "application/gzip"),
+    ("htm", "text/html"),
+    ("ics", "text/calendar"),
+    ("jar", "application/java-archive"),
+    ("json", "application/json"),
+    ("jsonld", "application/ld+json"),
+    ("midi", "audio/midi audio/x-midi"),
+    ("mid", "audio/midi audio/x-midi"),
+    ("mjs", "text/javascript"),
+    ("mp3", "audio/mpeg"),
+    ("mp4", "video/mp4"),
+    ("mpeg", "video/mpeg"),
+    ("oga", "audio/ogg"),
+    ("ogv", "video/ogg"),
+    ("ogx", "application/ogg"),
+    ("opus", "audio/opus"),
+    ("otf", "font/otf"),
+    ("pdf", "application/pdf"),
+    ("rar", "application/vnd.rar"),
+    ("rtf", "application/rtf"),
+    ("sh", "application/x-sh"),
+    ("swf", "application/x-shockwave-flash"),
+    ("tar", "application/x-tar"),
+    ("tif", "image/tiff"),
+    ("tiff", "image/tiff"),
+    ("ts", "text/x-typescript"),
+    ("ttf", "font/ttf"),
+    ("wav", "audio/wav"),
+    ("weba", "audio/webm"),
+    ("webm", "video/webm"),
+    ("webp", "image/webp"),
+    ("woff", "font/woff"),
+    ("woff2", "font/woff2"),
+    ("xhtml", "application/xhtml+xml"),
+    ("xml", "application/xml"),
+    ("zip", "application/zip"),
+    ("7z", "application/x-7z-compressed"),
+];

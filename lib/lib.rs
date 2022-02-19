@@ -9,7 +9,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "0.3.0"
+afire = "0.4.0"
 ```
 
 ## 📄 Info
@@ -59,7 +59,7 @@ For these you will need to enable the features.
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "0.3.0", features = ["rate_limit", "logging", "serve_static"] }
+afire = { version = "0.4.0", features = ["rate_limit", "logging", "serve_static"] }
 ```
 
 - Content Types
@@ -88,10 +88,11 @@ server.start().unwrap();
 ```
 */
 
+// #![feature(test)]
 #![warn(missing_docs)]
 
 #[doc(hidden)]
-pub const VERSION: &str = "0.3.0";
+pub const VERSION: &str = "0.4.0*";
 
 // Export Internal Functions
 pub mod internal;
@@ -144,6 +145,15 @@ mod cookie;
 #[cfg(feature = "cookies")]
 pub use self::cookie::{Cookie, SetCookie};
 
+// TODO: Finish Discription
+/// Prelude
+pub mod prelude {
+    pub use crate::{
+        middleware::{MiddleRequest, MiddleResponse, Middleware},
+        Content, Header, Method, Request, Response, Server,
+    };
+}
+
 // Extra Features
 mod extensions;
 
@@ -153,6 +163,8 @@ pub use extensions::ratelimit::RateLimiter;
 #[cfg(feature = "logging")]
 pub use extensions::logger::{Level, Logger};
 
+#[cfg(feature = "serve_static")]
+pub use extensions::serve_static;
 #[cfg(feature = "serve_static")]
 pub use extensions::serve_static::ServeStatic;
 

@@ -1,6 +1,8 @@
-mod common;
 mod content_type;
+#[cfg(feature = "cookies")]
+mod cookie;
 mod header;
-mod http;
+mod internal;
 mod response;
+mod route;
 mod server;

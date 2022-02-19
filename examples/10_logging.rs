@@ -1,4 +1,4 @@
-use afire::{Header, Level, Logger, Method, Middleware, Response, Server};
+use afire::{Level, Logger, Method, Middleware, Response, Server};
 
 // Use some of afire's built-in middleware to log requests.
 
@@ -11,7 +11,7 @@ fn main() {
         Response::new()
             .status(200)
             .text("Hello World!\nThis request has been logged!")
-            .header(Header::new("Content-Type", "text/plain"))
+            .header("Content-Type", "text/plain")
     });
 
     // Make a logger and attach it to the server

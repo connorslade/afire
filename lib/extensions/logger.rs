@@ -148,7 +148,7 @@ impl Logger {
                 self.send_log(format!(
                     "[{}] {} {} [{}] ({}) {{{}}}",
                     remove_address_port(&req.address),
-                    req.method.to_string(),
+                    req.method,
                     new_path,
                     query,
                     headers,
@@ -167,9 +167,9 @@ impl Logger {
                 self.send_log(format!(
                     "[{}] {} {}{}",
                     remove_address_port(&req.address),
-                    req.method.to_string(),
+                    req.method,
                     new_path,
-                    req.query.to_string()
+                    req.query
                 ))
             }
         }

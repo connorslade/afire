@@ -12,7 +12,7 @@ use std::fmt;
 /// - 400-417
 /// - 500-505
 ///
-/// From <https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1>
+/// From <https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1>\
 pub fn reason_phrase(status: u16) -> String {
     match status {
         100 => "Continue",
@@ -106,4 +106,22 @@ fn try_push(vec: &mut String, c: Option<&char>) {
     if let Some(c) = c {
         vec.push(*c);
     }
+}
+
+pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {
+    while bytes.last() == Some(&b'\0') {
+        bytes.pop();
+    }
+}
+
+pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
+    if let Some(i) = any.downcast_ref::<String>() {
+        return i.to_owned();
+    }
+
+    if let Some(i) = any.downcast_ref::<&str>() {
+        return i.to_owned().to_owned();
+    }
+
+    "".to_owned()
 }

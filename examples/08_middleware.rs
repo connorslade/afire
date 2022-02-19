@@ -1,7 +1,7 @@
 use afire::{
     internal::common::remove_address_port,
     middleware::{MiddleRequest, Middleware},
-    Header, Method, Request, Response, Server,
+    Method, Request, Response, Server,
 };
 
 // In afire Middleware is a trait that is implemented and can modify / overwrite Requests and Response
@@ -50,7 +50,7 @@ fn main() {
         Response::new()
             .status(200)
             .text("Hello World!")
-            .header(Header::new("Content-Type", "text/plain"))
+            .header("Content-Type", "text/plain")
     });
 
     // Here is where we will attach our Middleware to the Server

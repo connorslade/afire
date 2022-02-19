@@ -1,13 +1,24 @@
-use afire::{Header, Response, SetCookie};
+use crate::{Header, Response, SetCookie};
 
 #[test]
 fn response_new() {
     let response = Response::new();
 
-    assert_eq!(response.status, 200);
-    assert_eq!(response.data, vec![79, 75]);
-    assert_eq!(response.headers, vec![]);
-    assert_eq!(response.reason, None);
+    assert_eq!(
+        response,
+        Response {
+            status: 200,
+            data: vec![79, 75],
+            headers: vec![],
+            reason: None,
+            close: false
+        }
+    );
+}
+
+#[test]
+fn response_default() {
+    assert_eq!(Response::new(), Response::default());
 }
 
 #[test]
@@ -44,8 +55,8 @@ fn response_bytes() {
 #[test]
 fn response_header() {
     let response = Response::new()
-        .header(Header::new("Name", "Value"))
-        .header(Header::new("Hello", "World"));
+        .header("Name", "Value")
+        .header("Hello", "World");
 
     assert_eq!(
         response.headers,

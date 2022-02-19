@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::common::remove_address_port;
 use crate::middleware::{MiddleRequest, Middleware};
-use crate::{Header, Request, Response};
+use crate::{Request, Response};
 
 // Handler Type
 type Handler = Box<dyn Fn(&Request) -> Option<Response>>;
@@ -42,7 +42,7 @@ impl RateLimiter {
                     Response::new()
                         .status(429)
                         .text("Too Many Requests")
-                        .header(Header::new("Content-Type", "text/plain")),
+                        .header("Content-Type", "text/plain"),
                 )
             }),
         }

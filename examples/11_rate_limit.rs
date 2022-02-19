@@ -1,4 +1,4 @@
-use afire::{Header, Method, Middleware, RateLimiter, Response, Server};
+use afire::{Method, Middleware, RateLimiter, Response, Server};
 
 // Use some of afire's built-in middleware to log requests.
 
@@ -11,7 +11,7 @@ fn main() {
         Response::new()
             .status(200)
             .text("Hello World!")
-            .header(Header::new("Content-Type", "text/plain"))
+            .header("Content-Type", "text/plain")
     });
 
     // For this example, we'll limit requests to 1 every 2 seconds
@@ -30,7 +30,7 @@ fn main() {
                 Response::new()
                     .status(429)
                     .text("AHHHH!!! Too Many Requests")
-                    .header(Header::new("Content-Type", "text/plain")),
+                    .header("Content-Type", "text/plain"),
             )
         }))
         // Attach to the server

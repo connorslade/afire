@@ -21,7 +21,7 @@ pub enum PathPart {
     /// Path param (/{name})
     Param(String),
 
-    /// Literly Anything (E)
+    /// Literally Anything (E)
     Any,
 }
 
@@ -52,7 +52,8 @@ impl Path {
         let path = normalize_path(path);
         let mut out = Vec::new();
 
-        if self.raw == "/**" {
+        // Bodge
+        if self.raw == "**" {
             return Some(Vec::new());
         }
 
@@ -111,15 +112,15 @@ impl PathPart {
 
 /// Normalize a Path
 ///
-/// Makes it start and optinaly end with a slash
+/// Removes loading and trailing slashes
 pub fn normalize_path(mut path: String) -> String {
     #[cfg(feature = "ignore_trailing_path_slash")]
-    if path.ends_with('/') {
+    while path.ends_with('/') {
         path.pop();
     }
 
-    if !path.starts_with('/') {
-        path.insert(0, '/');
+    while path.starts_with('/') {
+        path.remove(0);
     }
 
     path

@@ -1,3 +1,18 @@
+# 0.4.0
+
+- Make serve static types public
+- Fix File Uploading stuff
+- Add a Prelude for afire essentials
+- Optimize HTTP parser *(saving nanoseconds!)*
+- More unit tests
+- Middleware Error Handling!
+- Make Route and Error Handler functions take closures
+- Remove deprecated .all function (deprecated in 0.3.0)
+- Remove deprecated .ip_string function (deprecated in 0.3.0)
+- Finally remove deprecated .any function (deprecated in 0.1.5)
+- Route take AsRef<str> instead of any Displayable Type
+- Now .header takes in a key and value rather than a Header struct
+
 # 0.3.0
 
 - Add content types
@@ -138,3 +153,7 @@
 - Make a function to add default headers to a server
 - Don't let Logger Crash in debug mode if there are no headers
 - Code Cleanup
+
+# 0.1.0
+
+- Base Code

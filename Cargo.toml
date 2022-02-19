@@ -1,14 +1,16 @@
 [package]
 name = "afire"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 
 repository = "https://github.com/Basicprogrammer10/afire"
 documentation = "https://docs.rs/afire"
+homepage = "https://connorcode.com/writing/afire"
 description = "🔥 A blazing fast web framework for Rust"
 keywords = ["http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]
+exclude = [".github/", "SocialShare.*"]
 license = "GPL-3.0"
 readme = "README.md"
 
@@ -18,10 +20,11 @@ path = "lib/lib.rs"
 
 [features]
 default = [
-  "panic_handler",
   "cookies",
-  "dynamic_resize",
+  "panic_handler",
   "path_patterns",
+  "dynamic_resize",
+  "path_decode_url",
   "ignore_trailing_path_slash"
 ]
 
@@ -32,13 +35,11 @@ serve_static = []
 
 # Default On
 cookies = []
-dynamic_resize = []
 panic_handler = []
-ignore_trailing_path_slash = []
-
-# Other
 path_patterns = []
-thread_pool = []
+dynamic_resize = []
+path_decode_url = []
+ignore_trailing_path_slash = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples

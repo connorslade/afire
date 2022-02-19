@@ -9,7 +9,6 @@ use crate::path::Path;
 ///
 /// You should not use this directly.
 /// It will be created automatically when using server.route
-// #[derive(Clone)]
 pub struct Route {
     /// Route Method (GET, POST, ANY, etc)
     pub method: Method,

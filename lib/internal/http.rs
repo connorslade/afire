@@ -1,5 +1,6 @@
 //! Stuff for working with Raw HTTP data
 
+#[cfg(feature = "path_decode_url")]
 use crate::common;
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
@@ -11,7 +12,10 @@ use crate::query::Query;
 ///
 /// Defaults to GET if no method found
 pub fn get_request_method(raw_data: &str) -> Method {
-    let method_str = raw_data.split(' ').next().unwrap_or("GET").to_string();
+    let method_str = match raw_data.split_once(' ') {
+        Some(i) => i.0,
+        None => return Method::GET,
+    };
 
     match method_str.to_uppercase().as_str() {
         "GET" => Method::GET,
@@ -22,28 +26,32 @@ pub fn get_request_method(raw_data: &str) -> Method {
         "HEAD" => Method::HEAD,
         "PATCH" => Method::PATCH,
         "TRACE" => Method::TRACE,
-        _ => Method::CUSTOM(method_str),
+        _ => Method::CUSTOM(method_str.to_owned()),
     }
 }
 
 /// Get the path of a raw HTTP request.
 pub fn get_request_path(raw_data: &str) -> String {
-    let mut path_str = raw_data.split(' ');
+    let mut path_str = raw_data.splitn(3, ' ');
 
-    let path = path_str.nth(1).unwrap_or_default().to_string();
-    let mut path = path.split('?');
-    let mut new_path = String::new();
+    let path = match path_str.nth(1) {
+        Some(i) => i,
+        None => return "/".to_owned(),
+    };
+    let path = match path.split_once('?') {
+        Some(i) => i.0,
+        None => path,
+    };
 
     // Remove Consecutive slashes
-    for i in path.next().unwrap_or_default().chars() {
-        if i != '/' {
-            new_path.push(i);
+    let mut new_path = String::new();
+    for i in path.chars() {
+        if i == '/' && new_path.chars().last().unwrap_or_default() != '/' {
+            new_path.push('/');
             continue;
         }
 
-        if new_path.chars().last().unwrap_or_default() != '/' {
-            new_path.push('/');
-        }
+        new_path.push(i);
     }
 
     // Trim trailing slash
@@ -52,29 +60,31 @@ pub fn get_request_path(raw_data: &str) -> String {
         new_path.pop();
     }
 
-    common::decode_url(new_path)
+    #[cfg(feature = "path_decode_url")]
+    return common::decode_url(new_path);
+    #[cfg(not(feature = "path_decode_url"))]
+    return new_path;
 }
 
 /// Get The Query Data of a raw HTTP request.
 pub fn get_request_query(raw_data: &str) -> Query {
-    let mut path_str = raw_data.split(' ');
-    if path_str.clone().count() <= 1 {
-        return Query::new_empty();
-    }
+    let mut path_str = raw_data.splitn(3, ' ');
 
-    let path = path_str.nth(1).unwrap_or_default().to_string();
-    let mut path = path.split('?');
+    let path = match path_str.nth(1) {
+        Some(i) => i,
+        None => return Query::new_empty(),
+    };
+    let path = match path.split_once('?') {
+        Some(i) => i.1,
+        None => return Query::new_empty(),
+    };
 
-    if path.clone().count() <= 1 {
-        return Query::new_empty();
-    }
-    Query::new(path.nth(1).unwrap_or_default()).unwrap_or_else(|| Query(Vec::new()))
+    Query::new(path).unwrap_or_else(|| Query(Vec::new()))
 }
 
 /// Get the body of a raw HTTP request.
 pub fn get_request_body(raw_data: &[u8]) -> Vec<u8> {
     let mut raw_data = raw_data.iter().map(|x| x.to_owned());
-    let mut data = Vec::new();
     for _ in raw_data.clone() {
         // much jank
         if raw_data.next() == Some(b'\r')
@@ -82,21 +92,22 @@ pub fn get_request_body(raw_data: &[u8]) -> Vec<u8> {
             && raw_data.next() == Some(b'\r')
             && raw_data.next() == Some(b'\n')
         {
-            data = raw_data.collect();
-            break;
+            return raw_data.collect();
         }
     }
 
-    data
+    Vec::new()
 }
 
 /// Get the headers of a raw HTTP request.
 pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
-    let mut headers = Vec::new();
-    let mut spilt = raw_data.split("\r\n\r\n");
-    let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
+    let raw_headers = match raw_data.split_once("\r\n\r\n") {
+        Some(i) => i.0,
+        None => return Vec::new(),
+    };
 
-    for header in raw_headers {
+    let mut headers = Vec::new();
+    for header in raw_headers.split("\r\n").skip(1) {
         if let Some(header) = Header::from_string(header.trim_matches(char::from(0))) {
             headers.push(header)
         }
@@ -120,12 +131,15 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
             return cookie;
         }
     }
+
     Vec::new()
 }
 
 /// Get the byte size of the headers of a raw HTTP request.
 #[cfg(feature = "dynamic_resize")]
 pub fn get_header_size(raw_data: &str) -> usize {
-    let mut headers = raw_data.split("\r\n\r\n");
-    headers.next().unwrap_or_default().len() + 4
+    match raw_data.split_once("\r\n\r\n") {
+        Some(i) => i.0.len() + 4,
+        None => raw_data.len(),
+    }
 }

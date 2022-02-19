@@ -1,4 +1,4 @@
-use afire::{Header, Method, Response, Server, SetCookie};
+use afire::{Method, Response, Server, SetCookie};
 
 // Get cookies from the client and format them as a HTML table
 // Also allow setting cookies
@@ -26,7 +26,7 @@ fn main() {
         Response::new()
             .status(200)
             .text(html)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // Set a cookie defined in the Query
@@ -49,7 +49,7 @@ fn main() {
         Response::new()
             .status(200)
             .text(body)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
             .cookie(cookie)
     });
 
