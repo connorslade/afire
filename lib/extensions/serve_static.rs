@@ -1,3 +1,5 @@
+//! Extention to serve static files from disk
+
 use std::cell::RefCell;
 use std::fs;
 
@@ -363,6 +365,9 @@ fn get_type(path: &str, types: &[(String, String)]) -> String {
     "application/octet-stream".to_owned()
 }
 
+/// Common MIME Types
+///
+/// Used by Servestatic Extentions
 pub const TYPES: [(&str, &str); 56] = [
     ("html", "text/html"),
     ("css", "text/css"),

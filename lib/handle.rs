@@ -2,7 +2,6 @@
 use std::cell::RefCell;
 use std::io::Read;
 use std::net::TcpStream;
-use std::str;
 
 // Feature Imports
 #[cfg(feature = "panic_handler")]
@@ -33,7 +32,15 @@ pub(crate) fn handle_connection(
     // Read stream into buffer
     match stream.read(&mut buffer) {
         Ok(_) => {}
-        Err(_) => return quick_err("Error Reading Stream", 500),
+        Err(_) => {
+            return (
+                Request::new_empty(),
+                Response::new()
+                    .status(500)
+                    .text("Error Reading Stream")
+                    .content(Content::TXT),
+            )
+        }
     };
 
     #[cfg(feature = "dynamic_resize")]
@@ -160,16 +167,5 @@ pub(crate) fn handle_connection(
             .status(404)
             .text(format!("Cannot {} {}", req.method, req.path))
             .header("Content-Type", "text/plain"),
-    )
-}
-
-/// Quick function to get a basic error response
-fn quick_err(text: &str, code: u16) -> (Request, Response) {
-    (
-        Request::new_empty(),
-        Response::new()
-            .status(code)
-            .text(text)
-            .content(Content::TXT),
     )
 }

@@ -220,10 +220,11 @@ impl Server {
 
             // Convert the response to a string
             // TODO: Use Bytes instead of String
+            let status = res.status;
             let mut response = format!(
                 "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                res.status,
-                res.reason.unwrap_or(reason_phrase(res.status)),
+                status,
+                res.reason.unwrap_or_else(|| reason_phrase(status)),
                 headers_to_string(headers)
             )
             .as_bytes()
