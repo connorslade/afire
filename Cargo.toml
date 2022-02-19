@@ -9,6 +9,7 @@ documentation = "https://docs.rs/afire"
 description = "🔥 A blazing fast web framework for Rust"
 keywords = ["http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]
+exclude = [".github/", "SocialShare.*"]
 license = "GPL-3.0"
 readme = "README.md"
 
@@ -34,13 +35,10 @@ serve_static = []
 # Default On
 cookies = []
 panic_handler = []
+path_patterns = []
 dynamic_resize = []
 path_decode_url = []
 ignore_trailing_path_slash = []
-
-# Other
-path_patterns = []
-thread_pool = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples
