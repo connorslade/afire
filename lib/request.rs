@@ -118,7 +118,7 @@ impl Request {
     ///     // Send Response
     ///     Response::new()
     ///         .text(message)
-    ///         .header(Header::new("Content-Type", "text/plain"))
+    ///         .header("Content-Type", "text/plain")
     /// });
     ///
     /// // Starts the server

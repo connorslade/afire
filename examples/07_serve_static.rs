@@ -1,4 +1,4 @@
-use afire::{Header, Response, ServeStatic, Server};
+use afire::{Response, ServeStatic, Server};
 
 // Serve static files from a directory
 // Afire middleware makes this *easy*
@@ -26,7 +26,7 @@ fn main() {
 
             // Return none to not mess with response
             // Or in this case add a header and pass through the sucess value
-            Some((res.header(Header::new("X-Static-Serve", "true")), suc))
+            Some((res.header("X-Static-Serve", "true"), suc))
         })
         // Function that runs when no file is found to serve
         // This will run before middleware

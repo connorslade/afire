@@ -1,4 +1,4 @@
-use afire::{Header, Method, Response, Server};
+use afire::{Method, Response, Server};
 
 // Don't crash thread from a panic in a route
 // This does not apply to middleware or the error handler itself
@@ -18,20 +18,24 @@ fn main() {
         Response::new()
             .status(200)
             .text(r#"<a href="/panic">PANIC</a>"#)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // You can optionally define a custom error handler
     // This can be defined anywhere in the server and will take affect for all routes
     // Its like a normal route, but it will only be called if the route panics
-    server.error_handler(|_req, err| {
+    let errors = std::cell::RefCell::new(0);
+    server.error_handler(move |_req, err| {
+        errors.replace_with(|&mut x| x + 1);
+
         Response::new()
             .status(500)
             .text(format!(
-                "<h1>Internal Server Error</h1><br>Panicked at '{}'",
+                "<h1>Internal Server Error #{}</h1><br>Panicked at '{}'",
+                errors.borrow(),
                 err
             ))
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // You can now goto http://localhost:8080/panic

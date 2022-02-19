@@ -150,7 +150,7 @@ pub use self::cookie::{Cookie, SetCookie};
 pub mod prelude {
     pub use crate::{
         middleware::{MiddleRequest, MiddleResponse, Middleware},
-        Content, Header, Method, Response, Server,
+        Content, Header, Method, Request, Response, Server,
     };
 }
 

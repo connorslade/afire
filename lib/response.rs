@@ -132,11 +132,15 @@ impl Response {
     ///
     /// // Create Response
     /// let response = Response::new()
-    ///    .header(Header::new("Content-Type", "text/html"));
+    ///    .header("Content-Type", "text/html");
     /// ```
-    pub fn header(self, header: Header) -> Response {
+    pub fn header<T, K>(self, key: T, value: K) -> Response
+    where
+        T: AsRef<str>,
+        K: AsRef<str>,
+    {
         let mut new_headers = self.headers;
-        new_headers.push(header);
+        new_headers.push(Header::new(key.as_ref(), value.as_ref()));
 
         Response {
             headers: new_headers,

@@ -11,7 +11,6 @@ use std::panic;
 // Import local files
 use crate::common::{any_string, trim_end_bytes};
 use crate::content_type::Content;
-use crate::header::Header;
 use crate::http;
 use crate::method::Method;
 use crate::middleware::{MiddleRequest, Middleware};
@@ -160,7 +159,7 @@ pub(crate) fn handle_connection(
         Response::new()
             .status(404)
             .text(format!("Cannot {} {}", req.method, req.path))
-            .header(Header::new("Content-Type", "text/plain")),
+            .header("Content-Type", "text/plain"),
     )
 }
 

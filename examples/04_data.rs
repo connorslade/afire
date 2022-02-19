@@ -1,4 +1,4 @@
-use afire::{Header, Method, Query, Response, Server};
+use afire::{Method, Query, Response, Server};
 
 // Send data to server with a Query String, Path params and Form Data
 
@@ -18,7 +18,7 @@ fn main() {
 
         Response::new()
             .text(text)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // Define another route
@@ -37,7 +37,7 @@ fn main() {
 
         Response::new()
             .text(text)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // Define webpage with form
@@ -51,7 +51,7 @@ fn main() {
 
         Response::new()
             .text(page)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // Define a page with path params
@@ -62,7 +62,7 @@ fn main() {
 
         Response::new()
             .text(data)
-            .header(Header::new("Content-Type", "text/html"))
+            .header("Content-Type", "text/html")
     });
 
     // You can now goto http://localhost:8080?name=John and should see "Hello, John"
