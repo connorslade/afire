@@ -1,6 +1,7 @@
 //! Middleware is code that runs before and after the routes.
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
 
+use std::any::type_name;
 use std::cell::RefCell;
 
 use crate::{Request, Response, Server};
@@ -48,7 +49,7 @@ pub trait Middleware {
     where
         Self: Sized + Send + Sync + 'static,
     {
-        trace!("📦 Adding Middleware");
+        trace!("📦 Adding Middleware {}", type_name::<Self>());
 
         server.middleware.push(Box::new(RefCell::new(self)));
     }

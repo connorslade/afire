@@ -79,7 +79,7 @@ impl Server {
     where
         T: fmt::Display,
     {
-        trace!("🐍 Initializing Server");
+        trace!("🐍 Initializing Server v{}", VERSION);
 
         let mut raw_ip = raw_ip.to_string();
         let mut ip: [u8; 4] = [0; 4];
@@ -430,7 +430,7 @@ impl Server {
     {
         let mut headers = self.default_headers;
         let header = Header::new(key.as_ref(), value.as_ref());
-        trace!("😀 Adding Server Header ({:?})", header);
+        trace!("😀 Adding Server Header ({})", header);
         headers.push(header);
 
         Server {
