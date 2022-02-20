@@ -22,6 +22,7 @@ use crate::response::Response;
 use crate::route::Route;
 use crate::thread_pool::ThreadPool;
 use crate::VERSION;
+
 /// Defines a server.
 pub struct Server {
     /// Port to listen on.
@@ -78,6 +79,8 @@ impl Server {
     where
         T: fmt::Display,
     {
+        trace!("🐍 Initializing Server");
+
         let mut raw_ip = raw_ip.to_string();
         let mut ip: [u8; 4] = [0; 4];
 
@@ -151,6 +154,8 @@ impl Server {
         if !self.run {
             return Some(());
         }
+
+        trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
 
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
@@ -275,6 +280,13 @@ impl Server {
             return Some(());
         }
 
+        trace!(
+            "✨ Starting Server [{}:{}] ({} threads)",
+            self.ip,
+            self.port,
+            threads
+        );
+
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         let pool = ThreadPool::new(threads);
@@ -385,6 +397,8 @@ impl Server {
     ///     .buffer(2048);
     /// ```
     pub fn buffer(self, buf: usize) -> Server {
+        trace!("🥫 Setting Buffer to {} bytes", buf);
+
         Server {
             buff_size: buf,
             ..self
@@ -415,7 +429,9 @@ impl Server {
         K: AsRef<str>,
     {
         let mut headers = self.default_headers;
-        headers.push(Header::new(key.as_ref(), value.as_ref()));
+        let header = Header::new(key.as_ref(), value.as_ref());
+        trace!("😀 Adding Server Header ({:?})", header);
+        headers.push(header);
 
         Server {
             default_headers: headers,
@@ -442,6 +458,8 @@ impl Server {
     /// server.start().unwrap();
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+        trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
+
         Server {
             socket_timeout: Some(socket_timeout),
             ..self
@@ -506,6 +524,8 @@ impl Server {
         &mut self,
         res: impl Fn(Request, String) -> Response + Send + Sync + 'static,
     ) {
+        trace!("✌ Setting Error Handler");
+
         self.error_handler = Box::new(res);
     }
 
@@ -539,10 +559,10 @@ impl Server {
     ) where
         T: AsRef<str>,
     {
-        self.routes.push(Route::new(
-            method,
-            path.as_ref().to_owned(),
-            Box::new(handler),
-        ));
+        let path = path.as_ref().to_owned();
+        trace!("🚗 Adding Route {} {}", method, path);
+
+        self.routes
+            .push(Route::new(method, path, Box::new(handler)));
     }
 }

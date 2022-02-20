@@ -48,6 +48,8 @@ pub trait Middleware {
     where
         Self: Sized + Send + Sync + 'static,
     {
+        trace!("📦 Adding Middleware");
+
         server.middleware.push(Box::new(RefCell::new(self)));
     }
 }

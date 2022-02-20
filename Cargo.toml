@@ -41,6 +41,9 @@ dynamic_resize = []
 path_decode_url = []
 ignore_trailing_path_slash = []
 
+# Other
+tracing = []
+
 [dev-dependencies]
 # Enable rate_limit and logging features for examples
-afire = { path = ".", features = ["rate_limit", "logging", "serve_static"] }
+afire = { path = ".", features = ["rate_limit", "logging", "serve_static", "tracing"] }
