@@ -48,14 +48,10 @@ impl ThreadPool {
 impl Worker {
     fn new(id: usize, rx: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         let handle = thread::spawn(move || loop {
-            match rx.lock().unwrap().recv().unwrap() {
-                Message::Job(job) => {
-                    job();
-                }
-
-                Message::Kill => {
-                    break;
-                }
+            let job = rx.lock().unwrap().recv().unwrap();
+            match job {
+                Message::Job(job) => job(),
+                Message::Kill => break,
             }
         });
 
