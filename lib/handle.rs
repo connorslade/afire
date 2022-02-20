@@ -16,13 +16,12 @@ use crate::middleware::{MiddleRequest, Middleware};
 use crate::request::Request;
 use crate::response::Response;
 use crate::route::Route;
-use crate::server::ErrorHandler;
 
 /// Handle a request
 pub(crate) fn handle_connection(
     mut stream: &TcpStream,
-    middleware: &[Box<RefCell<dyn Middleware>>],
-    #[cfg(feature = "panic_handler")] error_handler: &ErrorHandler,
+    middleware: &[Box<RefCell<dyn Middleware + Send + Sync>>],
+    #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
     buff_size: usize,
 ) -> (Request, Response) {

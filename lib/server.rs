@@ -4,6 +4,7 @@ use std::fmt;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 // Feature Imports
@@ -20,8 +21,6 @@ use crate::request::Request;
 use crate::response::Response;
 use crate::route::Route;
 use crate::VERSION;
-
-pub(crate) type ErrorHandler = dyn Fn(Request, String) -> Response;
 
 /// Defines a server.
 pub struct Server {
@@ -42,11 +41,11 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<Box<RefCell<dyn Middleware>>>,
+    pub middleware: Vec<Box<RefCell<dyn Middleware + Send + Sync>>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    pub error_handler: Box<dyn Fn(Request, String) -> Response>,
+    pub error_handler: Box<dyn Fn(Request, String) -> Response + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
@@ -59,6 +58,8 @@ pub struct Server {
     /// Really just for testing.
     pub run: bool,
 }
+
+unsafe impl Sync for Server {}
 
 /// Implementations for Server
 impl Server {
@@ -145,7 +146,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn start(&self) -> Option<()> {
+    pub fn start(self) -> Option<()> {
         // Exit if the server should not run
         if !self.run {
             return Some(());
@@ -153,89 +154,96 @@ impl Server {
 
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
+        let this = Arc::new(RwLock::new(self));
+
         for event in listener.incoming() {
-            // Read stream into buffer
-            let mut stream = event.ok()?;
+            let this = Arc::clone(&this);
+            std::thread::spawn(move || {
+                let this = this.write().unwrap();
 
-            if self.socket_timeout.is_some() {
-                stream.set_read_timeout(self.socket_timeout).unwrap();
-                stream.set_write_timeout(self.socket_timeout).unwrap();
-            }
+                // Read stream into buffer
+                let mut stream = event.unwrap();
 
-            // Get the response from the handler
-            // Uses the most recently defined route that matches the request
-            let (req, mut res) = handle_connection(
-                &stream,
-                &self.middleware,
-                #[cfg(feature = "panic_handler")]
-                &self.error_handler,
-                &self.routes,
-                self.buff_size,
-            );
+                if this.socket_timeout.is_some() {
+                    stream.set_read_timeout(this.socket_timeout).unwrap();
+                    stream.set_write_timeout(this.socket_timeout).unwrap();
+                }
 
-            for middleware in &mut self.middleware.iter().rev() {
-                #[cfg(feature = "panic_handler")]
-                {
-                    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.borrow_mut().post(req.clone(), res.clone())
-                    }));
+                // Get the response from the handler
+                // Uses the most recently defined route that matches the request
+                let (req, mut res) = handle_connection(
+                    &stream,
+                    &this.middleware,
+                    #[cfg(feature = "panic_handler")]
+                    &this.error_handler,
+                    &this.routes,
+                    this.buff_size,
+                );
 
-                    match result {
-                        Ok(i) => match i {
+                for middleware in &mut this.middleware.iter().rev() {
+                    #[cfg(feature = "panic_handler")]
+                    {
+                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                            middleware.borrow_mut().post(req.clone(), res.clone())
+                        }));
+
+                        match result {
+                            Ok(i) => match i {
+                                MiddleResponse::Continue => {}
+                                MiddleResponse::Add(i) => res = i,
+                                MiddleResponse::Send(i) => {
+                                    res = i;
+                                    break;
+                                }
+                            },
+                            Err(e) => res = (this.error_handler)(req.clone(), any_string(e)),
+                        }
+                    }
+
+                    #[cfg(not(feature = "panic_handler"))]
+                    {
+                        let result = middleware.borrow_mut().post(req.clone(), res.clone());
+                        match result {
                             MiddleResponse::Continue => {}
                             MiddleResponse::Add(i) => res = i,
                             MiddleResponse::Send(i) => {
                                 res = i;
                                 break;
                             }
-                        },
-                        Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
-                    }
-                }
-
-                #[cfg(not(feature = "panic_handler"))]
-                {
-                    let result = middleware.borrow_mut().post(req.clone(), res.clone());
-                    match result {
-                        MiddleResponse::Continue => {}
-                        MiddleResponse::Add(i) => res = i,
-                        MiddleResponse::Send(i) => {
-                            res = i;
-                            break;
                         }
                     }
                 }
-            }
 
-            if res.close {
-                continue;
-            }
+                // if res.close {
+                //     continue;
+                // }
 
-            // Add default headers to response
-            let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone());
+                // Add default headers to response
+                let mut headers = res.headers;
+                headers.append(&mut this.default_headers.clone());
 
-            // Add content-length header to response
-            headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+                // Add content-length header to response
+                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
 
-            // Convert the response to a string
-            // TODO: Use Bytes instead of String
-            let status = res.status;
-            let mut response = format!(
-                "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                status,
-                res.reason.unwrap_or_else(|| reason_phrase(status)),
-                headers_to_string(headers)
-            )
-            .as_bytes()
-            .to_vec();
+                // Convert the response to a string
+                // TODO: Use Bytes instead of String
+                let status = res.status;
+                let mut response = format!(
+                    "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+                    status,
+                    res.reason.unwrap_or_else(|| reason_phrase(status)),
+                    headers_to_string(headers)
+                )
+                .as_bytes()
+                .to_vec();
 
-            // Add Bytes of data to response
-            response.append(&mut res.data);
+                // Add Bytes of data to response
+                response.append(&mut res.data);
 
-            // Send the response
-            let _ = stream.write_all(&response);
-            stream.flush().ok()?;
+                // Send the response
+                let _ = stream.write_all(&response);
+                stream.flush().unwrap();
+            });
         }
 
         // We should Never Get Here
@@ -373,7 +381,10 @@ impl Server {
     /// server.start().unwrap();
     /// ```
     #[cfg(feature = "panic_handler")]
-    pub fn error_handler(&mut self, res: impl Fn(Request, String) -> Response + 'static) {
+    pub fn error_handler(
+        &mut self,
+        res: impl Fn(Request, String) -> Response + Send + Sync + 'static,
+    ) {
         self.error_handler = Box::new(res);
     }
 
@@ -403,7 +414,7 @@ impl Server {
         &mut self,
         method: Method,
         path: T,
-        handler: impl Fn(Request) -> Response + 'static,
+        handler: impl Fn(Request) -> Response + Send + Sync + 'static,
     ) where
         T: AsRef<str>,
     {

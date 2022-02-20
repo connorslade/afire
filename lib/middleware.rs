@@ -46,7 +46,7 @@ pub trait Middleware {
     /// Attatch Middleware to a Server
     fn attach(self, server: &mut Server)
     where
-        Self: Sized + 'static,
+        Self: Sized + Send + Sync + 'static,
     {
         server.middleware.push(Box::new(RefCell::new(self)));
     }

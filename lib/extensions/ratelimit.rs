@@ -7,7 +7,7 @@ use crate::middleware::{MiddleRequest, Middleware};
 use crate::{Request, Response};
 
 // Handler Type
-type Handler = Box<dyn Fn(&Request) -> Option<Response>>;
+type Handler = Box<dyn Fn(&Request) -> Option<Response> + Send + Sync>;
 
 /// Limit the amount of requests handled by the server.
 pub struct RateLimiter {
