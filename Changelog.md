@@ -1,3 +1,7 @@
+# 0.4.1
+
+- Add ThreadPool Back!
+
 # 0.4.0
 
 - Make serve static types public
