@@ -99,6 +99,7 @@ pub mod internal;
 
 // Import Internal Functions
 mod handle;
+mod thread_pool;
 use internal::common;
 use internal::http;
 use internal::path;
