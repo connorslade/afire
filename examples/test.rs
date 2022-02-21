@@ -6,10 +6,8 @@ struct Log(AtomicU32);
 
 impl Middleware for Log {
     fn pre(&self, _req: Request) -> MiddleRequest {
-        self.0
-            .fetch_update(Ordering::Release, Ordering::Relaxed, |x| Some(x + 1))
-            .unwrap();
-        println!("{}", self.0.load(Ordering::Acquire));
+        let i = self.0.fetch_add(1, Ordering::Release);
+        println!("{}", i);
 
         std::thread::sleep(std::time::Duration::from_secs(10));
 
@@ -36,6 +34,5 @@ fn main() {
             .header("Content-Type", "text/plain")
     });
 
-    server.start_threaded(10).unwrap();
-    // server.start().unwrap();
+    server.start_threaded(4).unwrap();
 }

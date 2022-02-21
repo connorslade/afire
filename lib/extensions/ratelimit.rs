@@ -138,7 +138,7 @@ impl RateLimiter {
     fn add_request(&self, ip: String) {
         let mut req = self.requests.lock().unwrap();
         let count = req.get(&ip).unwrap_or(&0) + 1;
-        req.insert(ip.clone(), count);
+        req.insert(ip, count);
     }
 
     /// Check if request table needs to be cleared.
