@@ -350,33 +350,35 @@ impl Server {
                     }
                 }
 
-                if !res.close {
-                    // Add default headers to response
-                    let mut headers = res.headers;
-                    headers.append(&mut this.default_headers.clone());
-
-                    // Add content-length header to response
-                    headers.push(Header::new("Content-Length", &res.data.len().to_string()));
-
-                    // Convert the response to a string
-                    // TODO: Use Bytes instead of String
-                    let status = res.status;
-                    let mut response = format!(
-                        "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                        status,
-                        res.reason.unwrap_or_else(|| reason_phrase(status)),
-                        headers_to_string(headers)
-                    )
-                    .as_bytes()
-                    .to_vec();
-
-                    // Add Bytes of data to response
-                    response.append(&mut res.data);
-
-                    // Send the response
-                    let _ = stream.write_all(&response);
-                    stream.flush().unwrap();
+                if res.close {
+                    return;
                 }
+
+                // Add default headers to response
+                let mut headers = res.headers;
+                headers.append(&mut this.default_headers.clone());
+
+                // Add content-length header to response
+                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+
+                // Convert the response to a string
+                // TODO: Use Bytes instead of String
+                let status = res.status;
+                let mut response = format!(
+                    "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+                    status,
+                    res.reason.unwrap_or_else(|| reason_phrase(status)),
+                    headers_to_string(headers)
+                )
+                .as_bytes()
+                .to_vec();
+
+                // Add Bytes of data to response
+                response.append(&mut res.data);
+
+                // Send the response
+                let _ = stream.write_all(&response);
+                stream.flush().unwrap();
             });
         }
 

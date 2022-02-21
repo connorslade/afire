@@ -1,4 +1,5 @@
 use afire::prelude::*;
+use afire::trace;
 
 struct Log(u32);
 
@@ -13,6 +14,8 @@ impl Middleware for Log {
 
 fn main() {
     let mut server: Server = Server::new("localhost", 8818);
+
+    trace!("ello");
 
     Log(0).attach(&mut server);
 
