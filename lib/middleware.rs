@@ -2,7 +2,6 @@
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
 
 use std::any::type_name;
-use std::cell::RefCell;
 
 use crate::{Request, Response, Server};
 
@@ -35,12 +34,12 @@ pub enum MiddleRequest {
 /// Middleware
 pub trait Middleware {
     /// Middleware to run Before Routes
-    fn pre(&mut self, _req: Request) -> MiddleRequest {
+    fn pre(&self, _req: Request) -> MiddleRequest {
         MiddleRequest::Continue
     }
 
     /// Middleware to run After Routes
-    fn post(&mut self, _req: Request, _res: Response) -> MiddleResponse {
+    fn post(&self, _req: Request, _res: Response) -> MiddleResponse {
         MiddleResponse::Continue
     }
 
@@ -51,6 +50,6 @@ pub trait Middleware {
     {
         trace!("📦 Adding Middleware {}", type_name::<Self>());
 
-        server.middleware.push(Box::new(RefCell::new(self)));
+        server.middleware.push(Box::new(self));
     }
 }

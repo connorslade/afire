@@ -1,26 +1,34 @@
-use afire::prelude::*;
-use afire::trace;
+use std::sync::atomic::{AtomicU32, Ordering};
 
-struct Log(u32);
+use afire::prelude::*;
+
+struct Log(AtomicU32);
 
 impl Middleware for Log {
-    fn pre(&mut self, _req: Request) -> MiddleRequest {
-        self.0 += 1;
-        println!("{}", self.0);
+    fn pre(&self, _req: Request) -> MiddleRequest {
+        self.0
+            .fetch_update(Ordering::Release, Ordering::Relaxed, |x| Some(x + 1))
+            .unwrap();
+        println!("{}", self.0.load(Ordering::Acquire));
+
+        std::thread::sleep(std::time::Duration::from_secs(10));
 
         MiddleRequest::Continue
+    }
+}
+
+impl Log {
+    fn new() -> Self {
+        Self(AtomicU32::new(0))
     }
 }
 
 fn main() {
     let mut server: Server = Server::new("localhost", 8818);
 
-    trace!("ello");
-
-    Log(0).attach(&mut server);
+    Log::new().attach(&mut server);
 
     server.route(Method::GET, "/", |_req| {
-        std::thread::sleep(std::time::Duration::from_secs(10));
         Response::new()
             .status(200)
             .reason("OK!")

@@ -1,5 +1,4 @@
 // Import STD libraries
-use std::cell::RefCell;
 use std::fmt;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
@@ -42,7 +41,7 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<Box<RefCell<dyn Middleware + Send + Sync>>>,
+    pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
@@ -183,7 +182,7 @@ impl Server {
                 #[cfg(feature = "panic_handler")]
                 {
                     let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.borrow_mut().post(req.clone(), res.clone())
+                        middleware.post(req.clone(), res.clone())
                     }));
 
                     match result {
@@ -201,7 +200,7 @@ impl Server {
 
                 #[cfg(not(feature = "panic_handler"))]
                 {
-                    let result = middleware.borrow_mut().post(req.clone(), res.clone());
+                    let result = middleware.post(req.clone(), res.clone());
                     match result {
                         MiddleResponse::Continue => {}
                         MiddleResponse::Add(i) => res = i,
@@ -320,7 +319,7 @@ impl Server {
                     #[cfg(feature = "panic_handler")]
                     {
                         let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                            middleware.borrow_mut().post(req.clone(), res.clone())
+                            middleware.post(req.clone(), res.clone())
                         }));
 
                         match result {
@@ -338,7 +337,7 @@ impl Server {
 
                     #[cfg(not(feature = "panic_handler"))]
                     {
-                        let result = middleware.borrow_mut().post(req.clone(), res.clone());
+                        let result = middleware.post(req.clone(), res.clone());
                         match result {
                             MiddleResponse::Continue => {}
                             MiddleResponse::Add(i) => res = i,

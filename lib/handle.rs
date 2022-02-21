@@ -1,5 +1,4 @@
 // Import STD libraries
-use std::cell::RefCell;
 use std::io::Read;
 use std::net::TcpStream;
 
@@ -20,7 +19,7 @@ use crate::route::Route;
 /// Handle a request
 pub(crate) fn handle_connection(
     mut stream: &TcpStream,
-    middleware: &[Box<RefCell<dyn Middleware + Send + Sync>>],
+    middleware: &[Box<dyn Middleware + Send + Sync>],
     #[cfg(feature = "panic_handler")] error_handler: &dyn Fn(Request, String) -> Response,
     routes: &[Route],
     buff_size: usize,
@@ -104,9 +103,8 @@ pub(crate) fn handle_connection(
     for middleware in middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
-            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                middleware.borrow_mut().pre(req.clone())
-            }));
+            let result =
+                panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(req.clone())));
 
             match result {
                 Ok(i) => match i {

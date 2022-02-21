@@ -24,7 +24,7 @@ struct Log;
 impl Middleware for Log {
     // Redefine the `pre` function
     // (Runs before Routes)
-    fn pre(&mut self, req: Request) -> MiddleRequest {
+    fn pre(&self, req: Request) -> MiddleRequest {
         // Print some info
         println!(
             "[{}] {} {}",
