@@ -14,61 +14,7 @@
 | 10_logging        | Log requests to a file / console                                   |
 | 11_rate_limit     | Add a rate limit to your server                                    |
 | 12_path_params    | Use Path Parameters on a route                                     |
-
-## 01 - Basic
-
-Create a basic web server that can serve some static text.
-
-## 02 - Serve File
-
-Read and server binary files from disk.
-
-In the example a html text file is served but this code would work with images, videos, etc.
-
-## 03 - Routing
-
-Learn about routing priority and add a 404 page.
-
-## 04 - Data
-
-Use Query Strings, Path params and HTML forms to send data to the server from a webpage.
-
-## 05 - Headers
-
-Add response headers to the response to redirect to another page or send extra data.
-
-Also read and echo client headers as a response.
-
-## 06 - Error Handling
-
-Learn about afire's automatic route error handling and add your own error handler.
-
-## 07 - Serve Static
-
-Serve all static files from a directory.
-
-Makes use of one of afire's built in extensions
-
-## 08 - Middleware
-
-Learn about Middleware and how to use it to log requests.
-
-## 09 - Cookies
-
-Get cookies from the client and make a HTML table.
-Also set new cookies with extra options.
-
-## 10 - Logging
-
-Using afire's built in middleware make and attach a logger to a server.
-
-## 11 - Rate Limit
-
-Add a rate limit to your server with some built in middleware.
-
-## 12 - Path params
-
-Use Path params to send data through a route path.
+| 13_threading      | Use a thread pool to handle requests                               |
 
 ## To add
 

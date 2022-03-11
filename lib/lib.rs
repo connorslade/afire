@@ -95,6 +95,7 @@ server.start().unwrap();
 pub const VERSION: &str = "0.4.1*";
 
 // Export Internal Functions
+#[macro_use]
 pub mod internal;
 
 // Import Internal Functions

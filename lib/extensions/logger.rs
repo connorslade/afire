@@ -200,7 +200,7 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn pre(&mut self, req: Request) -> MiddleRequest {
+    fn pre(&self, req: Request) -> MiddleRequest {
         self.log(&req);
 
         MiddleRequest::Continue

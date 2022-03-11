@@ -1,3 +1,8 @@
+# 0.4.1
+
+- Add ThreadPool Back!
+- Tracing Feature
+
 # 0.4.0
 
 - Make serve static types public

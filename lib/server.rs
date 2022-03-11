@@ -1,8 +1,7 @@
 // Import STD libraries
-use std::cell::RefCell;
 use std::fmt;
 use std::io::Write;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -22,6 +21,7 @@ use crate::response::Response;
 use crate::route::Route;
 use crate::thread_pool::ThreadPool;
 use crate::VERSION;
+
 /// Defines a server.
 pub struct Server {
     /// Port to listen on.
@@ -41,7 +41,7 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<Box<RefCell<dyn Middleware + Send + Sync>>>,
+    pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
@@ -78,6 +78,8 @@ impl Server {
     where
         T: fmt::Display,
     {
+        trace!("🐍 Initializing Server v{}", VERSION);
+
         let mut raw_ip = raw_ip.to_string();
         let mut ip: [u8; 4] = [0; 4];
 
@@ -146,24 +148,103 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn start(self) -> Option<()> {
+    pub fn start(&self) -> Option<()> {
         // Exit if the server should not run
         if !self.run {
             return Some(());
         }
 
+        trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
+
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
-        let this = Arc::new(RwLock::new(self));
-
         for event in listener.incoming() {
-            let this = Arc::clone(&this);
-            let stream = event.unwrap();
+            // Read stream into buffer
+            let mut stream = event.ok()?;
 
-            Server::server(this, stream);
+            if self.socket_timeout.is_some() {
+                stream.set_read_timeout(self.socket_timeout).unwrap();
+                stream.set_write_timeout(self.socket_timeout).unwrap();
+            }
+
+            // Get the response from the handler
+            // Uses the most recently defined route that matches the request
+            let (req, mut res) = handle_connection(
+                &stream,
+                &self.middleware,
+                #[cfg(feature = "panic_handler")]
+                &self.error_handler,
+                &self.routes,
+                self.buff_size,
+            );
+
+            for middleware in &mut self.middleware.iter().rev() {
+                #[cfg(feature = "panic_handler")]
+                {
+                    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        middleware.post(req.clone(), res.clone())
+                    }));
+
+                    match result {
+                        Ok(i) => match i {
+                            MiddleResponse::Continue => {}
+                            MiddleResponse::Add(i) => res = i,
+                            MiddleResponse::Send(i) => {
+                                res = i;
+                                break;
+                            }
+                        },
+                        Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
+                    }
+                }
+
+                #[cfg(not(feature = "panic_handler"))]
+                {
+                    let result = middleware.post(req.clone(), res.clone());
+                    match result {
+                        MiddleResponse::Continue => {}
+                        MiddleResponse::Add(i) => res = i,
+                        MiddleResponse::Send(i) => {
+                            res = i;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if res.close {
+                continue;
+            }
+
+            // Add default headers to response
+            let mut headers = res.headers;
+            headers.append(&mut self.default_headers.clone());
+
+            // Add content-length header to response
+            headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+
+            // Convert the response to a string
+            // TODO: Use Bytes instead of String
+            let status = res.status;
+            let mut response = format!(
+                "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+                status,
+                res.reason.unwrap_or_else(|| reason_phrase(status)),
+                headers_to_string(headers)
+            )
+            .as_bytes()
+            .to_vec();
+
+            // Add Bytes of data to response
+            response.append(&mut res.data);
+
+            // Send the response
+            let _ = stream.write_all(&response);
+            stream.flush().ok()?;
         }
 
-        unreachable!()
+        // We should Never Get Here
+        None
     }
 
     /// Start the server with a threadpool.
@@ -198,6 +279,13 @@ impl Server {
             return Some(());
         }
 
+        trace!(
+            "✨ Starting Server [{}:{}] ({} threads)",
+            self.ip,
+            self.port,
+            threads
+        );
+
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         let pool = ThreadPool::new(threads);
@@ -205,94 +293,95 @@ impl Server {
 
         for event in listener.incoming() {
             let this = Arc::clone(&this);
-            let stream = event.unwrap();
+            pool.execute(move || {
+                let this = this.read().unwrap();
 
-            pool.execute(move || Server::server(this, stream));
+                // Read stream into buffer
+                let mut stream = event.unwrap();
+
+                if this.socket_timeout.is_some() {
+                    stream.set_read_timeout(this.socket_timeout).unwrap();
+                    stream.set_write_timeout(this.socket_timeout).unwrap();
+                }
+
+                // Get the response from the handler
+                // Uses the most recently defined route that matches the request
+                let (req, mut res) = handle_connection(
+                    &stream,
+                    &this.middleware,
+                    #[cfg(feature = "panic_handler")]
+                    &this.error_handler,
+                    &this.routes,
+                    this.buff_size,
+                );
+
+                for middleware in &mut this.middleware.iter().rev() {
+                    #[cfg(feature = "panic_handler")]
+                    {
+                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                            middleware.post(req.clone(), res.clone())
+                        }));
+
+                        match result {
+                            Ok(i) => match i {
+                                MiddleResponse::Continue => {}
+                                MiddleResponse::Add(i) => res = i,
+                                MiddleResponse::Send(i) => {
+                                    res = i;
+                                    break;
+                                }
+                            },
+                            Err(e) => res = (this.error_handler)(req.clone(), any_string(e)),
+                        }
+                    }
+
+                    #[cfg(not(feature = "panic_handler"))]
+                    {
+                        let result = middleware.post(req.clone(), res.clone());
+                        match result {
+                            MiddleResponse::Continue => {}
+                            MiddleResponse::Add(i) => res = i,
+                            MiddleResponse::Send(i) => {
+                                res = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if res.close {
+                    return;
+                }
+
+                // Add default headers to response
+                let mut headers = res.headers;
+                headers.append(&mut this.default_headers.clone());
+
+                // Add content-length header to response
+                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+
+                // Convert the response to a string
+                // TODO: Use Bytes instead of String
+                let status = res.status;
+                let mut response = format!(
+                    "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+                    status,
+                    res.reason.unwrap_or_else(|| reason_phrase(status)),
+                    headers_to_string(headers)
+                )
+                .as_bytes()
+                .to_vec();
+
+                // Add Bytes of data to response
+                response.append(&mut res.data);
+
+                // Send the response
+                let _ = stream.write_all(&response);
+                stream.flush().unwrap();
+            });
         }
 
         unreachable!()
-    }
-
-    fn server(this: Arc<RwLock<Self>>, mut stream: TcpStream) {
-        let this = this.write().unwrap();
-
-        if this.socket_timeout.is_some() {
-            stream.set_read_timeout(this.socket_timeout).unwrap();
-            stream.set_write_timeout(this.socket_timeout).unwrap();
-        }
-
-        // Get the response from the handler
-        // Uses the most recently defined route that matches the request
-        let (req, mut res) = handle_connection(
-            &stream,
-            &this.middleware,
-            #[cfg(feature = "panic_handler")]
-            &this.error_handler,
-            &this.routes,
-            this.buff_size,
-        );
-
-        for middleware in &mut this.middleware.iter().rev() {
-            #[cfg(feature = "panic_handler")]
-            {
-                let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    middleware.borrow_mut().post(req.clone(), res.clone())
-                }));
-
-                match result {
-                    Ok(i) => match i {
-                        MiddleResponse::Continue => {}
-                        MiddleResponse::Add(i) => res = i,
-                        MiddleResponse::Send(i) => {
-                            res = i;
-                            break;
-                        }
-                    },
-                    Err(e) => res = (this.error_handler)(req.clone(), any_string(e)),
-                }
-            }
-
-            #[cfg(not(feature = "panic_handler"))]
-            {
-                let result = middleware.borrow_mut().post(req.clone(), res.clone());
-                match result {
-                    MiddleResponse::Continue => {}
-                    MiddleResponse::Add(i) => res = i,
-                    MiddleResponse::Send(i) => {
-                        res = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if !res.close {
-            // Add default headers to response
-            let mut headers = res.headers;
-            headers.append(&mut this.default_headers.clone());
-
-            // Add content-length header to response
-            headers.push(Header::new("Content-Length", &res.data.len().to_string()));
-
-            // Convert the response to a string
-            // TODO: Use Bytes instead of String
-            let status = res.status;
-            let mut response = format!(
-                "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                status,
-                res.reason.unwrap_or_else(|| reason_phrase(status)),
-                headers_to_string(headers)
-            )
-            .as_bytes()
-            .to_vec();
-
-            // Add Bytes of data to response
-            response.append(&mut res.data);
-
-            // Send the response
-            let _ = stream.write_all(&response);
-            stream.flush().unwrap();
-        }
     }
 
     /// Set the satrting buffer size. The default is `1024`
@@ -309,6 +398,8 @@ impl Server {
     ///     .buffer(2048);
     /// ```
     pub fn buffer(self, buf: usize) -> Server {
+        trace!("🥫 Setting Buffer to {} bytes", buf);
+
         Server {
             buff_size: buf,
             ..self
@@ -339,7 +430,9 @@ impl Server {
         K: AsRef<str>,
     {
         let mut headers = self.default_headers;
-        headers.push(Header::new(key.as_ref(), value.as_ref()));
+        let header = Header::new(key.as_ref(), value.as_ref());
+        trace!("😀 Adding Server Header ({})", header);
+        headers.push(header);
 
         Server {
             default_headers: headers,
@@ -366,6 +459,8 @@ impl Server {
     /// server.start().unwrap();
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+        trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
+
         Server {
             socket_timeout: Some(socket_timeout),
             ..self
@@ -430,6 +525,8 @@ impl Server {
         &mut self,
         res: impl Fn(Request, String) -> Response + Send + Sync + 'static,
     ) {
+        trace!("✌ Setting Error Handler");
+
         self.error_handler = Box::new(res);
     }
 
@@ -463,10 +560,10 @@ impl Server {
     ) where
         T: AsRef<str>,
     {
-        self.routes.push(Route::new(
-            method,
-            path.as_ref().to_owned(),
-            Box::new(handler),
-        ));
+        let path = path.as_ref().to_owned();
+        trace!("🚗 Adding Route {} {}", method, path);
+
+        self.routes
+            .push(Route::new(method, path, Box::new(handler)));
     }
 }
