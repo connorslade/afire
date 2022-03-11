@@ -5,6 +5,7 @@
 - Remove Middleware Interior Mutability by Default
 - Make remove_address_port usable without Feature
 - Add *end* middleware to run after sending a request
+- Make use of end middleware on logger
 
 # 0.4.0
 

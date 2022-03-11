@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::common::remove_address_port;
 use crate::middleware::{MiddleRequest, Middleware};
-use crate::{Request, Response};
+use crate::{Content, Request, Response};
 
 // Handler Type
 type Handler = Box<dyn Fn(&Request) -> Option<Response> + Send + Sync>;
@@ -46,7 +46,7 @@ impl RateLimiter {
                     Response::new()
                         .status(429)
                         .text("Too Many Requests")
-                        .header("Content-Type", "text/plain"),
+                        .content(Content::TXT),
                 )
             }),
         }
@@ -147,6 +147,7 @@ impl RateLimiter {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
+
         if self.last_reset.load(Ordering::Acquire) + self.req_timeout <= time {
             self.requests.lock().unwrap().clear();
             self.last_reset.store(time, Ordering::Release);
