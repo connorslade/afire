@@ -1,8 +1,5 @@
 //! Some little functions used here and thare
 
-#[cfg(any(feature = "rate_limit", feature = "logging"))]
-use std::fmt;
-
 /// Get Reason Phrase for a status code
 ///
 /// Supports Status:
@@ -69,9 +66,9 @@ pub fn reason_phrase(status: u16) -> String {
 /// '192.168.1.26:1234' -> '192.168.1.26'
 pub fn remove_address_port<T>(address: T) -> String
 where
-    T: fmt::Display,
+    T: AsRef<str>,
 {
-    let raw = address.to_string();
+    let raw = address.as_ref().to_owned();
 
     raw.rsplit_once(':')
         .unwrap_or((raw.as_str(), "null"))
