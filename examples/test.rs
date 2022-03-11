@@ -13,6 +13,10 @@ impl Middleware for Log {
 
         MiddleRequest::Continue
     }
+
+    fn end(&self, _req: Request, _res: Response) {
+        std::thread::sleep(std::time::Duration::from_secs(10));
+    }
 }
 
 impl Log {

@@ -3,7 +3,8 @@
 - Add ThreadPool Back!
 - Tracing Feature
 - Remove Middleware Interior Mutability by Default
-- Make remove_address_port useable without Feature
+- Make remove_address_port usable without Feature
+- Add *end* middleware to run after sending a request
 
 # 0.4.0
 

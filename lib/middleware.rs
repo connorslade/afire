@@ -43,6 +43,9 @@ pub trait Middleware {
         MiddleResponse::Continue
     }
 
+    /// Middleware ot run after the response has been handled
+    fn end(&self, _req: Request, _res: Response) {}
+
     /// Attatch Middleware to a Server
     fn attach(self, server: &mut Server)
     where

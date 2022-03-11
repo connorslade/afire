@@ -178,7 +178,7 @@ impl Server {
                 self.buff_size,
             );
 
-            for middleware in &mut self.middleware.iter().rev() {
+            for middleware in self.middleware.iter().rev() {
                 #[cfg(feature = "panic_handler")]
                 {
                     let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
@@ -216,6 +216,8 @@ impl Server {
                 continue;
             }
 
+            let end_res = res.clone();
+
             // Add default headers to response
             let mut headers = res.headers;
             headers.append(&mut self.default_headers.clone());
@@ -241,6 +243,17 @@ impl Server {
             // Send the response
             let _ = stream.write_all(&response);
             stream.flush().ok()?;
+
+            // Run end middleware
+            for middleware in self.middleware.iter().rev() {
+                #[cfg(feature = "panic_handler")]
+                let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                    middleware.end(req.clone(), end_res.clone())
+                }));
+
+                #[cfg(not(feature = "panic_handler"))]
+                middleware.end(req.clone(), end_res.clone());
+            }
         }
 
         // We should Never Get Here
@@ -315,7 +328,7 @@ impl Server {
                     this.buff_size,
                 );
 
-                for middleware in &mut this.middleware.iter().rev() {
+                for middleware in this.middleware.iter().rev() {
                     #[cfg(feature = "panic_handler")]
                     {
                         let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
@@ -353,12 +366,14 @@ impl Server {
                     return;
                 }
 
+                let end_res = res.clone();
+
                 // Add default headers to response
                 let mut headers = res.headers;
                 headers.append(&mut this.default_headers.clone());
 
                 // Add content-length header to response
-                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+                headers.push(Header::new("Content-Length", &res.data.len()));
 
                 // Convert the response to a string
                 // TODO: Use Bytes instead of String
@@ -378,6 +393,17 @@ impl Server {
                 // Send the response
                 let _ = stream.write_all(&response);
                 stream.flush().unwrap();
+
+                // Run end middleware
+                for middleware in this.middleware.iter().rev() {
+                    #[cfg(feature = "panic_handler")]
+                    let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        middleware.end(req.clone(), end_res.clone())
+                    }));
+
+                    #[cfg(not(feature = "panic_handler"))]
+                    middleware.end(req.clone(), end_res.clone());
+                }
             });
         }
 
