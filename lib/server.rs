@@ -11,11 +11,10 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use crate::common::{any_string, reason_phrase};
-use crate::handle::handle_connection;
-use crate::header::{headers_to_string, Header};
+use crate::handle::{handle_connection, response_http};
+use crate::header::Header;
 use crate::method::Method;
-use crate::middleware::{MiddleResponse, Middleware};
+use crate::middleware::Middleware;
 use crate::request::Request;
 use crate::response::Response;
 use crate::route::Route;
@@ -162,85 +161,32 @@ impl Server {
             // Read stream into buffer
             let mut stream = event.ok()?;
 
-            if self.socket_timeout.is_some() {
-                stream.set_read_timeout(self.socket_timeout).unwrap();
-                stream.set_write_timeout(self.socket_timeout).unwrap();
-            }
-
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let (req, mut res) = handle_connection(
-                &stream,
-                &self.middleware,
-                #[cfg(feature = "panic_handler")]
-                &self.error_handler,
-                &self.routes,
-                self.buff_size,
-            );
-
-            for middleware in &mut self.middleware.iter().rev() {
-                #[cfg(feature = "panic_handler")]
-                {
-                    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.post(req.clone(), res.clone())
-                    }));
-
-                    match result {
-                        Ok(i) => match i {
-                            MiddleResponse::Continue => {}
-                            MiddleResponse::Add(i) => res = i,
-                            MiddleResponse::Send(i) => {
-                                res = i;
-                                break;
-                            }
-                        },
-                        Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
-                    }
-                }
-
-                #[cfg(not(feature = "panic_handler"))]
-                {
-                    let result = middleware.post(req.clone(), res.clone());
-                    match result {
-                        MiddleResponse::Continue => {}
-                        MiddleResponse::Add(i) => res = i,
-                        MiddleResponse::Send(i) => {
-                            res = i;
-                            break;
-                        }
-                    }
-                }
-            }
+            let (req, res) = handle_connection(&stream, self);
 
             if res.close {
                 continue;
             }
 
-            // Add default headers to response
-            let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone());
-
-            // Add content-length header to response
-            headers.push(Header::new("Content-Length", &res.data.len().to_string()));
-
-            // Convert the response to a string
-            // TODO: Use Bytes instead of String
-            let status = res.status;
-            let mut response = format!(
-                "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                status,
-                res.reason.unwrap_or_else(|| reason_phrase(status)),
-                headers_to_string(headers)
-            )
-            .as_bytes()
-            .to_vec();
-
-            // Add Bytes of data to response
-            response.append(&mut res.data);
+            let end_res = res.clone();
+            let end_req = req.clone();
+            let response = response_http(self, req, res);
 
             // Send the response
             let _ = stream.write_all(&response);
             stream.flush().ok()?;
+
+            // Run end middleware
+            for middleware in self.middleware.iter().rev() {
+                #[cfg(feature = "panic_handler")]
+                let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                    middleware.end(end_req.clone(), end_res.clone())
+                }));
+
+                #[cfg(not(feature = "panic_handler"))]
+                middleware.end(end_req.clone(), end_res.clone());
+            }
         }
 
         // We should Never Get Here
@@ -299,85 +245,31 @@ impl Server {
                 // Read stream into buffer
                 let mut stream = event.unwrap();
 
-                if this.socket_timeout.is_some() {
-                    stream.set_read_timeout(this.socket_timeout).unwrap();
-                    stream.set_write_timeout(this.socket_timeout).unwrap();
-                }
-
                 // Get the response from the handler
                 // Uses the most recently defined route that matches the request
-                let (req, mut res) = handle_connection(
-                    &stream,
-                    &this.middleware,
-                    #[cfg(feature = "panic_handler")]
-                    &this.error_handler,
-                    &this.routes,
-                    this.buff_size,
-                );
-
-                for middleware in &mut this.middleware.iter().rev() {
-                    #[cfg(feature = "panic_handler")]
-                    {
-                        let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                            middleware.post(req.clone(), res.clone())
-                        }));
-
-                        match result {
-                            Ok(i) => match i {
-                                MiddleResponse::Continue => {}
-                                MiddleResponse::Add(i) => res = i,
-                                MiddleResponse::Send(i) => {
-                                    res = i;
-                                    break;
-                                }
-                            },
-                            Err(e) => res = (this.error_handler)(req.clone(), any_string(e)),
-                        }
-                    }
-
-                    #[cfg(not(feature = "panic_handler"))]
-                    {
-                        let result = middleware.post(req.clone(), res.clone());
-                        match result {
-                            MiddleResponse::Continue => {}
-                            MiddleResponse::Add(i) => res = i,
-                            MiddleResponse::Send(i) => {
-                                res = i;
-                                break;
-                            }
-                        }
-                    }
-                }
+                let (req, res) = handle_connection(&stream, &this);
 
                 if res.close {
                     return;
                 }
 
-                // Add default headers to response
-                let mut headers = res.headers;
-                headers.append(&mut this.default_headers.clone());
+                let end_res = res.clone();
+                let end_req = req.clone();
+                let response = response_http(&this, req, res);
 
-                // Add content-length header to response
-                headers.push(Header::new("Content-Length", &res.data.len().to_string()));
-
-                // Convert the response to a string
-                // TODO: Use Bytes instead of String
-                let status = res.status;
-                let mut response = format!(
-                    "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                    status,
-                    res.reason.unwrap_or_else(|| reason_phrase(status)),
-                    headers_to_string(headers)
-                )
-                .as_bytes()
-                .to_vec();
-
-                // Add Bytes of data to response
-                response.append(&mut res.data);
-
-                // Send the response
                 let _ = stream.write_all(&response);
                 stream.flush().unwrap();
+
+                // Run end middleware
+                for middleware in this.middleware.iter().rev() {
+                    #[cfg(feature = "panic_handler")]
+                    let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        middleware.end(end_req.clone(), end_res.clone())
+                    }));
+
+                    #[cfg(not(feature = "panic_handler"))]
+                    middleware.end(end_req.clone(), end_res.clone());
+                }
             });
         }
 
