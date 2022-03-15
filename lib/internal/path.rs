@@ -21,6 +21,9 @@ pub enum PathPart {
     /// Path param (/{name})
     Param(String),
 
+    /// Match anything for self and after
+    AnyAfter,
+
     /// Literally Anything (E)
     Any,
 }
@@ -52,18 +55,14 @@ impl Path {
         let path = normalize_path(path);
         let mut out = Vec::new();
 
-        // Bodge
-        if self.raw == "**" {
-            return Some(Vec::new());
-        }
-
         let path = path.split('/');
 
-        if path.clone().count() != self.parts.len() {
-            return None;
-        }
+        let mut any_after = false;
+        for (i, j) in self.parts.iter().zip(path.clone()) {
+            if any_after {
+                continue;
+            }
 
-        for (i, j) in self.parts.iter().zip(path) {
             match i {
                 PathPart::Normal(x) => {
                     if x != j {
@@ -71,8 +70,13 @@ impl Path {
                     }
                 }
                 PathPart::Param(x) => out.push((x.to_owned(), j.to_owned())),
+                PathPart::AnyAfter => any_after = true,
                 PathPart::Any => {}
             }
+        }
+
+        if !any_after && path.count() != self.parts.len() {
+            return None;
         }
 
         Some(out)
@@ -92,21 +96,18 @@ impl PathPart {
     /// Decode Path Segment into PathPart
     #[cfg(feature = "path_patterns")]
     pub fn from_segment(seg: &str) -> PathPart {
-        if seg == "*" {
-            return PathPart::Any;
-        }
-
-        if seg.starts_with('{') && seg.ends_with('}') {
-            return PathPart::Param(
-                seg.strip_prefix('{')
+        match seg {
+            "*" => PathPart::Any,
+            "**" => PathPart::AnyAfter,
+            x if x.starts_with('{') && x.ends_with('}') => PathPart::Param(
+                x.strip_prefix('{')
                     .unwrap()
                     .strip_suffix('}')
                     .unwrap()
                     .to_owned(),
-            );
+            ),
+            _ => PathPart::Normal(seg.to_owned()),
         }
-
-        PathPart::Normal(seg.to_owned())
     }
 }
 

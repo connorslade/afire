@@ -9,13 +9,7 @@ impl Middleware for Log {
         let i = self.0.fetch_add(1, Ordering::Release);
         println!("{}", i);
 
-        std::thread::sleep(std::time::Duration::from_secs(10));
-
         MiddleRequest::Continue
-    }
-
-    fn end(&self, _req: Request, _res: Response) {
-        std::thread::sleep(std::time::Duration::from_secs(10));
     }
 }
 
@@ -30,7 +24,7 @@ fn main() {
 
     Log::new().attach(&mut server);
 
-    server.route(Method::GET, "/", |_req| {
+    server.route(Method::GET, "/hi/hola", |_req| {
         Response::new()
             .status(200)
             .reason("OK!")
