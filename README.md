@@ -83,4 +83,3 @@ server.route(Method::GET, "/", |_req| {
 // This is blocking
 server.start().unwrap();
 ```
-/// Prelude
