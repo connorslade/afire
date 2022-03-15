@@ -9,7 +9,7 @@ macro_rules! warning_exit {
 }
 
 fn main() {
-    gen_readme();
+    // gen_readme();
 }
 
 /// Use Doc Comment from lib.rs to gen the readme
