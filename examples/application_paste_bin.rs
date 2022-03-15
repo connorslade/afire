@@ -1,8 +1,13 @@
-//! A simple in memory pastebin
+//! A simple in memory pastebin backend
+// If you want to make a real paste bin use a real database for storage
+
+// For a full pastebin front end and back end check out https://github.com/Basicprogrammer10/plaster-box
+// Or try it out at https://paste.connorcode.com
+
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 const DATA_LIMIT: usize = 1000;
 
@@ -28,15 +33,18 @@ fn main() {
     // New paste Handler
     let pastes = pub_pastes.clone();
     server.route(Method::POST, "/new", move |req| {
+        // Make sure paste data isent too long
         if req.body.len() > DATA_LIMIT {
             return Response::new().status(400).text("Data too big!");
         }
 
+        // Get the data as string
         let body_str = match req.body_string() {
             Some(i) => i,
             None => return Response::new().status(400).text("Invalid Text"),
         };
 
+        // Get the name from the Name header
         let name = req.header("Name").unwrap_or_else(|| "Untitled".to_owned());
 
         let paste = Paste {
@@ -45,10 +53,12 @@ fn main() {
             time: Instant::now(),
         };
 
+        // Push this paste to the pastes vector
         let mut pastes = pastes.lock().unwrap();
         let id = pastes.len();
         pastes.push(paste);
 
+        // Send Redirect response
         Response::new()
             .status(301)
             .text("Ok")
@@ -58,18 +68,25 @@ fn main() {
     // Get pate handler
     let pastes = pub_pastes.clone();
     server.route(Method::GET, "/p/{id}", move |req| {
+        // Get is from path param
         let id = req.path_param("id").unwrap().parse::<usize>().unwrap();
+
+        // Get the paste by id
         let paste = &pastes.lock().unwrap()[id];
 
+        // Send paste
         Response::new().text(&paste.body)
     });
 
     // View all pastes
     let pastes = pub_pastes.clone();
     server.route(Method::GET, "/pastes", move |_req| {
+        // Starter HTML
         let mut out = String::from(
             "<meta charset=\"UTF-8\"><table><tr><th>Name</th><th>Date</th><th>Link</th></tr>",
         );
+
+        // Add a table row for each paste
         for (i, e) in pastes.lock().unwrap().iter().enumerate() {
             out.push_str(&format!(
                 "<tr><td>{}</td><td>{}</td><td><a href=\"/p/{}\">🔗</a></td></tr>",
@@ -79,12 +96,17 @@ fn main() {
             ));
         }
 
-        Response::new().text(out)
+        // Send HTML
+        Response::new()
+            .text(format!("{}</table>", out))
+            .content(Content::HTML)
     });
 
     server.start().unwrap();
 }
 
+// Turn seconds ago into a more readable relative time
+// Ex 1 minute ago or 3 years ago
 pub fn best_time(secs: u64) -> String {
     let mut secs = secs as f64;
 
