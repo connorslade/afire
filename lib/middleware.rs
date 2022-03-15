@@ -1,7 +1,7 @@
 //! Middleware is code that runs before and after the routes.
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
 
-use std::cell::RefCell;
+use std::any::type_name;
 
 use crate::{Request, Response, Server};
 
@@ -34,20 +34,25 @@ pub enum MiddleRequest {
 /// Middleware
 pub trait Middleware {
     /// Middleware to run Before Routes
-    fn pre(&mut self, _req: Request) -> MiddleRequest {
+    fn pre(&self, _req: Request) -> MiddleRequest {
         MiddleRequest::Continue
     }
 
     /// Middleware to run After Routes
-    fn post(&mut self, _req: Request, _res: Response) -> MiddleResponse {
+    fn post(&self, _req: Request, _res: Response) -> MiddleResponse {
         MiddleResponse::Continue
     }
+
+    /// Middleware ot run after the response has been handled
+    fn end(&self, _req: Request, _res: Response) {}
 
     /// Attatch Middleware to a Server
     fn attach(self, server: &mut Server)
     where
-        Self: Sized + 'static,
+        Self: Sized + Send + Sync + 'static,
     {
-        server.middleware.push(Box::new(RefCell::new(self)));
+        trace!("📦 Adding Middleware {}", type_name::<Self>());
+
+        server.middleware.push(Box::new(self));
     }
 }

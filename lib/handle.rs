@@ -1,5 +1,4 @@
 // Import STD libraries
-use std::cell::RefCell;
 use std::io::Read;
 use std::net::TcpStream;
 
@@ -8,26 +7,25 @@ use std::net::TcpStream;
 use std::panic;
 
 // Import local files
-use crate::common::{any_string, trim_end_bytes};
+use crate::common::{any_string, reason_phrase, trim_end_bytes};
 use crate::content_type::Content;
+use crate::header::{headers_to_string, Header};
 use crate::http;
 use crate::method::Method;
-use crate::middleware::{MiddleRequest, Middleware};
+use crate::middleware::{MiddleRequest, MiddleResponse};
 use crate::request::Request;
 use crate::response::Response;
-use crate::route::Route;
-use crate::server::ErrorHandler;
+use crate::server::Server;
 
 /// Handle a request
-pub(crate) fn handle_connection(
-    mut stream: &TcpStream,
-    middleware: &[Box<RefCell<dyn Middleware>>],
-    #[cfg(feature = "panic_handler")] error_handler: &ErrorHandler,
-    routes: &[Route],
-    buff_size: usize,
-) -> (Request, Response) {
+pub(crate) fn handle_connection(mut stream: &TcpStream, this: &Server) -> (Request, Response) {
     // Init (first) Buffer
-    let mut buffer = vec![0; buff_size];
+    let mut buffer = vec![0; this.buff_size];
+
+    if this.socket_timeout.is_some() {
+        stream.set_read_timeout(this.socket_timeout).unwrap();
+        stream.set_write_timeout(this.socket_timeout).unwrap();
+    }
 
     // Read stream into buffer
     match stream.read(&mut buffer) {
@@ -61,7 +59,7 @@ pub(crate) fn handle_connection(
             let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
             let new_buffer_size = (content_length as i64 + header_size as i64) as usize;
 
-            if new_buffer_size > buff_size {
+            if new_buffer_size > this.buff_size {
                 buffer.reserve(content_length + header_size);
             }
 
@@ -102,12 +100,11 @@ pub(crate) fn handle_connection(
     };
 
     // Use middleware to handle request
-    for middleware in middleware.iter().rev() {
+    for middleware in this.middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
-            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                middleware.borrow_mut().pre(req.clone())
-            }));
+            let result =
+                panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(req.clone())));
 
             match result {
                 Ok(i) => match i {
@@ -115,13 +112,18 @@ pub(crate) fn handle_connection(
                     MiddleRequest::Add(i) => req = i,
                     MiddleRequest::Send(i) => return (req, i),
                 },
-                Err(e) => return (req.clone(), (error_handler)(req.clone(), any_string(e))),
+                Err(e) => {
+                    return (
+                        req.clone(),
+                        (this.error_handler)(req.clone(), any_string(e)),
+                    )
+                }
             }
         }
 
         #[cfg(not(feature = "panic_handler"))]
         {
-            let result = middleware.borrow_mut().pre(req.clone());
+            let result = this.middleware.borrow_mut().pre(req.clone());
             match result {
                 MiddleRequest::Continue => {}
                 MiddleRequest::Add(i) => req = i,
@@ -131,7 +133,7 @@ pub(crate) fn handle_connection(
     }
 
     // Loop through all routes and check if the request matches
-    for route in routes.iter().rev() {
+    for route in this.routes.iter().rev() {
         let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             // Set the Pattern params of the Request
@@ -150,7 +152,7 @@ pub(crate) fn handle_connection(
                     Err(e) => any_string(e),
                 };
 
-                return (req.clone(), (error_handler)(req.clone(), err));
+                return (req.clone(), (this.error_handler)(req.clone(), err));
             }
 
             #[cfg(not(feature = "panic_handler"))]
@@ -168,4 +170,63 @@ pub(crate) fn handle_connection(
             .text(format!("Cannot {} {}", req.method, req.path))
             .header("Content-Type", "text/plain"),
     )
+}
+
+pub(crate) fn response_http(this: &Server, req: Request, mut res: Response) -> Vec<u8> {
+    for middleware in this.middleware.iter().rev() {
+        #[cfg(feature = "panic_handler")]
+        {
+            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                middleware.post(req.clone(), res.clone())
+            }));
+
+            match result {
+                Ok(i) => match i {
+                    MiddleResponse::Continue => {}
+                    MiddleResponse::Add(i) => res = i,
+                    MiddleResponse::Send(i) => {
+                        res = i;
+                        break;
+                    }
+                },
+                Err(e) => res = (this.error_handler)(req.clone(), any_string(e)),
+            }
+        }
+
+        #[cfg(not(feature = "panic_handler"))]
+        {
+            let result = middleware.post(req.clone(), res.clone());
+            match result {
+                MiddleResponse::Continue => {}
+                MiddleResponse::Add(i) => res = i,
+                MiddleResponse::Send(i) => {
+                    res = i;
+                    break;
+                }
+            }
+        }
+    }
+    // Add default headers to response
+    let mut headers = res.headers;
+    headers.append(&mut this.default_headers.clone());
+
+    // Add content-length header to response
+    headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+
+    // Convert the response to a string
+    // TODO: Use Bytes instead of String
+    let status = res.status;
+    let mut response = format!(
+        "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+        status,
+        res.reason.unwrap_or_else(|| reason_phrase(status)),
+        headers_to_string(headers)
+    )
+    .as_bytes()
+    .to_vec();
+
+    // Add Bytes of data to response
+    response.append(&mut res.data);
+
+    response
 }

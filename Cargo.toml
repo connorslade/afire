@@ -1,6 +1,6 @@
 [package]
 name = "afire"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 
@@ -8,7 +8,7 @@ repository = "https://github.com/Basicprogrammer10/afire"
 documentation = "https://docs.rs/afire"
 homepage = "https://connorcode.com/writing/afire"
 description = "🔥 A blazing fast web framework for Rust"
-keywords = ["http", "WebFramework", "WebServer"]
+keywords = ["afire", "http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]
 exclude = [".github/", "SocialShare.*"]
 license = "GPL-3.0"
@@ -41,6 +41,9 @@ dynamic_resize = []
 path_decode_url = []
 ignore_trailing_path_slash = []
 
+# Other
+tracing = []
+
 [dev-dependencies]
 # Enable rate_limit and logging features for examples
-afire = { path = ".", features = ["rate_limit", "logging", "serve_static"] }
+afire = { path = ".", features = ["rate_limit", "logging", "serve_static", "tracing"] }

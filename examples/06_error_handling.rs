@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use afire::{Method, Response, Server};
 
 // Don't crash thread from a panic in a route
@@ -24,16 +26,16 @@ fn main() {
     // You can optionally define a custom error handler
     // This can be defined anywhere in the server and will take affect for all routes
     // Its like a normal route, but it will only be called if the route panics
-    let errors = std::cell::RefCell::new(0);
+    let errors = RwLock::new(0);
     server.error_handler(move |_req, err| {
-        errors.replace_with(|&mut x| x + 1);
+        let mut errors = errors.write().unwrap();
+        *errors += 1;
 
         Response::new()
             .status(500)
             .text(format!(
                 "<h1>Internal Server Error #{}</h1><br>Panicked at '{}'",
-                errors.borrow(),
-                err
+                errors, err
             ))
             .header("Content-Type", "text/html")
     });

@@ -1,7 +1,7 @@
 //! Extention to serve static files from disk
 
-use std::cell::RefCell;
 use std::fs;
+use std::sync::RwLock;
 
 use crate::{Method, Request, Response, Server};
 
@@ -301,12 +301,12 @@ impl ServeStatic {
     /// server.start().unwrap();
     /// ```
     pub fn attach(self, server: &mut Server) {
-        let cell = RefCell::new(self);
+        let cell = RwLock::new(self);
 
         server.route(Method::ANY, "**", move |req| {
-            let mut res = process_req(req.clone(), cell.clone());
+            let mut res = process_req(req.clone(), &cell);
 
-            for i in cell.borrow().middleware.clone().iter().rev() {
+            for i in cell.read().unwrap().middleware.clone().iter().rev() {
                 if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
                     res = i
                 };
@@ -317,8 +317,10 @@ impl ServeStatic {
     }
 }
 
-fn process_req(req: Request, cell: RefCell<ServeStatic>) -> (Response, bool) {
-    let mut path = format!("{}{}", cell.borrow().data_dir, req.path.replace("/..", ""));
+fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
+    let this = cell.read().unwrap();
+
+    let mut path = format!("{}{}", this.data_dir, req.path.replace("/..", ""));
 
     // Add Index.html if path ends with /
     if path.ends_with('/') {
@@ -330,14 +332,11 @@ fn process_req(req: Request, cell: RefCell<ServeStatic>) -> (Response, bool) {
         path.push_str("/index.html");
     }
 
-    if cell.borrow().disabled_files.contains(
-        &path
-            .splitn(2, &cell.borrow().data_dir)
-            .last()
-            .unwrap()
-            .to_string(),
-    ) {
-        return ((cell.borrow().not_found)(&req, true), false);
+    if this
+        .disabled_files
+        .contains(&path.splitn(2, &this.data_dir).last().unwrap().to_string())
+    {
+        return ((this.not_found)(&req, true), false);
     }
 
     // Try to read File
@@ -346,12 +345,12 @@ fn process_req(req: Request, cell: RefCell<ServeStatic>) -> (Response, bool) {
         Ok(content) => (
             Response::new()
                 .bytes(content)
-                .header("Content-Type", get_type(&path, &cell.borrow().types)),
+                .header("Content-Type", get_type(&path, &this.types)),
             true,
         ),
 
         // If not send the 404 route defined
-        Err(_) => ((cell.borrow().not_found)(&req, false), false),
+        Err(_) => ((this.not_found)(&req, false), false),
     }
 }
 

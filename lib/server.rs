@@ -1,9 +1,9 @@
 // Import STD libraries
-use std::cell::RefCell;
 use std::fmt;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 // Feature Imports
@@ -11,17 +11,15 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use crate::common::{any_string, reason_phrase};
-use crate::handle::handle_connection;
-use crate::header::{headers_to_string, Header};
+use crate::handle::{handle_connection, response_http};
+use crate::header::Header;
 use crate::method::Method;
-use crate::middleware::{MiddleResponse, Middleware};
+use crate::middleware::Middleware;
 use crate::request::Request;
 use crate::response::Response;
 use crate::route::Route;
+use crate::thread_pool::ThreadPool;
 use crate::VERSION;
-
-pub(crate) type ErrorHandler = dyn Fn(Request, String) -> Response;
 
 /// Defines a server.
 pub struct Server {
@@ -42,11 +40,11 @@ pub struct Server {
 
     // Other stuff
     /// Middleware
-    pub middleware: Vec<Box<RefCell<dyn Middleware>>>,
+    pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    pub error_handler: Box<dyn Fn(Request, String) -> Response>,
+    pub error_handler: Box<dyn Fn(Request, String) -> Response + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
@@ -59,6 +57,8 @@ pub struct Server {
     /// Really just for testing.
     pub run: bool,
 }
+
+unsafe impl Sync for Server {}
 
 /// Implementations for Server
 impl Server {
@@ -77,6 +77,8 @@ impl Server {
     where
         T: fmt::Display,
     {
+        trace!("🐍 Initializing Server v{}", VERSION);
+
         let mut raw_ip = raw_ip.to_string();
         let mut ip: [u8; 4] = [0; 4];
 
@@ -151,95 +153,127 @@ impl Server {
             return Some(());
         }
 
+        trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
+
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         for event in listener.incoming() {
             // Read stream into buffer
             let mut stream = event.ok()?;
 
-            if self.socket_timeout.is_some() {
-                stream.set_read_timeout(self.socket_timeout).unwrap();
-                stream.set_write_timeout(self.socket_timeout).unwrap();
-            }
-
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let (req, mut res) = handle_connection(
-                &stream,
-                &self.middleware,
-                #[cfg(feature = "panic_handler")]
-                &self.error_handler,
-                &self.routes,
-                self.buff_size,
-            );
-
-            for middleware in &mut self.middleware.iter().rev() {
-                #[cfg(feature = "panic_handler")]
-                {
-                    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.borrow_mut().post(req.clone(), res.clone())
-                    }));
-
-                    match result {
-                        Ok(i) => match i {
-                            MiddleResponse::Continue => {}
-                            MiddleResponse::Add(i) => res = i,
-                            MiddleResponse::Send(i) => {
-                                res = i;
-                                break;
-                            }
-                        },
-                        Err(e) => res = (self.error_handler)(req.clone(), any_string(e)),
-                    }
-                }
-
-                #[cfg(not(feature = "panic_handler"))]
-                {
-                    let result = middleware.borrow_mut().post(req.clone(), res.clone());
-                    match result {
-                        MiddleResponse::Continue => {}
-                        MiddleResponse::Add(i) => res = i,
-                        MiddleResponse::Send(i) => {
-                            res = i;
-                            break;
-                        }
-                    }
-                }
-            }
+            let (req, res) = handle_connection(&stream, self);
 
             if res.close {
                 continue;
             }
 
-            // Add default headers to response
-            let mut headers = res.headers;
-            headers.append(&mut self.default_headers.clone());
-
-            // Add content-length header to response
-            headers.push(Header::new("Content-Length", &res.data.len().to_string()));
-
-            // Convert the response to a string
-            // TODO: Use Bytes instead of String
-            let status = res.status;
-            let mut response = format!(
-                "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-                status,
-                res.reason.unwrap_or_else(|| reason_phrase(status)),
-                headers_to_string(headers)
-            )
-            .as_bytes()
-            .to_vec();
-
-            // Add Bytes of data to response
-            response.append(&mut res.data);
+            let end_res = res.clone();
+            let end_req = req.clone();
+            let response = response_http(self, req, res);
 
             // Send the response
             let _ = stream.write_all(&response);
             stream.flush().ok()?;
+
+            // Run end middleware
+            for middleware in self.middleware.iter().rev() {
+                #[cfg(feature = "panic_handler")]
+                let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                    middleware.end(end_req.clone(), end_res.clone())
+                }));
+
+                #[cfg(not(feature = "panic_handler"))]
+                middleware.end(end_req.clone(), end_res.clone());
+            }
         }
 
         // We should Never Get Here
         None
+    }
+
+    /// Start the server with a threadpool.
+    ///
+    /// Will be blocking.
+    ///
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Starts a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Define a route
+    /// server.route(Method::GET, "/", |req| {
+    ///     Response::new()
+    ///         .status(200)
+    ///         .text("N O S E")
+    ///         .header("Content-Type", "text/plain")
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # // Keep the server from starting and blocking the main thread
+    /// # server.set_run(false);
+    /// server.start_threaded(4).unwrap();
+    /// ```
+    pub fn start_threaded(self, threads: usize) -> Option<()> {
+        // Exit if the server should not run
+        if !self.run {
+            return Some(());
+        }
+
+        trace!(
+            "✨ Starting Server [{}:{}] ({} threads)",
+            self.ip,
+            self.port,
+            threads
+        );
+
+        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
+
+        let pool = ThreadPool::new(threads);
+        let this = Arc::new(RwLock::new(self));
+
+        for event in listener.incoming() {
+            let this = Arc::clone(&this);
+            pool.execute(move || {
+                let this = this.read().unwrap();
+
+                // Read stream into buffer
+                let mut stream = event.unwrap();
+
+                // Get the response from the handler
+                // Uses the most recently defined route that matches the request
+                let (req, res) = handle_connection(&stream, &this);
+
+                if res.close {
+                    return;
+                }
+
+                let end_res = res.clone();
+                let end_req = req.clone();
+                let response = response_http(&this, req, res);
+
+                let _ = stream.write_all(&response);
+                stream.flush().unwrap();
+
+                // Run end middleware
+                for middleware in this.middleware.iter().rev() {
+                    #[cfg(feature = "panic_handler")]
+                    let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                        middleware.end(end_req.clone(), end_res.clone())
+                    }));
+
+                    #[cfg(not(feature = "panic_handler"))]
+                    middleware.end(end_req.clone(), end_res.clone());
+                }
+            });
+        }
+
+        unreachable!()
     }
 
     /// Set the satrting buffer size. The default is `1024`
@@ -256,6 +290,8 @@ impl Server {
     ///     .buffer(2048);
     /// ```
     pub fn buffer(self, buf: usize) -> Server {
+        trace!("🥫 Setting Buffer to {} bytes", buf);
+
         Server {
             buff_size: buf,
             ..self
@@ -286,7 +322,9 @@ impl Server {
         K: AsRef<str>,
     {
         let mut headers = self.default_headers;
-        headers.push(Header::new(key.as_ref(), value.as_ref()));
+        let header = Header::new(key.as_ref(), value.as_ref());
+        trace!("😀 Adding Server Header ({})", header);
+        headers.push(header);
 
         Server {
             default_headers: headers,
@@ -313,6 +351,8 @@ impl Server {
     /// server.start().unwrap();
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+        trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
+
         Server {
             socket_timeout: Some(socket_timeout),
             ..self
@@ -373,7 +413,12 @@ impl Server {
     /// server.start().unwrap();
     /// ```
     #[cfg(feature = "panic_handler")]
-    pub fn error_handler(&mut self, res: impl Fn(Request, String) -> Response + 'static) {
+    pub fn error_handler(
+        &mut self,
+        res: impl Fn(Request, String) -> Response + Send + Sync + 'static,
+    ) {
+        trace!("✌ Setting Error Handler");
+
         self.error_handler = Box::new(res);
     }
 
@@ -403,14 +448,14 @@ impl Server {
         &mut self,
         method: Method,
         path: T,
-        handler: impl Fn(Request) -> Response + 'static,
+        handler: impl Fn(Request) -> Response + Send + Sync + 'static,
     ) where
         T: AsRef<str>,
     {
-        self.routes.push(Route::new(
-            method,
-            path.as_ref().to_owned(),
-            Box::new(handler),
-        ));
+        let path = path.as_ref().to_owned();
+        trace!("🚗 Adding Route {} {}", method, path);
+
+        self.routes
+            .push(Route::new(method, path, Box::new(handler)));
     }
 }

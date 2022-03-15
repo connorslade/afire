@@ -4,8 +4,9 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 
 use crate::common::remove_address_port;
-use crate::middleware::{MiddleRequest, Middleware};
+use crate::middleware::Middleware;
 use crate::Request;
+use crate::Response;
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -200,10 +201,8 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn pre(&mut self, req: Request) -> MiddleRequest {
+    fn end(&self, req: Request, _res: Response) {
         self.log(&req);
-
-        MiddleRequest::Continue
     }
 }
 

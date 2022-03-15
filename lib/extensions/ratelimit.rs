@@ -1,13 +1,17 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex,
+};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::common::remove_address_port;
 use crate::middleware::{MiddleRequest, Middleware};
-use crate::{Request, Response};
+use crate::{Content, Request, Response};
 
 // Handler Type
-type Handler = Box<dyn Fn(&Request) -> Option<Response>>;
+type Handler = Box<dyn Fn(&Request) -> Option<Response> + Send + Sync>;
 
 /// Limit the amount of requests handled by the server.
 pub struct RateLimiter {
@@ -15,13 +19,13 @@ pub struct RateLimiter {
     req_limit: u64,
 
     /// Time of last reset
-    last_reset: u64,
+    last_reset: AtomicU64,
 
     /// How often to reset the counters (sec)
     req_timeout: u64,
 
     /// Table of requests per IP
-    requests: HashMap<String, u64>,
+    requests: Mutex<HashMap<String, u64>>,
 
     /// Handler for when the limit is reached
     handler: Handler,
@@ -33,16 +37,16 @@ impl RateLimiter {
     /// Default limit is 10 and timeout is 60
     pub fn new() -> RateLimiter {
         RateLimiter {
-            last_reset: 0,
+            last_reset: AtomicU64::new(0),
             req_limit: 10,
             req_timeout: 60,
-            requests: HashMap::new(),
+            requests: Mutex::new(HashMap::new()),
             handler: Box::new(|_| {
                 Some(
                     Response::new()
                         .status(429)
                         .text("Too Many Requests")
-                        .header("Content-Type", "text/plain"),
+                        .content(Content::TXT),
                 )
             }),
         }
@@ -131,31 +135,33 @@ impl RateLimiter {
     }
 
     /// Count a request.
-    fn add_request(&mut self, ip: String) {
-        self.requests
-            .insert(ip.clone(), self.requests.get(&ip).unwrap_or(&0) + 1);
+    fn add_request(&self, ip: String) {
+        let mut req = self.requests.lock().unwrap();
+        let count = req.get(&ip).unwrap_or(&0) + 1;
+        req.insert(ip, count);
     }
 
     /// Check if request table needs to be cleared.
-    fn check_reset(&mut self) {
+    fn check_reset(&self) {
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        if self.last_reset + self.req_timeout <= time {
-            self.requests = HashMap::new();
-            self.last_reset = time;
+
+        if self.last_reset.load(Ordering::Acquire) + self.req_timeout <= time {
+            self.requests.lock().unwrap().clear();
+            self.last_reset.store(time, Ordering::Release);
         }
     }
 
     /// Check if the request limit has been reached for an ip.
     fn is_over_limit(&self, ip: String) -> bool {
-        self.requests.get(&ip).unwrap_or(&0) >= &self.req_limit
+        self.requests.lock().unwrap().get(&ip).unwrap_or(&0) >= &self.req_limit
     }
 }
 
 impl Middleware for RateLimiter {
-    fn pre(&mut self, req: Request) -> MiddleRequest {
+    fn pre(&self, req: Request) -> MiddleRequest {
         let ip = remove_address_port(&req.address);
 
         self.check_reset();

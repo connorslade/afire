@@ -1,3 +1,12 @@
+# 0.4.1
+
+- Add ThreadPool Back!
+- Tracing Feature
+- Remove Middleware Interior Mutability by Default
+- Make remove_address_port usable without Feature
+- Add *end* middleware to run after sending a request
+- Make use of end middleware on logger
+
 # 0.4.0
 
 - Make serve static types public
@@ -32,7 +41,7 @@
 - Remove thread pool from project (for now)
 - Make Custom Content Type use &str not String
 - Make VERSION Public
-- Add External Unit Tests
+- Add External Unit Testsremove_address_port
 - Use the built-in `IpAddr` enum for server Ip
 - Remove `.ip_string()` for `.ip.to_string()`
 - Add `Response.close()` for closing a stream with no response

@@ -17,12 +17,16 @@ pub struct Route {
     pub path: Path,
 
     /// Route Handler
-    pub handler: Box<dyn Fn(Request) -> Response>,
+    pub handler: Box<dyn Fn(Request) -> Response + Send + Sync>,
 }
 
 impl Route {
     /// Creates a new route.
-    pub fn new(method: Method, path: String, handler: Box<dyn Fn(Request) -> Response>) -> Route {
+    pub fn new(
+        method: Method,
+        path: String,
+        handler: Box<dyn Fn(Request) -> Response + Send + Sync>,
+    ) -> Route {
         Route {
             method,
             path: Path::new(path),
