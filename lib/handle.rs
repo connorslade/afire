@@ -70,6 +70,9 @@ pub(crate) fn handle_connection(mut stream: &TcpStream, this: &Server) -> (Reque
         };
     }
 
+    // Remove trailing null bytes
+    trim_end_bytes(&mut buffer);
+
     // TODO: Parse Bytes
     // TODO: Have one mut HTTP string that is chipted away at theough parseing
 
