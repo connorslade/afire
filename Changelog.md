@@ -1,4 +1,11 @@
-# 1.0.0
+# 1.1.0
+
+- Update Path Matcher to support AnyAfter segments (**)
+- Remove Test Example
+- Add Paste Bin App Example
+
+
+# 1.0.0!
 
 - Add ThreadPool Back!
 - Tracing Feature
