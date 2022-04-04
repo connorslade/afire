@@ -1,8 +1,9 @@
-# 1.1.0
+# 1.1.0*
 
 - Update Path Matcher to support AnyAfter segments (**)
 - Remove Test Example
 - Add Paste Bin App Example
+- Add SocketHandler struct to hold socket ineracting functions
 
 
 # 1.0.0!

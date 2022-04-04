@@ -6,3 +6,4 @@
 pub mod common;
 pub mod http;
 pub mod path;
+pub mod socket_handler;

@@ -1,6 +1,5 @@
 // Import STD libraries
 use std::fmt;
-use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::sync::{Arc, RwLock};
@@ -13,6 +12,7 @@ use std::panic;
 // Import local files
 use crate::handle::{handle_connection, response_http};
 use crate::header::Header;
+use crate::internal::socket_handler::SocketHandler;
 use crate::method::Method;
 use crate::middleware::Middleware;
 use crate::request::Request;
@@ -48,6 +48,9 @@ pub struct Server {
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
+
+    /// Functions for interfacing with TCP sockets
+    pub socket_handler: SocketHandler,
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
@@ -117,6 +120,7 @@ impl Server {
             }),
 
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
+            socket_handler: SocketHandler::default(),
             socket_timeout: None,
         }
     }
@@ -163,7 +167,7 @@ impl Server {
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let (req, res) = handle_connection(&stream, self);
+            let (req, res) = handle_connection(&mut stream, self);
 
             if res.close {
                 continue;
@@ -174,8 +178,8 @@ impl Server {
             let response = response_http(self, req, res);
 
             // Send the response
-            let _ = stream.write_all(&response);
-            stream.flush().ok()?;
+            let _ = (self.socket_handler.socket_write)(&mut stream, &response);
+            (self.socket_handler.socket_flush)(&mut stream).unwrap();
 
             // Run end middleware
             for middleware in self.middleware.iter().rev() {
@@ -247,7 +251,7 @@ impl Server {
 
                 // Get the response from the handler
                 // Uses the most recently defined route that matches the request
-                let (req, res) = handle_connection(&stream, &this);
+                let (req, res) = handle_connection(&mut stream, &this);
 
                 if res.close {
                     return;
@@ -257,8 +261,8 @@ impl Server {
                 let end_req = req.clone();
                 let response = response_http(&this, req, res);
 
-                let _ = stream.write_all(&response);
-                stream.flush().unwrap();
+                let _ = (this.socket_handler.socket_write)(&mut stream, &response);
+                (this.socket_handler.socket_flush)(&mut stream).unwrap();
 
                 // Run end middleware
                 for middleware in this.middleware.iter().rev() {
