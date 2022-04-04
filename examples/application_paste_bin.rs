@@ -1,5 +1,5 @@
 //! A simple in memory pastebin backend
-// If you want to make a real paste bin use a real database for storage
+// If you want to make a real paste bin use a database for storage
 
 // For a full pastebin front end and back end check out https://github.com/Basicprogrammer10/plaster-box
 // Or try it out at https://paste.connorcode.com
