@@ -28,8 +28,8 @@ pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Reque
 
     // Read stream into buffer
     match (this.socket_handler.socket_read)(stream, &mut buffer) {
-        Ok(_) => {}
-        Err(_) => {
+        Some(_) => {}
+        None => {
             return (
                 Request::new_empty(),
                 Response::new()
