@@ -320,7 +320,7 @@ impl ServeStatic {
 fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
     let this = cell.read().unwrap();
 
-    let mut path = safe_path(req.path.to_owned());
+    let mut path = format!("{}{}", this.data_dir, safe_path(req.path.to_owned()));
 
     // Add Index.html if path ends with /
     if path.ends_with('/') {
@@ -355,13 +355,13 @@ fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
 }
 
 fn get_type(path: &str, types: &[(String, String)]) -> String {
-    for i in types {
-        if i.0 == path.split('.').last().unwrap_or("") {
-            return i.1.to_owned();
-        }
-    }
-
-    "application/octet-stream".to_owned()
+    let ext = path.split('.').last().unwrap_or("");
+    types
+        .iter()
+        .map(|x| x.to_owned())
+        .find(|x| x.0 == ext)
+        .unwrap_or_else(|| ("".to_owned(), "application/octet-stream".to_owned()))
+        .1
 }
 
 #[inline]
