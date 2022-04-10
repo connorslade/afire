@@ -1,4 +1,4 @@
-# 1.1.0*
+# 1.1.0
 
 - Update Path Matcher to support AnyAfter segments (**)
 - Remove Test Example
