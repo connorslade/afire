@@ -4,7 +4,7 @@
 - Remove Test Example
 - Add Paste Bin App Example
 - Add SocketHandler struct to hold socket ineracting functions
-
+- Fix Path Traversal Exploit O_O
 
 # 1.0.0!
 

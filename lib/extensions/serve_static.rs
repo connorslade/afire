@@ -320,7 +320,7 @@ impl ServeStatic {
 fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
     let this = cell.read().unwrap();
 
-    let mut path = format!("{}{}", this.data_dir, req.path.replace("/..", ""));
+    let mut path = safe_path(req.path.to_owned());
 
     // Add Index.html if path ends with /
     if path.ends_with('/') {
@@ -362,6 +362,14 @@ fn get_type(path: &str, types: &[(String, String)]) -> String {
     }
 
     "application/octet-stream".to_owned()
+}
+
+#[inline]
+fn safe_path(mut path: String) -> String {
+    while path.contains("/..") {
+        path = path.replace("/..", "");
+    }
+    path
 }
 
 /// Common MIME Types
