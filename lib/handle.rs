@@ -1,5 +1,4 @@
 // Import STD libraries
-use std::io::Read;
 use std::net::TcpStream;
 
 // Feature Imports
@@ -18,7 +17,7 @@ use crate::response::Response;
 use crate::server::Server;
 
 /// Handle a request
-pub(crate) fn handle_connection(mut stream: &TcpStream, this: &Server) -> (Request, Response) {
+pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Request, Response) {
     // Init (first) Buffer
     let mut buffer = vec![0; this.buff_size];
 
@@ -28,9 +27,9 @@ pub(crate) fn handle_connection(mut stream: &TcpStream, this: &Server) -> (Reque
     }
 
     // Read stream into buffer
-    match stream.read(&mut buffer) {
-        Ok(_) => {}
-        Err(_) => {
+    match (this.socket_handler.socket_read)(stream, &mut buffer) {
+        Some(_) => {}
+        None => {
             return (
                 Request::new_empty(),
                 Response::new()
@@ -65,10 +64,13 @@ pub(crate) fn handle_connection(mut stream: &TcpStream, this: &Server) -> (Reque
 
             trim_end_bytes(&mut buffer);
             let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
-            stream.read_exact(&mut new_buffer).unwrap();
+            (this.socket_handler.socket_read_exact)(stream, &mut new_buffer).unwrap();
             buffer.extend(new_buffer);
         };
     }
+
+    // Remove trailing null bytes
+    trim_end_bytes(&mut buffer);
 
     // TODO: Parse Bytes
     // TODO: Have one mut HTTP string that is chipted away at theough parseing
