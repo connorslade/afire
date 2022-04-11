@@ -366,6 +366,7 @@ fn get_type(path: &str, types: &[(String, String)]) -> String {
 
 #[inline]
 fn safe_path(mut path: String) -> String {
+    path = path.replace("\\", "/");
     while path.contains("/..") {
         path = path.replace("/..", "");
     }
