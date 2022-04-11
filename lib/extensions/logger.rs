@@ -1,7 +1,7 @@
 // If file logging is enabled
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::common::remove_address_port;
 use crate::middleware::Middleware;
@@ -91,10 +91,10 @@ impl Logger {
     /// ```
     pub fn file<T>(self, file: T) -> Logger
     where
-        T: std::fmt::Display,
+        T: AsRef<Path>,
     {
         Logger {
-            file: Some(PathBuf::from(file.to_string())),
+            file: Some(PathBuf::from(file.as_ref())),
             ..self
         }
     }

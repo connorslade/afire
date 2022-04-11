@@ -24,12 +24,12 @@ impl Header {
     /// ```
     pub fn new<T, M>(name: T, value: M) -> Header
     where
-        T: fmt::Display,
-        M: fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         Header {
-            name: name.to_string(),
-            value: value.to_string(),
+            name: name.as_ref().to_owned(),
+            value: value.as_ref().to_owned(),
         }
     }
 
@@ -48,9 +48,9 @@ impl Header {
     /// ```
     pub fn from_string<T>(header: T) -> Option<Header>
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
-        let header = header.to_string();
+        let header = header.as_ref();
         let mut split_header = header.splitn(2, ':');
         if split_header.clone().count() != 2 {
             return None;

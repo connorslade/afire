@@ -1,5 +1,4 @@
 // Import STD libraries
-use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::sync::{Arc, RwLock};
@@ -78,11 +77,11 @@ impl Server {
     /// ```
     pub fn new<T>(raw_ip: T, port: u16) -> Server
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
         trace!("🐍 Initializing Server v{}", VERSION);
 
-        let mut raw_ip = raw_ip.to_string();
+        let mut raw_ip = raw_ip.as_ref().to_owned();
         let mut ip: [u8; 4] = [0; 4];
 
         // If the ip is localhost, use the loop back ip

@@ -1,3 +1,9 @@
+# 1.1.1
+
+- oh windows,,,
+- Fix Path Traversal on windows
+- Use AsRef<str> more instead of Display more
+
 # 1.1.0
 
 - Update Path Matcher to support AnyAfter segments (**)

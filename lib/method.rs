@@ -72,9 +72,9 @@ impl Method {
     /// ```
     pub fn from_string<T>(s: T) -> Method
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
-        let upper_s = s.to_string().to_uppercase();
+        let upper_s = s.as_ref().to_uppercase();
         match &upper_s[..] {
             "GET" => Method::GET,
             "POST" => Method::POST,

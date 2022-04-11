@@ -46,10 +46,10 @@ impl ServeStatic {
     /// ```
     pub fn new<T>(path: T) -> Self
     where
-        T: std::fmt::Display,
+        T: AsRef<str>,
     {
         Self {
-            data_dir: path.to_string(),
+            data_dir: path.as_ref().to_owned(),
             disabled_files: Vec::new(),
             not_found: |req, _| {
                 Response::new()
@@ -88,10 +88,10 @@ impl ServeStatic {
     /// ```
     pub fn disable<T>(self, file_path: T) -> Self
     where
-        T: std::fmt::Display,
+        T: AsRef<str>,
     {
         let mut disabled = self.disabled_files;
-        disabled.push(file_path.to_string());
+        disabled.push(file_path.as_ref().to_owned());
 
         Self {
             disabled_files: disabled,
@@ -121,11 +121,11 @@ impl ServeStatic {
     /// ```
     pub fn disable_vec<T>(self, file_paths: Vec<T>) -> Self
     where
-        T: std::fmt::Display,
+        T: AsRef<str>,
     {
         let mut disabled = self.disabled_files;
         for i in file_paths {
-            disabled.push(i.to_string());
+            disabled.push(i.as_ref().to_owned());
         }
 
         Self {
@@ -230,12 +230,12 @@ impl ServeStatic {
     /// ```
     pub fn mime_type<T, M>(self, key: T, value: M) -> Self
     where
-        T: std::fmt::Display,
-        M: std::fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         let mut types = self.types;
 
-        types.push((key.to_string(), value.to_string()));
+        types.push((key.as_ref().to_owned(), value.as_ref().to_owned()));
 
         Self { types, ..self }
     }
@@ -267,12 +267,12 @@ impl ServeStatic {
     /// ```
     pub fn mime_types<T, M>(self, new_types: Vec<(T, M)>) -> Self
     where
-        T: std::fmt::Display,
-        M: std::fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         let mut new_types = new_types
             .iter()
-            .map(|x| (x.0.to_string(), x.1.to_string()))
+            .map(|x| (x.0.as_ref().to_owned(), x.1.as_ref().to_owned()))
             .collect();
         let mut types = self.types;
 

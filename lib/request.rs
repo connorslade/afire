@@ -88,9 +88,9 @@ impl Request {
     /// ```
     pub fn header<T>(&self, name: T) -> Option<String>
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
-        let name = name.to_string().to_lowercase();
+        let name = name.as_ref().to_lowercase();
         for i in self.headers.clone() {
             if name == i.name.to_lowercase() {
                 return Some(i.value);
@@ -129,9 +129,9 @@ impl Request {
     #[cfg(feature = "path_patterns")]
     pub fn path_param<T>(&self, name: T) -> Option<String>
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
-        let name = name.to_string();
+        let name = name.as_ref().to_owned();
         self.path_params
             .iter()
             .find(|x| x.0 == name)
