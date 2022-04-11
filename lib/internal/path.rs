@@ -115,7 +115,6 @@ impl PathPart {
 ///
 /// Removes loading and trailing slashes
 pub fn normalize_path(mut path: String) -> String {
-    #[cfg(feature = "ignore_trailing_path_slash")]
     while path.ends_with('/') {
         path.pop();
     }

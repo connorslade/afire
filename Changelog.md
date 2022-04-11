@@ -3,6 +3,7 @@
 - oh windows,,,
 - Fix Path Traversal on windows
 - Use AsRef<str> more instead of Display more
+- Add a serve path to Serve Static
 
 # 1.1.0
 

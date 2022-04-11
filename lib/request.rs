@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
 use crate::header::Header;

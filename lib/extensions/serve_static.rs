@@ -3,13 +3,18 @@
 use std::fs;
 use std::sync::RwLock;
 
-use crate::{Method, Request, Response, Server};
+use crate::{path::normalize_path, Method, Request, Response, Server};
 
 type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
 /// Serve Static Content
 #[derive(Clone)]
 pub struct ServeStatic {
+    /// Path to serve static content on
+    ///
+    /// Defaults to '/' (root)
+    pub serve_path: String,
+
     /// Content Path
     pub data_dir: String,
 
@@ -44,12 +49,13 @@ impl ServeStatic {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn new<T>(path: T) -> Self
+    pub fn new<T>(data_path: T) -> Self
     where
         T: AsRef<str>,
     {
         Self {
-            data_dir: path.as_ref().to_owned(),
+            serve_path: normalize_path("/".to_owned()),
+            data_dir: data_path.as_ref().to_owned(),
             disabled_files: Vec::new(),
             not_found: |req, _| {
                 Response::new()
@@ -99,7 +105,7 @@ impl ServeStatic {
         }
     }
 
-    /// Disable serving a many files at once
+    /// Disable serving many files at once
     /// Path is relative to the dir being served
     /// ## Example
     /// ```rust
@@ -281,6 +287,37 @@ impl ServeStatic {
         Self { types, ..self }
     }
 
+    /// Set path to serve static files on
+    ///
+    /// Default is '/' (root)
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, ServeStatic};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server: Server = Server::new("localhost", 8080);
+    ///
+    /// // Make a new static sevrer
+    /// ServeStatic::new("data/static")
+    ///     // Set serve path
+    ///     .path("/static")
+    ///     // Attatch it to the afire server
+    ///     .attach(&mut server);
+    ///
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn path<T>(self, path: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        Self {
+            serve_path: path.as_ref().to_owned(),
+            ..self
+        }
+    }
+
     /// Attatch it to a Server
     ///
     /// Not much to say really
@@ -303,24 +340,32 @@ impl ServeStatic {
     pub fn attach(self, server: &mut Server) {
         let cell = RwLock::new(self);
 
-        server.route(Method::ANY, "**", move |req| {
-            let mut res = process_req(req.clone(), &cell);
+        server.route(
+            Method::ANY,
+            format!("{}/**", cell.read().unwrap().serve_path),
+            move |req| {
+                let mut res = process_req(req.clone(), &cell);
 
-            for i in cell.read().unwrap().middleware.clone().iter().rev() {
-                if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                    res = i
-                };
-            }
+                for i in cell.read().unwrap().middleware.clone().iter().rev() {
+                    if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                        res = i
+                    };
+                }
 
-            res.0
-        });
+                res.0
+            },
+        );
     }
 }
 
 fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
     let this = cell.read().unwrap();
 
-    let mut path = format!("{}{}", this.data_dir, safe_path(req.path.to_owned()));
+    let mut path = format!(
+        "{}{}",
+        this.data_dir,
+        safe_path(req.path.strip_prefix(&this.serve_path).unwrap().to_owned())
+    );
 
     // Add Index.html if path ends with /
     if path.ends_with('/') {

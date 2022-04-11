@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[cfg(feature = "cookies")]
 use super::cookie::SetCookie;
 use super::header::Header;

@@ -24,8 +24,7 @@ default = [
   "panic_handler",
   "path_patterns",
   "dynamic_resize",
-  "path_decode_url",
-  "ignore_trailing_path_slash"
+  "path_decode_url"
 ]
 
 # Extensions
@@ -39,7 +38,6 @@ panic_handler = []
 path_patterns = []
 dynamic_resize = []
 path_decode_url = []
-ignore_trailing_path_slash = []
 
 # Other
 tracing = []

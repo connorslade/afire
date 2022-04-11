@@ -4,6 +4,7 @@ use afire::{Response, ServeStatic, Server};
 // Afire middleware makes this *easy*
 
 const STATIC_DIR: &str = "examples/data";
+const STATIC_PATH: &str = "/static";
 
 fn main() {
     // Create a new Server instance on localhost port 8080
@@ -34,6 +35,8 @@ fn main() {
         // Add an extra mime type to the server
         // It has alot already
         .mime_type("key", "value")
+        // Set serve path
+        .path(STATIC_PATH)
         // Attatch the middleware to the server
         .attach(&mut server);
 

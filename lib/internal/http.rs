@@ -55,7 +55,6 @@ pub fn get_request_path(raw_data: &str) -> String {
     }
 
     // Trim trailing slash
-    #[cfg(feature = "ignore_trailing_path_slash")]
     if new_path.chars().last().unwrap_or_default() == '/' {
         new_path.pop();
     }
