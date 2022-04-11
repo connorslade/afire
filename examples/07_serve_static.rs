@@ -4,7 +4,7 @@ use afire::{Response, ServeStatic, Server};
 // Afire middleware makes this *easy*
 
 const STATIC_DIR: &str = "examples/data";
-const STATIC_PATH: &str = "/static";
+const STATIC_PATH: &str = "/";
 
 fn main() {
     // Create a new Server instance on localhost port 8080

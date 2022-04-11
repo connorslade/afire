@@ -1,7 +1,7 @@
 //! Extention to serve static files from disk
 
 use std::fs;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use crate::{path::normalize_path, Method, Request, Response, Server};
 
@@ -338,24 +338,27 @@ impl ServeStatic {
     /// server.start().unwrap();
     /// ```
     pub fn attach(self, server: &mut Server) {
-        let cell = RwLock::new(self);
+        let serve_path = self.serve_path.to_owned();
+        let cell = Arc::new(RwLock::new(self));
+        let cell2 = cell.clone();
 
-        server.route(
-            Method::ANY,
-            format!("{}/**", cell.read().unwrap().serve_path),
-            move |req| {
-                let mut res = process_req(req.clone(), &cell);
-
-                for i in cell.read().unwrap().middleware.clone().iter().rev() {
-                    if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                        res = i
-                    };
-                }
-
-                res.0
-            },
-        );
+        server.route(Method::ANY, &serve_path, move |req| route(req, &cell));
+        server.route(Method::ANY, format!("{}/**", serve_path), move |req| {
+            route(req, &cell2)
+        });
     }
+}
+
+fn route(req: Request, cell: &RwLock<ServeStatic>) -> Response {
+    let mut res = process_req(req.clone(), &cell);
+
+    for i in cell.read().unwrap().middleware.clone().iter().rev() {
+        if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+            res = i
+        };
+    }
+
+    res.0
 }
 
 fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
@@ -364,7 +367,12 @@ fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
     let mut path = format!(
         "{}{}",
         this.data_dir,
-        safe_path(req.path.strip_prefix(&this.serve_path).unwrap().to_owned())
+        safe_path(
+            req.path
+                .strip_prefix(&this.serve_path)
+                .unwrap_or(&req.path)
+                .to_owned()
+        )
     );
 
     // Add Index.html if path ends with /

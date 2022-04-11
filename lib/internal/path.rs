@@ -57,12 +57,7 @@ impl Path {
 
         let path = path.split('/');
 
-        let mut any_after = false;
         for (i, j) in self.parts.iter().zip(path.clone()) {
-            if any_after {
-                continue;
-            }
-
             match i {
                 PathPart::Normal(x) => {
                     if x != j {
@@ -70,12 +65,12 @@ impl Path {
                     }
                 }
                 PathPart::Param(x) => out.push((x.to_owned(), j.to_owned())),
-                PathPart::AnyAfter => any_after = true,
+                PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}
             }
         }
 
-        if !any_after && path.count() != self.parts.len() {
+        if path.count() != self.parts.len() {
             return None;
         }
 
