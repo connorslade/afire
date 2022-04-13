@@ -5,6 +5,9 @@
 - Use AsRef<str> more instead of Display more
 - Add a serve path to Serve Static
 - Serve index from serve path
+- Remove the `ignore_trailing_path_slash` feature
+- Redo Interinal Error handling system
+- Middleware use references to Requests and Responses and stuff
 
 # 1.1.0
 

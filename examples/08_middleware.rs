@@ -24,11 +24,11 @@ struct Log;
 impl Middleware for Log {
     // Redefine the `pre` function
     // (Runs before Routes)
-    fn pre(&self, req: Request) -> MiddleRequest {
+    fn pre(&self, req: &Request) -> MiddleRequest {
         // Print some info
         println!(
             "[{}] {} {}",
-            remove_address_port(req.address),
+            remove_address_port(req.address.to_owned()),
             req.method,
             req.path
         );

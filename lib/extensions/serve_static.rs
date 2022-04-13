@@ -3,9 +3,13 @@
 use std::fs;
 use std::sync::{Arc, RwLock};
 
-use crate::{path::normalize_path, Method, Request, Response, Server};
+use crate::{
+    middleware::{MiddleResponse, Middleware},
+    path::normalize_path,
+    Method, Request, Response, Server,
+};
 
-type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
+type SSMiddleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
 /// Serve Static Content
 #[derive(Clone)]
@@ -27,11 +31,13 @@ pub struct ServeStatic {
     /// Middleware
     ///
     /// (Request, Static Response, Sucess [eg If file found])
-    pub middleware: Vec<Middleware>,
+    pub middleware: Vec<SSMiddleware>,
 
     /// MIME Types
     pub types: Vec<(String, String)>,
 }
+
+impl Middleware for ServeStatic {}
 
 impl ServeStatic {
     /// Make a new Static File Server
@@ -171,7 +177,7 @@ impl ServeStatic {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn middleware(self, f: Middleware) -> Self {
+    pub fn middleware(self, f: SSMiddleware) -> Self {
         let mut middleware = self.middleware;
         middleware.push(f);
 

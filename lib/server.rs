@@ -168,27 +168,27 @@ impl Server {
             // Uses the most recently defined route that matches the request
             let (req, res) = handle_connection(&mut stream, self);
 
-            if res.close {
-                continue;
+            if let Ok(i) = &res {
+                if i.close {
+                    continue;
+                }
             }
 
-            let end_res = res.clone();
-            let end_req = req.clone();
-            let response = response_http(self, req, res);
+            let (bytes, response) = response_http(self, &req, res);
 
             // Send the response
-            let _ = (self.socket_handler.socket_write)(&mut stream, &response);
+            let _ = (self.socket_handler.socket_write)(&mut stream, &bytes);
             (self.socket_handler.socket_flush)(&mut stream).unwrap();
 
             // Run end middleware
             for middleware in self.middleware.iter().rev() {
                 #[cfg(feature = "panic_handler")]
                 let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    middleware.end(end_req.clone(), end_res.clone())
+                    middleware.end(&req, &response)
                 }));
 
                 #[cfg(not(feature = "panic_handler"))]
-                middleware.end(end_req.clone(), end_res.clone());
+                middleware.end(&end_req, &end_res);
             }
         }
 
@@ -252,26 +252,25 @@ impl Server {
                 // Uses the most recently defined route that matches the request
                 let (req, res) = handle_connection(&mut stream, &this);
 
-                if res.close {
-                    return;
+                if let Ok(i) = &res {
+                    if i.close {
+                        return;
+                    }
                 }
 
-                let end_res = res.clone();
-                let end_req = req.clone();
-                let response = response_http(&this, req, res);
+                let (bytes, res) = response_http(&this, &req, res);
 
-                let _ = (this.socket_handler.socket_write)(&mut stream, &response);
+                let _ = (this.socket_handler.socket_write)(&mut stream, &bytes);
                 (this.socket_handler.socket_flush)(&mut stream).unwrap();
 
                 // Run end middleware
                 for middleware in this.middleware.iter().rev() {
                     #[cfg(feature = "panic_handler")]
-                    let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.end(end_req.clone(), end_res.clone())
-                    }));
+                    let _ =
+                        panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.end(&req, &res)));
 
                     #[cfg(not(feature = "panic_handler"))]
-                    middleware.end(end_req.clone(), end_res.clone());
+                    middleware.end(&end_req, &end_res);
                 }
             });
         }

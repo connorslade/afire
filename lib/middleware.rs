@@ -3,7 +3,7 @@
 
 use std::any::type_name;
 
-use crate::{Request, Response, Server};
+use crate::{handle::HandleError, Request, Response, Server};
 
 /// Middleware `post` Responses
 pub enum MiddleResponse {
@@ -34,17 +34,17 @@ pub enum MiddleRequest {
 /// Middleware
 pub trait Middleware {
     /// Middleware to run Before Routes
-    fn pre(&self, _req: Request) -> MiddleRequest {
+    fn pre(&self, _req: &Request) -> MiddleRequest {
         MiddleRequest::Continue
     }
 
     /// Middleware to run After Routes
-    fn post(&self, _req: Request, _res: Response) -> MiddleResponse {
+    fn post(&self, _req: &Request, _res: Result<Response, HandleError>) -> MiddleResponse {
         MiddleResponse::Continue
     }
 
     /// Middleware ot run after the response has been handled
-    fn end(&self, _req: Request, _res: Response) {}
+    fn end(&self, _req: &Request, _res: &Response) {}
 
     /// Attatch Middleware to a Server
     fn attach(self, server: &mut Server)

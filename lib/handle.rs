@@ -16,8 +16,18 @@ use crate::request::Request;
 use crate::response::Response;
 use crate::server::Server;
 
+#[derive(Debug, Clone)]
+pub enum HandleError {
+    StreamRead,
+    NotFound(Method, String),
+    Panic(Request, String),
+}
+
 /// Handle a request
-pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Request, Response) {
+pub(crate) fn handle_connection(
+    stream: &mut TcpStream,
+    this: &Server,
+) -> (Request, Result<Response, HandleError>) {
     // Init (first) Buffer
     let mut buffer = vec![0; this.buff_size];
 
@@ -29,15 +39,7 @@ pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Reque
     // Read stream into buffer
     match (this.socket_handler.socket_read)(stream, &mut buffer) {
         Some(_) => {}
-        None => {
-            return (
-                Request::new_empty(),
-                Response::new()
-                    .status(500)
-                    .text("Error Reading Stream")
-                    .content(Content::TXT),
-            )
-        }
+        None => return (Request::new_empty(), Err(HandleError::StreamRead)),
     };
 
     #[cfg(feature = "dynamic_resize")]
@@ -105,27 +107,21 @@ pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Reque
     for middleware in this.middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
-            let result =
-                panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(req.clone())));
+            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(&req)));
 
             match result {
                 Ok(i) => match i {
                     MiddleRequest::Continue => {}
                     MiddleRequest::Add(i) => req = i,
-                    MiddleRequest::Send(i) => return (req, i),
+                    MiddleRequest::Send(i) => return (req, Ok(i)),
                 },
-                Err(e) => {
-                    return (
-                        req.clone(),
-                        (this.error_handler)(req.clone(), any_string(e)),
-                    )
-                }
+                Err(e) => return (req.to_owned(), Err(HandleError::Panic(req, any_string(e)))),
             }
         }
 
         #[cfg(not(feature = "panic_handler"))]
         {
-            let result = this.middleware.borrow_mut().pre(req.clone());
+            let result = this.middleware.borrow_mut().pre(req.to_owned());
             match result {
                 MiddleRequest::Continue => {}
                 MiddleRequest::Add(i) => req = i,
@@ -136,7 +132,7 @@ pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Reque
 
     // Loop through all routes and check if the request matches
     for route in this.routes.iter().rev() {
-        let path_match = route.path.match_path(req.path.clone());
+        let path_match = route.path.match_path(req.path.to_owned());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             // Set the Pattern params of the Request
             #[cfg(feature = "path_patterns")]
@@ -147,57 +143,59 @@ pub(crate) fn handle_connection(stream: &mut TcpStream, this: &Server) -> (Reque
             // Optionally enable automatic panic handling
             #[cfg(feature = "panic_handler")]
             {
-                let result =
-                    panic::catch_unwind(panic::AssertUnwindSafe(|| (&route.handler)(req.clone())));
+                let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                    (&route.handler)(req.to_owned())
+                }));
                 let err = match result {
-                    Ok(i) => return (req, i),
+                    Ok(i) => return (req, Ok(i)),
                     Err(e) => any_string(e),
                 };
 
-                return (req.clone(), (this.error_handler)(req.clone(), err));
+                return (req.to_owned(), Err(HandleError::Panic(req, err)));
             }
 
             #[cfg(not(feature = "panic_handler"))]
             {
-                return (req.clone(), (route.handler)(req));
+                return (&req, (route.handler)(req));
             }
         }
     }
 
     // If no route was found, return a default 404
     (
-        req.clone(),
-        Response::new()
-            .status(404)
-            .text(format!("Cannot {} {}", req.method, req.path))
-            .header("Content-Type", "text/plain"),
+        req.to_owned(),
+        Err(HandleError::NotFound(req.method, req.path)),
     )
 }
 
-pub(crate) fn response_http(this: &Server, req: Request, mut res: Response) -> Vec<u8> {
+pub(crate) fn response_http(
+    this: &Server,
+    req: &Request,
+    mut res: Result<Response, HandleError>,
+) -> (Vec<u8>, Response) {
     for middleware in this.middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                middleware.post(req.clone(), res.clone())
+                middleware.post(&req, res.to_owned())
             }));
 
             match result {
                 Ok(i) => match i {
                     MiddleResponse::Continue => {}
-                    MiddleResponse::Add(i) => res = i,
+                    MiddleResponse::Add(i) => res = Ok(i),
                     MiddleResponse::Send(i) => {
-                        res = i;
+                        res = Ok(i);
                         break;
                     }
                 },
-                Err(e) => res = (this.error_handler)(req.clone(), any_string(e)),
+                Err(e) => res = Err(HandleError::Panic(req.to_owned(), any_string(e))),
             }
         }
 
         #[cfg(not(feature = "panic_handler"))]
         {
-            let result = middleware.post(req.clone(), res.clone());
+            let result = middleware.post(req.to_owned(), res.to_owned());
             match result {
                 MiddleResponse::Continue => {}
                 MiddleResponse::Add(i) => res = i,
@@ -208,9 +206,15 @@ pub(crate) fn response_http(this: &Server, req: Request, mut res: Response) -> V
             }
         }
     }
+
+    let res = match res {
+        Ok(i) => i,
+        Err(e) => error_response(e, &this.error_handler),
+    };
+
     // Add default headers to response
-    let mut headers = res.headers;
-    headers.append(&mut this.default_headers.clone());
+    let mut headers = res.headers.to_owned();
+    headers.append(&mut this.default_headers.to_owned());
 
     // Add content-length header to response
     headers.push(Header::new("Content-Length", &res.data.len().to_string()));
@@ -221,14 +225,33 @@ pub(crate) fn response_http(this: &Server, req: Request, mut res: Response) -> V
     let mut response = format!(
         "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
         status,
-        res.reason.unwrap_or_else(|| reason_phrase(status)),
+        res.reason
+            .to_owned()
+            .unwrap_or_else(|| reason_phrase(status)),
         headers_to_string(headers)
     )
     .as_bytes()
     .to_vec();
 
     // Add Bytes of data to response
-    response.append(&mut res.data);
+    response.append(&mut res.data.to_owned());
 
-    response
+    (response, res)
+}
+
+fn error_response(
+    res: HandleError,
+    panic_handler: &Box<dyn Fn(Request, String) -> Response + Send + Sync>,
+) -> Response {
+    match res {
+        HandleError::StreamRead => Response::new()
+            .status(500)
+            .text("Error Reading Stream")
+            .content(Content::TXT),
+        HandleError::NotFound(method, path) => Response::new()
+            .status(404)
+            .text(format!("Cannot {} {}", method, path))
+            .content(Content::TXT),
+        HandleError::Panic(r, e) => (panic_handler)(r, e),
+    }
 }

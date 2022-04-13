@@ -161,7 +161,7 @@ impl RateLimiter {
 }
 
 impl Middleware for RateLimiter {
-    fn pre(&self, req: Request) -> MiddleRequest {
+    fn pre(&self, req: &Request) -> MiddleRequest {
         let ip = remove_address_port(&req.address);
 
         self.check_reset();
