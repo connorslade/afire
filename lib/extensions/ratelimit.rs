@@ -167,7 +167,7 @@ impl Middleware for RateLimiter {
         self.check_reset();
 
         if self.is_over_limit(ip.clone()) {
-            return match (self.handler)(&req) {
+            return match (self.handler)(req) {
                 Some(i) => MiddleRequest::Send(i),
                 None => MiddleRequest::Continue,
             };

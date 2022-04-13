@@ -202,7 +202,7 @@ impl Logger {
 
 impl Middleware for Logger {
     fn end(&self, req: &Request, _res: &Response) {
-        self.log(&req);
+        self.log(req);
     }
 }
 

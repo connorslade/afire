@@ -177,7 +177,7 @@ pub(crate) fn response_http(
         #[cfg(feature = "panic_handler")]
         {
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                middleware.post(&req, res.to_owned())
+                middleware.post(req, res.to_owned())
             }));
 
             match result {
@@ -241,7 +241,7 @@ pub(crate) fn response_http(
 
 fn error_response(
     res: HandleError,
-    panic_handler: &Box<dyn Fn(Request, String) -> Response + Send + Sync>,
+    panic_handler: &(dyn Fn(Request, String) -> Response + Send + Sync),
 ) -> Response {
     match res {
         HandleError::StreamRead => Response::new()

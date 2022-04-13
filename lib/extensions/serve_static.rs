@@ -3,11 +3,7 @@
 use std::fs;
 use std::sync::{Arc, RwLock};
 
-use crate::{
-    middleware::{MiddleResponse, Middleware},
-    path::normalize_path,
-    Method, Request, Response, Server,
-};
+use crate::{middleware::Middleware, path::normalize_path, Method, Request, Response, Server};
 
 type SSMiddleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
@@ -356,7 +352,7 @@ impl ServeStatic {
 }
 
 fn route(req: Request, cell: &RwLock<ServeStatic>) -> Response {
-    let mut res = process_req(req.clone(), &cell);
+    let mut res = process_req(req.clone(), cell);
 
     for i in cell.read().unwrap().middleware.clone().iter().rev() {
         if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
