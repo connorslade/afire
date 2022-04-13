@@ -3,7 +3,20 @@
 
 use std::any::type_name;
 
-use crate::{handle::HandleError, Request, Response, Server};
+use crate::{Method, Request, Response, Server};
+
+/// Errors thet can arize while handling a request
+#[derive(Debug, Clone)]
+pub enum HandleError {
+    /// Error readint the stream
+    StreamRead,
+
+    /// Route matching request path not found
+    NotFound(Method, String),
+
+    /// A route or middleware paniced while running
+    Panic(Request, String),
+}
 
 /// Middleware `post` Responses
 pub enum MiddleResponse {

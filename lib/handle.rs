@@ -12,17 +12,10 @@ use crate::content_type::Content;
 use crate::header::{headers_to_string, Header};
 use crate::http;
 use crate::method::Method;
-use crate::middleware::{MiddleRequest, MiddleResponse};
+use crate::middleware::{HandleError, MiddleRequest, MiddleResponse};
 use crate::request::Request;
 use crate::response::Response;
 use crate::server::Server;
-
-#[derive(Debug, Clone)]
-pub enum HandleError {
-    StreamRead,
-    NotFound(Method, String),
-    Panic(Request, String),
-}
 
 /// Handle a request
 pub(crate) fn handle_connection(
