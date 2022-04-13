@@ -64,7 +64,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -103,7 +103,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -136,7 +136,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -177,7 +177,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -212,7 +212,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Response, Server, ServeStatic};
+    /// use afire::{Response, Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -245,7 +245,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -282,7 +282,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -319,7 +319,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
