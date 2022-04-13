@@ -1,9 +1,12 @@
 //! Extention to serve static files from disk
 
 use std::fs;
-use std::sync::{Arc, RwLock};
 
-use crate::{middleware::Middleware, path::normalize_path, Method, Request, Response, Server};
+use crate::{
+    middleware::{HandleError, MiddleResponse, Middleware},
+    path::normalize_path,
+    Request, Response,
+};
 
 type SSMiddleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
@@ -33,7 +36,28 @@ pub struct ServeStatic {
     pub types: Vec<(String, String)>,
 }
 
-impl Middleware for ServeStatic {}
+impl Middleware for ServeStatic {
+    fn post(&self, req: &Request, res: Result<Response, HandleError>) -> MiddleResponse {
+        let path = match res {
+            Err(HandleError::NotFound(_, i)) => i,
+            Err(_) => return MiddleResponse::Continue,
+            _ => unreachable!(),
+        };
+
+        if !path.starts_with(&self.serve_path) {
+            return MiddleResponse::Continue;
+        }
+
+        let mut res = process_req(req, self);
+        for i in self.middleware.iter().rev() {
+            if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                res = i
+            };
+        }
+
+        MiddleResponse::Add(res.0)
+    }
+}
 
 impl ServeStatic {
     /// Make a new Static File Server
@@ -319,55 +343,11 @@ impl ServeStatic {
             ..self
         }
     }
-
-    /// Attatch it to a Server
-    ///
-    /// Not much to say really
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::{Server, ServeStatic};
-    ///
-    /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
-    ///
-    /// // Make a new static sevrer
-    /// ServeStatic::new("data/static")
-    ///     // Attatch it to the afire server
-    ///     .attach(&mut server);
-    ///
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn attach(self, server: &mut Server) {
-        let serve_path = self.serve_path.to_owned();
-        let cell = Arc::new(RwLock::new(self));
-        let cell2 = cell.clone();
-
-        server.route(Method::ANY, &serve_path, move |req| route(req, &cell));
-        server.route(Method::ANY, format!("{}/**", serve_path), move |req| {
-            route(req, &cell2)
-        });
-    }
 }
 
-fn route(req: Request, cell: &RwLock<ServeStatic>) -> Response {
-    let mut res = process_req(req.clone(), cell);
-
-    for i in cell.read().unwrap().middleware.clone().iter().rev() {
-        if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-            res = i
-        };
-    }
-
-    res.0
-}
-
-fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
-    let this = cell.read().unwrap();
-
+fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
     let mut path = format!(
-        "{}{}",
+        "{}/{}",
         this.data_dir,
         safe_path(
             req.path

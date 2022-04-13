@@ -8,6 +8,7 @@
 - Remove the `ignore_trailing_path_slash` feature
 - Redo Internal Error handling system
 - Middleware use references to Requests and Responses and stuff
+- Improve builtin serve_static middleware
 
 # 1.1.0
 

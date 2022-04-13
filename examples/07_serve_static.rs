@@ -1,4 +1,4 @@
-use afire::{Response, ServeStatic, Server};
+use afire::{Middleware, Response, ServeStatic, Server};
 
 // Serve static files from a directory
 // Afire middleware makes this *easy*
