@@ -188,7 +188,7 @@ impl Server {
                 }));
 
                 #[cfg(not(feature = "panic_handler"))]
-                middleware.end(&end_req, &end_res);
+                middleware.end(&req, &response);
             }
         }
 
@@ -270,7 +270,7 @@ impl Server {
                         panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.end(&req, &res)));
 
                     #[cfg(not(feature = "panic_handler"))]
-                    middleware.end(&end_req, &end_res);
+                    middleware.end(&req, &res);
                 }
             });
         }

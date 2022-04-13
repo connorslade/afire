@@ -43,6 +43,7 @@ impl Request {
         Request {
             method: Method::CUSTOM("NONE".to_owned()),
             path: "".to_owned(),
+            #[cfg(feature = "path_patterns")]
             path_params: Vec::new(),
             query: Query::new_empty(),
             headers: Vec::new(),

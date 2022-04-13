@@ -2,9 +2,10 @@
 use std::net::TcpStream;
 
 // Feature Imports
+#[cfg(not(feature = "panic_handler"))]
+use crate::Middleware;
 #[cfg(feature = "panic_handler")]
 use std::panic;
-
 // Import local files
 use crate::common::{any_string, reason_phrase, trim_end_bytes};
 use crate::content_type::Content;
@@ -121,11 +122,11 @@ pub(crate) fn handle_connection(
 
         #[cfg(not(feature = "panic_handler"))]
         {
-            let result = this.middleware.borrow_mut().pre(req.to_owned());
+            let result = middleware.pre(&req);
             match result {
                 MiddleRequest::Continue => {}
                 MiddleRequest::Add(i) => req = i,
-                MiddleRequest::Send(i) => return (req, i),
+                MiddleRequest::Send(i) => return (req, Ok(i)),
             }
         }
     }
@@ -156,7 +157,7 @@ pub(crate) fn handle_connection(
 
             #[cfg(not(feature = "panic_handler"))]
             {
-                return (&req, (route.handler)(req));
+                return (req.to_owned(), Ok((route.handler)(req)));
             }
         }
     }
@@ -195,12 +196,12 @@ pub(crate) fn response_http(
 
         #[cfg(not(feature = "panic_handler"))]
         {
-            let result = middleware.post(req.to_owned(), res.to_owned());
+            let result = middleware.post(req, res.to_owned());
             match result {
                 MiddleResponse::Continue => {}
-                MiddleResponse::Add(i) => res = i,
+                MiddleResponse::Add(i) => res = Ok(i),
                 MiddleResponse::Send(i) => {
-                    res = i;
+                    res = Ok(i);
                     break;
                 }
             }
@@ -209,7 +210,7 @@ pub(crate) fn response_http(
 
     let res = match res {
         Ok(i) => i,
-        Err(e) => error_response(e, &this.error_handler),
+        Err(e) => error_response(e, this),
     };
 
     // Add default headers to response
@@ -239,10 +240,7 @@ pub(crate) fn response_http(
     (response, res)
 }
 
-fn error_response(
-    res: HandleError,
-    panic_handler: &(dyn Fn(Request, String) -> Response + Send + Sync),
-) -> Response {
+fn error_response(res: HandleError, server: &Server) -> Response {
     match res {
         HandleError::StreamRead => Response::new()
             .status(500)
@@ -252,6 +250,9 @@ fn error_response(
             .status(404)
             .text(format!("Cannot {} {}", method, path))
             .content(Content::TXT),
-        HandleError::Panic(r, e) => (panic_handler)(r, e),
+        #[cfg(feature = "panic_handler")]
+        HandleError::Panic(r, e) => (server.error_handler)(r, e),
+        #[cfg(not(feature = "panic_handler"))]
+        HandleError::Panic(_, _) => unreachable!(),
     }
 }
