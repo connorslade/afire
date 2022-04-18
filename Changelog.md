@@ -2,7 +2,7 @@
 
 - oh windows,,,
 - Fix Path Traversal on windows
-- Use AsRef<str> more instead of Display more
+- Use AsRef<str> more instead of Display
 - Add a serve path to Serve Static
 - Serve index from serve path
 - Remove the `ignore_trailing_path_slash` feature

@@ -40,8 +40,7 @@ impl Middleware for ServeStatic {
     fn post(&self, req: &Request, res: Result<Response, HandleError>) -> MiddleResponse {
         let path = match res {
             Err(HandleError::NotFound(_, i)) => i,
-            Err(_) => return MiddleResponse::Continue,
-            _ => unreachable!(),
+            _ => return MiddleResponse::Continue,
         };
 
         if !path.starts_with(&self.serve_path) {
@@ -378,9 +377,11 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
     match fs::read(&path) {
         // If its found send it as response
         Ok(content) => (
-            Response::new()
-                .bytes(content)
-                .header("Content-Type", get_type(&path, &this.types)),
+            Response::new().bytes(content).header(
+                "Content-Type",
+                get_type(&path, &this.types)
+                    .unwrap_or_else(|| "application/octet-stream".to_owned()),
+            ),
             true,
         ),
 
@@ -389,14 +390,9 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
     }
 }
 
-fn get_type(path: &str, types: &[(String, String)]) -> String {
-    let ext = path.split('.').last().unwrap_or("");
-    types
-        .iter()
-        .map(|x| x.to_owned())
-        .find(|x| x.0 == ext)
-        .unwrap_or_else(|| ("".to_owned(), "application/octet-stream".to_owned()))
-        .1
+fn get_type(path: &str, types: &[(String, String)]) -> Option<String> {
+    let ext = path.split('.').last()?;
+    Some(types.iter().map(|x| x.to_owned()).find(|x| x.0 == ext)?.1)
 }
 
 #[inline]
