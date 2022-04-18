@@ -8,15 +8,16 @@
 - Remove the `ignore_trailing_path_slash` feature
 - Redo Internal Error handling system
 - Middleware use references to Requests and Responses and stuff
-- Improve builtin serve_static middleware
-- Re orgnise extension stuff
+- Improve built-in serve_static middleware
+- Re organize extension stuff
+- RateLimit use RwLock
 
 # 1.1.0
 
-- Update Path Matcher to support AnyAfter segments (**)
+- Update Path Matcher to support AnyAfter segments (\*\*)
 - Remove Test Example
 - Add Paste Bin App Example
-- Add SocketHandler struct to hold socket ineracting functions
+- Add SocketHandler struct to hold socket interacting functions
 - Fix Path Traversal Exploit O_O
 
 # 1.0.0!
@@ -25,7 +26,7 @@
 - Tracing Feature
 - Remove Middleware Interior Mutability by Default
 - Make remove_address_port usable without Feature
-- Add *end* middleware to run after sending a request
+- Add _end_ middleware to run after sending a request
 - Make use of end middleware on logger
 
 # 0.4.0
@@ -33,7 +34,7 @@
 - Make serve static types public
 - Fix File Uploading stuff
 - Add a Prelude for afire essentials
-- Optimize HTTP parser *(saving nanoseconds!)*
+- Optimize HTTP parser _(saving nanoseconds!)_
 - More unit tests
 - Middleware Error Handling!
 - Make Route and Error Handler functions take closures
@@ -94,7 +95,7 @@
 - Store Raw Request data and Request body as `Vec<u8>`
 - Fix Panic Handler feature compile problems
 - Dont use an Option for Vec of default headers
-- Fix Header Parseing
+- Fix Header Parsing
 - Add a `header` method on Request to get headers
 
 # 0.2.0
@@ -110,7 +111,7 @@
 - Update Readme in /examples
 - Add a dynamic buffer resize feature
 - Update Logger Middleware to be a builder
-- Add Path param Example in 04_data
+- Add Path parameter Example in 04_data
 
 # 0.1.7
 

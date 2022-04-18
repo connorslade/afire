@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
-    Mutex,
+    RwLock,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -25,7 +25,7 @@ pub struct RateLimiter {
     req_timeout: u64,
 
     /// Table of requests per IP
-    requests: Mutex<HashMap<String, u64>>,
+    requests: RwLock<HashMap<String, u64>>,
 
     /// Handler for when the limit is reached
     handler: Handler,
@@ -40,7 +40,7 @@ impl RateLimiter {
             last_reset: AtomicU64::new(0),
             req_limit: 10,
             req_timeout: 60,
-            requests: Mutex::new(HashMap::new()),
+            requests: RwLock::new(HashMap::new()),
             handler: Box::new(|_| {
                 Some(
                     Response::new()
@@ -136,7 +136,7 @@ impl RateLimiter {
 
     /// Count a request.
     fn add_request(&self, ip: String) {
-        let mut req = self.requests.lock().unwrap();
+        let mut req = self.requests.write().unwrap();
         let count = req.get(&ip).unwrap_or(&0) + 1;
         req.insert(ip, count);
     }
@@ -149,14 +149,14 @@ impl RateLimiter {
             .as_secs();
 
         if self.last_reset.load(Ordering::Acquire) + self.req_timeout <= time {
-            self.requests.lock().unwrap().clear();
+            self.requests.write().unwrap().clear();
             self.last_reset.store(time, Ordering::Release);
         }
     }
 
     /// Check if the request limit has been reached for an ip.
     fn is_over_limit(&self, ip: String) -> bool {
-        self.requests.lock().unwrap().get(&ip).unwrap_or(&0) >= &self.req_limit
+        self.requests.read().unwrap().get(&ip).unwrap_or(&0) >= &self.req_limit
     }
 }
 
