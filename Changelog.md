@@ -9,6 +9,7 @@
 - Redo Internal Error handling system
 - Middleware use references to Requests and Responses and stuff
 - Improve builtin serve_static middleware
+- Re orgnise extension stuff
 
 # 1.1.0
 

@@ -1,4 +1,4 @@
-//! Extention to serve static files from disk
+//! extension to serve static files from disk
 
 use std::fs;
 
@@ -63,7 +63,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -102,7 +102,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -135,7 +135,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -176,7 +176,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -211,7 +211,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Response, Server, ServeStatic, Middleware};
+    /// use afire::{Response, Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -244,7 +244,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -281,7 +281,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -318,7 +318,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic, Middleware};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server: Server = Server::new("localhost", 8080);
@@ -406,7 +406,7 @@ fn safe_path(mut path: String) -> String {
 
 /// Common MIME Types
 ///
-/// Used by Servestatic Extentions
+/// Used by Servestatic extensions
 pub const TYPES: [(&str, &str); 56] = [
     ("html", "text/html"),
     ("css", "text/css"),

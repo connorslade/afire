@@ -27,11 +27,6 @@ default = [
   "path_decode_url"
 ]
 
-# Extensions
-rate_limit = []
-logging = []
-serve_static = []
-
 # Default On
 cookies = []
 panic_handler = []
@@ -40,8 +35,9 @@ dynamic_resize = []
 path_decode_url = []
 
 # Other
+extensions = []
 tracing = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples
-afire = { path = ".", features = ["rate_limit", "logging", "serve_static", "tracing"] }
+afire = { path = ".", features = ["extensions", "tracing"] }

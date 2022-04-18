@@ -1,4 +1,7 @@
-use afire::{Level, Logger, Method, Middleware, Response, Server};
+use afire::{
+    extension::{Level, Logger},
+    Method, Middleware, Response, Server,
+};
 
 // Use some of afire's built-in middleware to log requests.
 

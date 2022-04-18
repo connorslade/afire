@@ -1,4 +1,4 @@
-use afire::{Method, Middleware, Response, ServeStatic, Server};
+use afire::{extension::ServeStatic, Method, Middleware, Response, Server};
 
 fn main() {
     let mut server: Server = Server::new("localhost", 8080);

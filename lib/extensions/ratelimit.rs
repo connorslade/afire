@@ -57,7 +57,7 @@ impl RateLimiter {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::{Server, RateLimiter, Middleware};
+    /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
     /// // Create a new server
     /// let mut server: Server = Server::new("localhost", 1234);
@@ -85,7 +85,7 @@ impl RateLimiter {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::{Server, RateLimiter, Middleware};
+    /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
     /// // Create a new server
     /// let mut server: Server = Server::new("localhost", 1234);
@@ -113,7 +113,7 @@ impl RateLimiter {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::{Server, Response, RateLimiter, Middleware};
+    /// use afire::{Server, Response, extension::RateLimiter, Middleware};
     ///
     /// // Create a new server
     /// let mut server: Server = Server::new("localhost", 1234);

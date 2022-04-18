@@ -84,3 +84,8 @@ server.route(Method::GET, "/", |_req| {
 server.start().unwrap();
 ```
 /// Prelude
+/// Built in Extensions
+///
+/// - Serve Static
+/// - RateLimit
+/// - Logger

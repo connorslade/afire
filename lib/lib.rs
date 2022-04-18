@@ -92,7 +92,7 @@ server.start().unwrap();
 #![warn(missing_docs)]
 
 #[doc(hidden)]
-pub const VERSION: &str = "1.1.0";
+pub const VERSION: &str = "1.1.0*";
 
 // Export Internal Functions
 #[macro_use]
@@ -157,18 +157,19 @@ pub mod prelude {
 }
 
 // Extra Features
+#[cfg(feature = "extensions")]
 mod extensions;
-
-#[cfg(feature = "rate_limit")]
-pub use extensions::ratelimit::RateLimiter;
-
-#[cfg(feature = "logging")]
-pub use extensions::logger::{Level, Logger};
-
-#[cfg(feature = "serve_static")]
-pub use extensions::serve_static;
-#[cfg(feature = "serve_static")]
-pub use extensions::serve_static::ServeStatic;
+#[cfg(feature = "extensions")]
+/// Built in Extensions
+///
+/// - Serve Static
+/// - RateLimit
+/// - Logger
+pub mod extension {
+    pub use crate::extensions::logger::{Level, Logger};
+    pub use crate::extensions::ratelimit::RateLimiter;
+    pub use crate::extensions::serve_static::{self, ServeStatic};
+}
 
 // Unit Tests
 #[cfg(test)]
