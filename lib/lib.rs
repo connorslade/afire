@@ -168,6 +168,7 @@ mod extensions;
 pub mod extension {
     pub use crate::extensions::logger::{Level, Logger};
     pub use crate::extensions::ratelimit::RateLimiter;
+    pub use crate::extensions::request_id::RequestId;
     pub use crate::extensions::serve_static::{self, ServeStatic};
 }
 
