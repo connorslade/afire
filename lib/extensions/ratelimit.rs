@@ -162,20 +162,19 @@ impl RateLimiter {
 
 impl Middleware for RateLimiter {
     fn pre(&self, req: &Request) -> MiddleRequest {
-        let ip = remove_address_port(&req.address);
-
-        self.check_reset();
-
-        if self.is_over_limit(ip.clone()) {
+        if self.is_over_limit(remove_address_port(&req.address)) {
             return match (self.handler)(req) {
                 Some(i) => MiddleRequest::Send(i),
                 None => MiddleRequest::Continue,
             };
         }
 
-        self.add_request(ip);
-
         MiddleRequest::Continue
+    }
+
+    fn end(&self, req: &Request, _res: &Response) {
+        self.check_reset();
+        self.add_request(remove_address_port(&req.address));
     }
 }
 
