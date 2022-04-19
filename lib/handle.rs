@@ -42,8 +42,6 @@ where
 
     #[cfg(feature = "dynamic_resize")]
     {
-        // TODO: Make this not crash
-
         // Get Buffer as string for parseing content length header
         let stream_string = String::from_utf8_lossy(&buffer);
 
@@ -143,8 +141,11 @@ where
             {
                 let result =
                     panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
-                        RouteType::Stateless(i) => (i)(req.to_owned()),
-                        RouteType::Statefull(i) => (i)(&this.state, req.to_owned()),
+                        RouteType::Stateless(i) => (i)(req.clone()),
+                        RouteType::Statefull(i) => (i)(
+                            this.state.clone().expect("State not initialized"),
+                            req.to_owned(),
+                        ),
                     }));
                 let err = match result {
                     Ok(i) => return (req, Ok(i)),

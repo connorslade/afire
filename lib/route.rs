@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::Arc;
 
 use super::method::Method;
 use super::request::Request;
@@ -7,7 +8,7 @@ use crate::path::Path;
 
 pub enum RouteType<State> {
     Stateless(Box<dyn Fn(Request) -> Response + Send + Sync>),
-    Statefull(Box<dyn Fn(&State, Request) -> Response + Send + Sync>),
+    Statefull(Box<dyn Fn(Arc<State>, Request) -> Response + Send + Sync>),
 }
 
 /// Defines a route.
@@ -43,7 +44,7 @@ impl<State> Route<State> {
     pub fn new_stateful(
         method: Method,
         path: String,
-        handler: Box<dyn Fn(&State, Request) -> Response + Send + Sync>,
+        handler: Box<dyn Fn(Arc<State>, Request) -> Response + Send + Sync>,
     ) -> Self {
         Self {
             method,

@@ -1,4 +1,5 @@
 // Import STD libraries
+use std::any::type_name;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::sync::{Arc, RwLock};
@@ -41,7 +42,7 @@ where
     pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
 
     /// Server wide App State
-    pub state: State,
+    pub state: Option<Arc<State>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
@@ -125,7 +126,7 @@ where
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
             socket_handler: SocketHandler::default(),
             socket_timeout: None,
-            state: State::default(),
+            state: None,
         }
     }
 
@@ -248,6 +249,9 @@ where
         for event in listener.incoming() {
             let this = Arc::clone(&this);
             pool.execute(move || {
+                // TODO: keep-alive stuff (in dev branch)
+                // please done forget to do it in dev
+                // pleeeeeeeeeeeeeeease
                 let this = this.read().unwrap();
 
                 // Read stream into buffer
@@ -382,7 +386,12 @@ where
     /// server.start().unwrap();
     /// ```
     pub fn state(self, state: State) -> Self {
-        Self { state, ..self }
+        trace!("📦️ Setting Server State [{}]", type_name::<State>());
+
+        Self {
+            state: Some(Arc::new(state)),
+            ..self
+        }
     }
 
     /// Keep a server from starting
@@ -409,6 +418,8 @@ where
     // But that will require modifying *every* example so that can wait...
     #[doc(hidden)]
     pub fn set_run(&mut self, run: bool) {
+        trace!("👟 {} Server", if run { "Enableing" } else { "Disableing" });
+
         self.run = run;
     }
 
@@ -509,7 +520,7 @@ where
         &mut self,
         method: Method,
         path: T,
-        handler: impl Fn(&State, Request) -> Response + Send + Sync + 'static,
+        handler: impl Fn(Arc<State>, Request) -> Response + Send + Sync + 'static,
     ) where
         T: AsRef<str>,
     {
