@@ -5,7 +5,7 @@ use afire::{Method, Response, Server, SetCookie};
 
 fn main() {
     // Create a new Server instance on localhost port 8080
-    let mut server: Server = Server::new("localhost", 8080);
+    let mut server = Server::<()>::new("localhost", 8080);
 
     // Define a route to show request cookies as a table
     server.route(Method::GET, "/", |req| {

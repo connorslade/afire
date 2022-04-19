@@ -105,7 +105,7 @@ impl Request {
     /// // Import Library
     /// use afire::{Request, Response, Header, Method, Server};
     ///
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// server.route(Method::GET, "/greet/{name}", |req| {
     ///     // Get name Path param

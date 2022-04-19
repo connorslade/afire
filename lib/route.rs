@@ -5,12 +5,9 @@ use super::request::Request;
 use super::response::Response;
 use crate::path::Path;
 
-type StatelessHandler = Box<dyn Fn(Request) -> Response + Send + Sync>;
-type StatefullHandler<State> = Box<dyn Fn(&State, Request) -> Response + Send + Sync>;
-
 pub enum RouteType<State> {
-    Stateless(StatelessHandler),
-    Statefull(StatefullHandler<State>),
+    Stateless(Box<dyn Fn(Request) -> Response + Send + Sync>),
+    Statefull(Box<dyn Fn(&State, Request) -> Response + Send + Sync>),
 }
 
 /// Defines a route.
@@ -42,6 +39,7 @@ impl<State> Route<State> {
         }
     }
 
+    /// Create a new stateful route
     pub fn new_stateful(
         method: Method,
         path: String,

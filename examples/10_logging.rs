@@ -7,7 +7,7 @@ use afire::{
 
 fn main() {
     // Create a new Server instance on localhost port 8080
-    let mut server: Server = Server::new("localhost", 8080);
+    let mut server = Server::<()>::new("localhost", 8080);
 
     // Define a handler for GET "/"
     server.route(Method::GET, "/", |_req| {

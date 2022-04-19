@@ -66,7 +66,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static file server and attach it to the afire server
     /// ServeStatic::new("data/static").attach(&mut server);
@@ -105,7 +105,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -138,7 +138,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -179,7 +179,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -214,7 +214,7 @@ impl ServeStatic {
     /// use afire::{Response, Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -247,7 +247,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -284,7 +284,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -321,7 +321,7 @@ impl ServeStatic {
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -370,7 +370,7 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
         .disabled_files
         .contains(&path.splitn(2, &this.data_dir).last().unwrap().to_string())
     {
-        return ((this.not_found)(&req, true), false);
+        return ((this.not_found)(req, true), false);
     }
 
     // Try to read File
@@ -386,7 +386,7 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
         ),
 
         // If not send the 404 route defined
-        Err(_) => ((this.not_found)(&req, false), false),
+        Err(_) => ((this.not_found)(req, false), false),
     }
 }
 

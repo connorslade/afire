@@ -21,7 +21,7 @@ impl RequestId {
     /// use afire::{Server, Middleware, extension::RequestId};
     ///
     /// // Create Server & RequestId Middleware
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// RequestId::new("X-REQ-ID").attach(&mut server);
     ///
     /// // Start Server

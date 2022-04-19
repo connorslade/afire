@@ -1,5 +1,4 @@
 // Import STD libraries
-use std::any::Any;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::sync::{Arc, RwLock};
@@ -10,19 +9,15 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use crate::handle::{handle_connection, response_http};
-use crate::header::Header;
-use crate::internal::socket_handler::SocketHandler;
-use crate::method::Method;
-use crate::middleware::Middleware;
-use crate::request::Request;
-use crate::response::Response;
-use crate::route::Route;
-use crate::thread_pool::ThreadPool;
-use crate::VERSION;
+use crate::{
+    handle::{handle_connection, response_http},
+    internal::socket_handler::SocketHandler,
+    thread_pool::ThreadPool,
+    Header, Method, Middleware, Request, Response, Route, VERSION,
+};
 
 /// Defines a server.
-pub struct Server<State>
+pub struct Server<State = ()>
 where
     State: 'static + Send + Sync,
 {
@@ -45,6 +40,7 @@ where
     /// Middleware
     pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
 
+    /// Server wide App State
     pub state: State,
 
     /// Default response for internal server errors
@@ -80,7 +76,7 @@ where
     ///
     /// // Create a server for localhost on port 8080
     /// // Note: The server has not been started yet
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
     pub fn new<T>(raw_ip: T, port: u16) -> Self
     where
@@ -143,7 +139,7 @@ where
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -215,7 +211,7 @@ where
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -297,7 +293,7 @@ where
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     .buffer(2048);
     /// ```
     pub fn buffer(self, buf: usize) -> Self {
@@ -318,7 +314,7 @@ where
     /// use afire::{Server, Header};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Add a default header to the response
     ///     .default_header("Content-Type", "text/plain");
     ///
@@ -352,7 +348,7 @@ where
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Set socket timeout
     ///     .socket_timeout(Duration::from_secs(1));
     ///
@@ -370,6 +366,21 @@ where
         }
     }
 
+    /// Set the state of a server
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::new("localhost", 8080)
+    ///     // Set server wide state
+    ///     .state(101);
+    ///
+    /// // Start the server
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn state(self, state: State) -> Self {
         Self { state, ..self }
     }
@@ -386,7 +397,7 @@ where
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Keep the server from starting and blocking the main thread
     /// server.set_run(false);
@@ -414,7 +425,7 @@ where
     /// use afire::{Server, Response};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Set the panic handler response
     /// server.error_handler(|_req, err| {
@@ -444,7 +455,7 @@ where
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/nose", |req| {
@@ -474,6 +485,26 @@ where
             .push(Route::new(method, path, Box::new(handler)));
     }
 
+    /// Create a new stateful route
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::new("localhost", 8080)
+    ///    .state(101);
+    ///
+    /// // Define a route
+    /// server.stateful_route(Method::GET, "/nose", |sta, req| {
+    ///     Response::new().text(sta.to_string())
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
     pub fn stateful_route<T>(
         &mut self,
         method: Method,

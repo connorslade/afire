@@ -8,12 +8,13 @@ struct App {
 }
 
 fn main() {
-    let mut server = Server::<App>::new("localhost", 8080); //.state();
+    let mut server = Server::new("localhost", 8080).state(101);
 
-    server.route(Method::GET, "/sl", |req| Response::new().text("wllo"));
-    server.stateful_route(Method::GET, "/", |sta, req| {
-        sta.count.fetch_add(1, Ordering::Relaxed);
-        Response::new().text(sta.count.load(Ordering::Relaxed).to_string())
+    server.route(Method::GET, "/sl", |_req| Response::new().text("wllo"));
+    server.stateful_route(Method::GET, "/", |sta, _req| {
+        // sta.count.fetch_add(1, Ordering::Relaxed);
+        // Response::new().text(sta.count.load(Ordering::Relaxed).to_string())
+        Response::new().text(sta.to_string())
     });
     RequestId::new("X-REQ-ID").attach(&mut server);
 

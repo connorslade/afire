@@ -8,7 +8,7 @@ const STATIC_PATH: &str = "/";
 
 fn main() {
     // Create a new Server instance on localhost port 8080
-    let mut server: Server = Server::new("localhost", 8080);
+    let mut server = Server::<()>::new("localhost", 8080);
 
     // Make a new static file server with a path
     ServeStatic::new(STATIC_DIR)
