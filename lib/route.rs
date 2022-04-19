@@ -5,11 +5,19 @@ use super::request::Request;
 use super::response::Response;
 use crate::path::Path;
 
+type StatelessHandler = Box<dyn Fn(Request) -> Response + Send + Sync>;
+type StatefullHandler<State> = Box<dyn Fn(&State, Request) -> Response + Send + Sync>;
+
+pub enum RouteType<State> {
+    Stateless(StatelessHandler),
+    Statefull(StatefullHandler<State>),
+}
+
 /// Defines a route.
 ///
 /// You should not use this directly.
 /// It will be created automatically when using server.route
-pub struct Route {
+pub struct Route<State> {
     /// Route Method (GET, POST, ANY, etc)
     pub method: Method,
 
@@ -17,26 +25,38 @@ pub struct Route {
     pub path: Path,
 
     /// Route Handler
-    pub handler: Box<dyn Fn(Request) -> Response + Send + Sync>,
+    pub handler: RouteType<State>,
 }
 
-impl Route {
+impl<State> Route<State> {
     /// Creates a new route.
     pub fn new(
         method: Method,
         path: String,
         handler: Box<dyn Fn(Request) -> Response + Send + Sync>,
-    ) -> Route {
-        Route {
+    ) -> Self {
+        Self {
             method,
             path: Path::new(path),
-            handler,
+            handler: RouteType::Stateless(handler),
+        }
+    }
+
+    pub fn new_stateful(
+        method: Method,
+        path: String,
+        handler: Box<dyn Fn(&State, Request) -> Response + Send + Sync>,
+    ) -> Self {
+        Self {
+            method,
+            path: Path::new(path),
+            handler: RouteType::Statefull(handler),
         }
     }
 }
 
 // TODO: Show handler in debug
-impl fmt::Debug for Route {
+impl<State> fmt::Debug for Route<State> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Route")
             .field("method", &self.method)

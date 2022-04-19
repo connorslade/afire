@@ -15,13 +15,17 @@ use crate::method::Method;
 use crate::middleware::{HandleError, MiddleRequest, MiddleResponse};
 use crate::request::Request;
 use crate::response::Response;
+use crate::route::RouteType;
 use crate::server::Server;
 
 /// Handle a request
-pub(crate) fn handle_connection(
+pub(crate) fn handle_connection<State>(
     stream: &mut TcpStream,
-    this: &Server,
-) -> (Request, Result<Response, HandleError>) {
+    this: &Server<State>,
+) -> (Request, Result<Response, HandleError>)
+where
+    State: 'static + Send + Sync,
+{
     // Init (first) Buffer
     let mut buffer = vec![0; this.buff_size];
 
@@ -137,9 +141,11 @@ pub(crate) fn handle_connection(
             // Optionally enable automatic panic handling
             #[cfg(feature = "panic_handler")]
             {
-                let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    (&route.handler)(req.to_owned())
-                }));
+                let result =
+                    panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
+                        RouteType::Stateless(i) => (i)(req.to_owned()),
+                        RouteType::Statefull(i) => (i)(&this.state, req.to_owned()),
+                    }));
                 let err = match result {
                     Ok(i) => return (req, Ok(i)),
                     Err(e) => any_string(e),
@@ -162,11 +168,14 @@ pub(crate) fn handle_connection(
     )
 }
 
-pub(crate) fn response_http(
-    this: &Server,
+pub(crate) fn response_http<State>(
+    this: &Server<State>,
     req: &Request,
     mut res: Result<Response, HandleError>,
-) -> (Vec<u8>, Response) {
+) -> (Vec<u8>, Response)
+where
+    State: 'static + Send + Sync,
+{
     for middleware in this.middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
@@ -233,7 +242,10 @@ pub(crate) fn response_http(
     (response, res)
 }
 
-fn error_response(res: HandleError, server: &Server) -> Response {
+fn error_response<State>(res: HandleError, server: &Server<State>) -> Response
+where
+    State: 'static + Send + Sync,
+{
     match res {
         HandleError::StreamRead => Response::new()
             .status(500)

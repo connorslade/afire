@@ -1,10 +1,19 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use afire::{extension::RequestId, Method, Middleware, Response, Server};
 
-fn main() {
-    let mut server: Server = Server::new("localhost", 8080);
+#[derive(Default)]
+struct App {
+    count: AtomicUsize,
+}
 
-    server.route(Method::GET, "/", |req| {
-        Response::new().text(req.header("X-REQ-ID").unwrap())
+fn main() {
+    let mut server = Server::<App>::new("localhost", 8080); //.state();
+
+    server.route(Method::GET, "/sl", |req| Response::new().text("wllo"));
+    server.stateful_route(Method::GET, "/", |sta, req| {
+        sta.count.fetch_add(1, Ordering::Relaxed);
+        Response::new().text(sta.count.load(Ordering::Relaxed).to_string())
     });
     RequestId::new("X-REQ-ID").attach(&mut server);
 
