@@ -6,6 +6,7 @@ use std::net::TcpStream;
 use crate::Middleware;
 #[cfg(feature = "panic_handler")]
 use std::panic;
+
 // Import local files
 use crate::common::{any_string, reason_phrase, trim_end_bytes};
 use crate::content_type::Content;
@@ -126,7 +127,7 @@ pub(crate) fn handle_connection(
 
     // Loop through all routes and check if the request matches
     for route in this.routes.iter().rev() {
-        let path_match = route.path.match_path(req.path.to_owned());
+        let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             // Set the Pattern params of the Request
             #[cfg(feature = "path_patterns")]

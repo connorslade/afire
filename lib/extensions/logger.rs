@@ -1,3 +1,5 @@
+//! Log requests to the console or a file
+
 // If file logging is enabled
 use std::fs::OpenOptions;
 use std::io::prelude::*;

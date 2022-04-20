@@ -115,6 +115,14 @@ pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
     headers
 }
 
+// TODO: Test This
+pub fn connection_mode(headers: &[Header]) -> bool {
+    match headers.iter().find(|x| x.name == "Connection") {
+        Some(i) if i.value == "keep-alive" => true,
+        _ => false,
+    }
+}
+
 /// Get Cookies of a raw HTTP request.
 #[cfg(feature = "cookies")]
 pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
