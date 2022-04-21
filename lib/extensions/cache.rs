@@ -9,11 +9,20 @@ use crate::{
     Request, Response,
 };
 
+/// A Middleware to cache route responses
+///
+/// By defult it caches *every* request
+/// this can be changed with the .to_cache method
 pub struct Cache {
+    /// Cache Data (Path String -> (Route Response, Cache Epoch))
     cache: RwLock<HashMap<String, (Response, u64)>>,
 
     /// Function thaat defines weather a request should be cached
     to_cache: Box<dyn Fn(&Request) -> bool + Send + Sync>,
+
+    /// Cache timeout
+    ///
+    /// To disable set to 0
     timeout: u64,
 }
 
@@ -32,6 +41,10 @@ impl Cache {
             ..self
         }
     }
+
+    pub fn timeout(self, timeout: u64) -> Self {
+        Self { timeout, ..self }
+    }
 }
 
 impl Middleware for Cache {
@@ -39,7 +52,8 @@ impl Middleware for Cache {
         // Get response from cache
         if let Some((res, time)) = self.cache.read().unwrap().get(&req.path) {
             // If resource has expired remove from cache and continue
-            if current_epoch() - time >= self.timeout {
+            // Cache never times out if timeout is 0
+            if self.timeout != 0 && current_epoch() - time >= self.timeout {
                 self.cache.write().unwrap().remove(&req.path).unwrap();
                 return MiddleRequest::Continue;
             }
