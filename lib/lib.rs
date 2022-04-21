@@ -9,12 +9,12 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "1.1.0"
+afire = "1.2.0"
 ```
 
 ## 📄 Info
 
-This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of apis / web servers much easier. It supports Middleware and comes with some built in for Static File Serving, Logging and Rate limiting.
+This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of APIs / web servers much easier. It supports Middleware and comes with some built in for Static File Serving, Rate limiting,  more.
 
 For more information on this lib check the docs [here](https://crates.io/crates/afire)
 
@@ -52,19 +52,25 @@ Here I will outline interesting features that are available in afire.
 
 - Builtin Middleware
 
-afire comes with some builtin extensions in the form of middleware.
-Currently the builtin middleware includes [rate_limit](), [logging](), and [serve_static]().
+afire comes with some built-in extensions in the form of middleware.
+Currently, the built-in middleware includes the following:
+- Serve Static
+- RateLimit
+- Logger
+- Response Cache
+- Request ID
+
 For these you will need to enable the features.
 
 To use these extra features enable them like this:
 
 ```toml
-afire = { version = "1.1.0", features = ["rate_limit", "logging", "serve_static"] }
+afire = { version = "1.2.0", features = ["extension"] }
 ```
 
 - Content Types
 
-As an easy way to set the Content-Type of a Response you can use the `.content` methood of the Response.
+As an easy way to set the Content-Type of a Response you can use the `.content` method of the Response.
 Then you can put one of the common predefined types.
 
 ```rust
@@ -147,25 +153,29 @@ mod cookie;
 #[cfg(feature = "cookies")]
 pub use self::cookie::{Cookie, SetCookie};
 
-// TODO: Finish Discription
-/// Prelude
+/// The Prelude is a collection of very commenly used *things* in afire
+/// Unless you are using extentions or internial lower level stuff
 pub mod prelude {
     pub use crate::{
         middleware::{HandleError, MiddleRequest, MiddleResponse, Middleware},
         Content, Header, Method, Request, Response, Server,
     };
+    #[cfg(feature = "cookies")]
+    pub use crate::{Cookie, SetCookie};
 }
 
 // Extra Features
 #[cfg(feature = "extensions")]
 mod extensions;
 #[cfg(feature = "extensions")]
-/// Built in Extensions
-///
-/// - Serve Static
-/// - RateLimit
-/// - Logger
 pub mod extension {
+    //! Built in Extensions
+    //!
+    //! - Serve Static
+    //! - RateLimit
+    //! - Logger
+    //! - Response Cache
+    //! - Request Id
     pub use crate::extensions::{
         cache::{self, Cache},
         logger::{self, Logger},

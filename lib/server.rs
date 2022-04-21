@@ -60,8 +60,6 @@ pub struct Server {
     pub run: bool,
 }
 
-unsafe impl Sync for Server {}
-
 /// Implementations for Server
 impl Server {
     /// Creates a new server.
@@ -162,7 +160,7 @@ impl Server {
 
         for event in listener.incoming() {
             // Read stream into buffer
-            let mut stream = event.ok()?;
+            let mut stream = event.unwrap();
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request

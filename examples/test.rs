@@ -10,7 +10,7 @@ fn main() {
         let name = req.path_param("name").unwrap();
         Response::new().text(format!("Hello {name}!"))
     });
-    // Cache::new()
+    / Cache::new()
     //     .to_cache(|x| to_cache::path_match(x, &vec!["/"]))
     //     .attach(&mut server);
 

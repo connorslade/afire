@@ -27,6 +27,21 @@ pub struct Cache {
 }
 
 impl Cache {
+    /// Create a new Cache middleware
+    ///
+    /// By defult it will cache every requests response
+    /// even if it dosent go to a valid route.
+    /// The timout is set to 3600 seconds or one hour by defult.
+    /// ## Example
+    /// ```rust
+    /// // Import Stuff
+    /// use afire::{Server, Middleware, extension::Cache};
+    ///
+    /// // Create Server
+    /// let mut server = Server::new("localhost", 8080);
+    /// // Add Cache Middleware
+    /// Cache::new().attach(&mut server);
+    /// ```
     pub fn new() -> Self {
         Self {
             cache: RwLock::new(HashMap::new()),
@@ -35,6 +50,25 @@ impl Cache {
         }
     }
 
+    /// Set the function that defines weather a request will be cached
+    ///
+    /// The function must take in a Request refrence and return a bool
+    /// True to cache and False to not
+    ///
+    /// Instead of writing your own function for this you can use some of the builtin ones at [`to_cache`]
+    /// ## Example
+    /// ```rust
+    /// // Import Stuff
+    /// use afire::{Server, Middleware, extension::Cache};
+    ///
+    /// // Create Server
+    /// let mut server = Server::new("localhost", 8080);
+    /// // Create and Add Cache Middleware
+    /// Cache::new()
+    ///     // Cache paths that start with `/cache`
+    ///     .to_cache(|req| req.path.starts_with("/cache"))
+    ///     .attach(&mut server);
+    /// ```
     pub fn to_cache(self, fun: impl Fn(&Request) -> bool + 'static + Send + Sync) -> Self {
         Self {
             to_cache: Box::new(fun),
@@ -42,6 +76,21 @@ impl Cache {
         }
     }
 
+    /// Set cache timeout in seconds
+    /// When the cache expires the route will be run again to refresh response
+    /// Set timeout to 0 do disable rerunning the route
+    /// ## Example
+    /// ```rust
+    /// // Import Stuff
+    /// use afire::{Server, Middleware, extension::Cache};
+    ///
+    /// // Create Server
+    /// let mut server = Server::new("localhost", 8080);
+    /// // Create and Add Cache Middleware
+    /// Cache::new()
+    ///     .timeout(60 * 60 * 24)
+    ///     .attach(&mut server);
+    /// ```
     pub fn timeout(self, timeout: u64) -> Self {
         Self { timeout, ..self }
     }
@@ -58,6 +107,7 @@ impl Middleware for Cache {
                 return MiddleRequest::Continue;
             }
 
+            // Send cached response
             return MiddleRequest::Send(res.to_owned());
         }
 
@@ -67,7 +117,7 @@ impl Middleware for Cache {
 
     fn end(&self, req: &Request, res: &Response) {
         // Return if its not ment to be
-        // ir if response is already in cache
+        // or if response is already in cache
         if !(self.to_cache)(req) || self.cache.read().unwrap().get(&req.path).is_some() {
             return;
         }
@@ -88,6 +138,11 @@ fn current_epoch() -> u64 {
         .as_secs()
 }
 
+/// Builtin functions to define what paths are to be cached
+///
+/// ```no_run
+/// Cache::new().to_cache(|x| fun_name(x, extra_prams)).attach(&mut server);
+/// ```
 pub mod to_cache {
     use crate::{internal::path::Path, Request};
 

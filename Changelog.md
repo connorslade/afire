@@ -1,4 +1,4 @@
-# 1.1.1
+# 1.2.0
 
 - oh windows,,,
 - Fix Path Traversal on windows
@@ -11,6 +11,9 @@
 - Improve built-in serve_static middleware
 - Re organize extension stuff
 - RateLimit use RwLock
+- Add Request ID Middleware
+- Server Wide State
+- Add Cache Middleware
 
 # 1.1.0
 
