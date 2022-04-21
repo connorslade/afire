@@ -139,13 +139,20 @@ fn current_epoch() -> u64 {
 }
 
 /// Builtin functions to define what paths are to be cached
-///
-/// ```no_run
-/// Cache::new().to_cache(|x| fun_name(x, extra_prams)).attach(&mut server);
+/// ```no_test
+/// Cache::new()
+///     .to_cache(|x| fun_name(x, extra_prams))
+///     .attach(&mut server);
 /// ```
 pub mod to_cache {
     use crate::{internal::path::Path, Request};
 
+    /// Cache request paths that match with one of the paths supplied
+    /// ```no_test
+    /// Cache::new()
+    ///     .to_cache(|x| path_match(x, &vec!["/cache/**"]))
+    ///     .attach(&mut server);
+    /// ```
     pub fn path_match(req: &Request, paths: &[&str]) -> bool {
         paths.iter().any(|x| {
             Path::new(req.path.clone())
