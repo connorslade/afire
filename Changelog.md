@@ -1,6 +1,6 @@
 # 1.2.0
 
-_comming soon?_
+_coming soon?_
 
 - oh windows,,,
 - Fix Path Traversal on windows
