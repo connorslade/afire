@@ -29,7 +29,7 @@ Here is a super simple example:
 use afire::{Server, Method, Response, Header, Content};
 
 // Create Server
-let mut server: Server = Server::new("localhost", 8080);
+let mut server = Server::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/greet/{name}", |req| {
@@ -78,7 +78,7 @@ Then you can put one of the common predefined types.
 use afire::{Server, Method, Response, Header, Content};
 
 // Create Server
-let mut server: Server = Server::new("localhost", 8080);
+let mut server = Server::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/", |_req| {

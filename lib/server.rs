@@ -71,7 +71,7 @@ impl Server {
     ///
     /// // Create a server for localhost on port 8080
     /// // Note: The server has not been started yet
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::new("localhost", 8080);
     /// ```
     pub fn new<T>(raw_ip: T, port: u16) -> Server
     where
@@ -132,7 +132,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -204,7 +204,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -371,7 +371,7 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::new("localhost", 8080);
     ///
     /// // Keep the server from starting and blocking the main thread
     /// server.set_run(false);
@@ -399,7 +399,7 @@ impl Server {
     /// use afire::{Server, Response};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::new("localhost", 8080);
     ///
     /// // Set the panic handler response
     /// server.error_handler(|_req, err| {
@@ -429,7 +429,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/nose", |req| {
