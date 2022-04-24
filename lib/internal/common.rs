@@ -1,5 +1,7 @@
 //! Some little functions used here and thare
 
+use crate::Header;
+
 /// Get Reason Phrase for a status code
 ///
 /// Supports Status:
@@ -98,10 +100,16 @@ pub fn decode_url(url: String) -> String {
     res
 }
 
+#[inline]
 fn try_push(vec: &mut String, c: Option<&char>) {
     if let Some(c) = c {
         vec.push(*c);
     }
+}
+
+#[inline]
+pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
+    headers.iter().find(|x| x.name == name).is_none()
 }
 
 pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {

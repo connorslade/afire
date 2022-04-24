@@ -16,6 +16,8 @@ _coming soon?_
 - Add Request ID Middleware
 - Server Wide State
 - Add Cache Middleware
+- Remove insane build script
+- When building http response only add Content-Length and default headers if they are not already present
 
 # 1.1.0
 

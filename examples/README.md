@@ -5,6 +5,7 @@
 Basic examples give you a nice and simple first look into using afire.
 Run `cargo r --example basic` to use the example picker menu thing.
 You can also run a specific example with `cargo r --example basic -- <EXAMPLE_NAME>`.
+The source code for each basic example can be found within the `basic` subdirectory in a file with the same name as the example.
 
 | Name           | Description                                                            |
 | -------------- | ---------------------------------------------------------------------- |
