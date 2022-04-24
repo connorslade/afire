@@ -2,9 +2,9 @@
 
 ## Basic
 
-Basic examples give you a first look into using afire.
+Basic examples give you a nice and simple first look into using afire.
 Run `cargo r --example basic` to use the example picker menu thing.
-You can also run a specific example with `cargo r --example basic -- <EXAMPLE_NAME>`
+You can also run a specific example with `cargo r --example basic -- <EXAMPLE_NAME>`.
 
 | Name           | Description                                                            |
 | -------------- | ---------------------------------------------------------------------- |

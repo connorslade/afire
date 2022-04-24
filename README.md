@@ -13,7 +13,9 @@ afire = "1.2.0"
 
 ## 📄 Info
 
-This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of APIs / web servers much easier. It supports Middleware and comes with some built in for Static File Serving, Rate limiting,  more.
+afire is a _blazing fast_ web server micro framework for rust.
+Its syntax is inspired by express.js.
+It supports Middleware and comes with some built extensions in for Static File Serving, Rate limiting, more.
 
 For more information on this lib check the docs [here](https://crates.io/crates/afire)
 
@@ -41,6 +43,7 @@ server.route(Method::GET, "/greet/{name}", |req| {
 
 // Start the server
 // This is blocking
+# server.set_run(false);
 server.start().unwrap();
 ```
 
@@ -52,15 +55,14 @@ Here I will outline interesting features that are available in afire.
 
 afire comes with some built-in extensions in the form of middleware.
 Currently, the built-in middleware includes the following:
+
 - Serve Static
 - RateLimit
 - Logger
 - Response Cache
 - Request ID
 
-For these you will need to enable the features.
-
-To use these extra features enable them like this:
+For these you will need to enable the `extension` feature like this:
 
 ```toml
 afire = { version = "1.2.0", features = ["extension"] }
@@ -87,7 +89,11 @@ server.route(Method::GET, "/", |_req| {
 
 // Start the server
 // This is blocking
+# server.set_run(false);
 server.start().unwrap();
 ```
-/// The Prelude is a collection of very commenly used *things* in afire
-/// Unless you are using extentions or internial lower level stuff
+
+- Prelude
+
+The Prelude is a collection of very commonly used _things_ in afire.
+When using it you shouldn't need to import any other afire things unless you are using extensions or internal lower level stuff.
