@@ -29,11 +29,11 @@ fn main() {
         Box::new(header::Header),
         Box::new(error_handling::ErrorHandling),
         Box::new(serve_static::ServeStatic),
+        Box::new(path_prams::PathParam),
         Box::new(middleware::MiddlewareExample),
         Box::new(cookie::Cookie),
         Box::new(logging::Logging),
         Box::new(rate_limit::RateLimit),
-        Box::new(path_prams::PathParam),
         Box::new(threading::Threading),
     ];
 
@@ -90,17 +90,3 @@ fn input(inp: &str) -> Option<String> {
 
     Some(buff)
 }
-
-// 01_basic 	Start a basic web server that can serve text.
-// 02_serve_file 	Serve a local file.
-// 03_routeing 	Learn about routing priority and add a 404 page
-// 04_data 	Send data to server with a Query String, Path params and Form Data
-// 05_header 	Make and Read Headers to send extra data
-// 06_error_handling 	Catch panics in routes
-// 07_serve_static 	Serve static files from a dir
-// 08_middleware 	Use Middleware to log requests
-// 09_cookie 	Read and Write cookies to the client
-// 10_logging 	Log requests to a file / console
-// 11_rate_limit 	Add a rate limit to your server
-// 12_path_params 	Use Path Parameters on a route
-// 13_threading 	Use a thread pool to handle requests
