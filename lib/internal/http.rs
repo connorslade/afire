@@ -118,10 +118,7 @@ pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
 // TODO: Test This
 /// Check if the socket connetion wants to use keep alive
 pub fn connection_mode(headers: &[Header]) -> bool {
-    match headers.iter().find(|x| x.name == "Connection") {
-        Some(i) if i.value == "keep-alive" => true,
-        _ => false,
-    }
+    matches!(headers.iter().find(|x| x.name == "Connection"), Some(i) if i.value == "keep-alive")
 }
 
 /// Get Cookies of a raw HTTP request.

@@ -371,7 +371,7 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
         .disabled_files
         .contains(&path.splitn(2, &this.data_dir).last().unwrap().to_string())
     {
-        return ((this.not_found)(&req, true), false);
+        return ((this.not_found)(req, true), false);
     }
 
     // Try to read File
@@ -387,7 +387,7 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
         ),
 
         // If not send the 404 route defined
-        Err(_) => ((this.not_found)(&req, false), false),
+        Err(_) => ((this.not_found)(req, false), false),
     }
 }
 
@@ -398,7 +398,7 @@ fn get_type(path: &str, types: &[(String, String)]) -> Option<String> {
 
 #[inline]
 fn safe_path(mut path: String) -> String {
-    path = path.replace("\\", "/");
+    path = path.replace('\\', "/");
     while path.contains("/..") {
         path = path.replace("/..", "");
     }

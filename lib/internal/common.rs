@@ -109,7 +109,7 @@ fn try_push(vec: &mut String, c: Option<&char>) {
 
 #[inline]
 pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
-    headers.iter().find(|x| x.name == name).is_none()
+    !headers.iter().any(|x| x.name == name)
 }
 
 pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {

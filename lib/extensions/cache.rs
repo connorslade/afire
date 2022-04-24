@@ -130,6 +130,12 @@ impl Middleware for Cache {
     }
 }
 
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[inline]
 fn current_epoch() -> u64 {
     SystemTime::now()

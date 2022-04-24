@@ -137,7 +137,7 @@ pub(crate) fn handle_connection(
             #[cfg(feature = "panic_handler")]
             {
                 let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    (&route.handler)(req.to_owned())
+                    (route.handler)(req.to_owned())
                 }));
                 let err = match result {
                     Ok(i) => return (req, Ok(i)),
