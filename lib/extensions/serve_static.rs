@@ -43,7 +43,6 @@ impl Middleware for ServeStatic {
             _ => return MiddleResponse::Continue,
         };
 
-        dbg!(&self.serve_path, &path);
         if !path.starts_with(&self.serve_path) {
             return MiddleResponse::Continue;
         }
