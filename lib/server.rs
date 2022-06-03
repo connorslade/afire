@@ -377,7 +377,7 @@ where
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080)
+    /// let mut server = Server::<u32>::new("localhost", 8080)
     ///     // Set server wide state
     ///     .state(101);
     ///
@@ -503,7 +503,7 @@ where
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080)
+    /// let mut server = Server::<u32>::new("localhost", 8080)
     ///    .state(101);
     ///
     /// // Define a route
