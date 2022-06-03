@@ -6,8 +6,9 @@ use std::net::TcpStream;
 use crate::Middleware;
 #[cfg(feature = "panic_handler")]
 use std::panic;
+
 // Import local files
-use crate::common::{any_string, reason_phrase, trim_end_bytes};
+use crate::common::{any_string, has_header, reason_phrase, trim_end_bytes};
 use crate::content_type::Content;
 use crate::header::{headers_to_string, Header};
 use crate::http;
@@ -128,7 +129,7 @@ where
 
     // Loop through all routes and check if the request matches
     for route in this.routes.iter().rev() {
-        let path_match = route.path.match_path(req.path.to_owned());
+        let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             // Set the Pattern params of the Request
             #[cfg(feature = "path_patterns")]
@@ -217,11 +218,19 @@ where
     };
 
     // Add default headers to response
-    let mut headers = res.headers.to_owned();
-    headers.append(&mut this.default_headers.to_owned());
+    // Only the ones that arent already in the response
+    let mut headers = res.headers.clone();
+    for i in &this.default_headers {
+        if !has_header(&headers, &i.name) {
+            headers.push(i.clone());
+        }
+    }
+    // headers.append(&mut this.default_headers.clone());
 
-    // Add content-length header to response
-    headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+    // Add content-length header to response if it hasent already been deifned by the route or defult headers
+    if !has_header(&headers, "Content-Length") {
+        headers.push(Header::new("Content-Length", &res.data.len().to_string()));
+    }
 
     // Convert the response to a string
     // TODO: Use Bytes instead of String

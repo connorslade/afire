@@ -1,3 +1,5 @@
+//! Log requests to the console or a file
+
 // If file logging is enabled
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -51,7 +53,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::{Logger, Level};
+    /// use afire::extension::logger::{Logger, Level};
     ///
     /// // Create a new logger
     /// let logger = Logger::new();
@@ -69,7 +71,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::{Logger, Level};
+    /// use afire::extension::logger::{Logger, Level};
     ///
     /// // Create a new logger
     /// let logger = Logger::new()
@@ -83,7 +85,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::{Logger, Level};
+    /// use afire::extension::logger::{Logger, Level};
     ///
     /// // Create a new logger and enable logging to file
     /// let logger = Logger::new()
@@ -103,7 +105,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::{Logger, Level};
+    /// use afire::extension::logger::{Logger, Level};
     ///
     /// // Create a new logger and enable console
     /// let logger = Logger::new()

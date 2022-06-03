@@ -4,6 +4,8 @@ use afire::{
     Method, Request, Response, Server,
 };
 
+use crate::Example;
+
 // In afire Middleware is a trait that is implemented and can modify / overwrite Requests and Response
 // The Middleware functions for this are `pre` and `post` for before and after the routes
 // These functions will return a MiddleResponse / MiddleRequest which is an enum with the following
@@ -41,28 +43,33 @@ impl Middleware for Log {
     }
 }
 
-fn main() {
-    // Create a new Server instance on localhost port 8080
-    let mut server = Server::<()>::new("localhost", 8080);
+pub struct MiddlewareExample;
 
-    // Define a basic route
-    server.route(Method::GET, "/", |_req| {
-        Response::new()
-            .status(200)
-            .text("Hello World!")
-            .header("Content-Type", "text/plain")
-    });
+impl Example for MiddlewareExample {
+    fn name(&self) -> &'static str {
+        "middleware"
+    }
+    fn exec(&self) {
+        // Create a new Server instance on localhost port 8080
+        let mut server = Server::<()>::new("localhost", 8080);
 
-    // Here is where we will attach our Middleware to the Server
-    // This is super easy
-    Log.attach(&mut server);
+        // Define a basic route
+        server.route(Method::GET, "/", |_req| {
+            Response::new()
+                .status(200)
+                .text("Hello World!")
+                .header("Content-Type", "text/plain")
+        });
 
-    // You can now goto http://localhost:8080 you should see that the request is printed to the console
-    // It should look something like this: `[127.0.0.1:xxxxx] GET `
+        // Here is where we will attach our Middleware to the Server
+        // This is super easy
+        Log.attach(&mut server);
 
-    println!("[08] Listening on http://{}:{}", server.ip, server.port);
+        // You can now goto http://localhost:8080 you should see that the request is printed to the console
+        // It should look something like this: `[127.0.0.1:xxxxx] GET `
 
-    // Start the server
-    // This will block the current thread
-    server.start().unwrap();
+        // Start the server
+        // This will block the current thread
+        server.start().unwrap();
+    }
 }

@@ -11,7 +11,7 @@ description = "🔥 A blazing fast web framework for Rust"
 keywords = ["afire", "http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]
 exclude = [".github/", "SocialShare.*"]
-license = "GPL-3.0"
+license = "MIT"
 readme = "README.md"
 
 [lib]

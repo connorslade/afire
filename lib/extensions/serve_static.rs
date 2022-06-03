@@ -338,7 +338,7 @@ impl ServeStatic {
         T: AsRef<str>,
     {
         Self {
-            serve_path: path.as_ref().to_owned(),
+            serve_path: normalize_path(path.as_ref().to_owned()),
             ..self
         }
     }
@@ -397,7 +397,7 @@ fn get_type(path: &str, types: &[(String, String)]) -> Option<String> {
 
 #[inline]
 fn safe_path(mut path: String) -> String {
-    path = path.replace("\\", "/");
+    path = path.replace('\\', "/");
     while path.contains("/..") {
         path = path.replace("/..", "");
     }

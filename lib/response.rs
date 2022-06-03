@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[cfg(feature = "cookies")]
 use super::cookie::SetCookie;
 use super::header::Header;
@@ -97,10 +99,10 @@ impl Response {
     /// ```
     pub fn text<T>(self, text: T) -> Response
     where
-        T: AsRef<str>,
+        T: Display,
     {
         Response {
-            data: text.as_ref().as_bytes().to_vec(),
+            data: text.to_string().as_bytes().to_vec(),
             ..self
         }
     }
