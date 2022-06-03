@@ -12,7 +12,7 @@ impl Example for Header {
     }
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server = Server::new("localhost", 8080)
+        let mut server = Server::<()>::new("localhost", 8080)
             // Define server wide default headers
             // These will be send with every response
             // If the same header is defined in the route it will be put before the default header

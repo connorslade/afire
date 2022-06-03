@@ -1,4 +1,5 @@
 // Import STD libraries
+use std::any::type_name;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
 use std::sync::{Arc, RwLock};
@@ -9,19 +10,18 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use crate::handle::{handle_connection, response_http};
-use crate::header::Header;
-use crate::internal::socket_handler::SocketHandler;
-use crate::method::Method;
-use crate::middleware::Middleware;
-use crate::request::Request;
-use crate::response::Response;
-use crate::route::Route;
-use crate::thread_pool::ThreadPool;
-use crate::VERSION;
+use crate::{
+    handle::{handle_connection, response_http},
+    internal::socket_handler::SocketHandler,
+    thread_pool::ThreadPool,
+    Header, Method, Middleware, Request, Response, Route, VERSION,
+};
 
 /// Defines a server.
-pub struct Server {
+pub struct Server<State = ()>
+where
+    State: 'static + Send + Sync,
+{
     /// Port to listen on.
     pub port: u16,
 
@@ -35,11 +35,14 @@ pub struct Server {
     pub buff_size: usize,
 
     /// Routes to handle.
-    pub routes: Vec<Route>,
+    pub routes: Vec<Route<State>>,
 
     // Other stuff
     /// Middleware
     pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
+
+    /// Server wide App State
+    pub state: Option<Arc<State>>,
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
@@ -61,7 +64,10 @@ pub struct Server {
 }
 
 /// Implementations for Server
-impl Server {
+impl<State> Server<State>
+where
+    State: Send + Sync,
+{
     /// Creates a new server.
     ///
     /// ## Example
@@ -71,11 +77,12 @@ impl Server {
     ///
     /// // Create a server for localhost on port 8080
     /// // Note: The server has not been started yet
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
-    pub fn new<T>(raw_ip: T, port: u16) -> Server
+    pub fn new<T>(raw_ip: T, port: u16) -> Self
     where
         T: AsRef<str>,
+        State: Default,
     {
         trace!("🐍 Initializing Server v{}", VERSION);
 
@@ -119,6 +126,7 @@ impl Server {
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
             socket_handler: SocketHandler::default(),
             socket_timeout: None,
+            state: None,
         }
     }
 
@@ -132,7 +140,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -204,7 +212,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -241,6 +249,9 @@ impl Server {
         for event in listener.incoming() {
             let this = Arc::clone(&this);
             pool.execute(move || {
+                // TODO: keep-alive stuff (in dev branch)
+                // please done forget to do it in dev
+                // pleeeeeeeeeeeeeeease
                 let this = this.read().unwrap();
 
                 // Read stream into buffer
@@ -286,10 +297,10 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     .buffer(2048);
     /// ```
-    pub fn buffer(self, buf: usize) -> Server {
+    pub fn buffer(self, buf: usize) -> Self {
         trace!("🥫 Setting Buffer to {} bytes", buf);
 
         Server {
@@ -307,7 +318,7 @@ impl Server {
     /// use afire::{Server, Header};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Add a default header to the response
     ///     .default_header("Content-Type", "text/plain");
     ///
@@ -316,7 +327,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn default_header<T, K>(self, key: T, value: K) -> Server
+    pub fn default_header<T, K>(self, key: T, value: K) -> Self
     where
         T: AsRef<str>,
         K: AsRef<str>,
@@ -341,7 +352,7 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Set socket timeout
     ///     .socket_timeout(Duration::from_secs(1));
     ///
@@ -350,11 +361,35 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+    pub fn socket_timeout(self, socket_timeout: Duration) -> Self {
         trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
 
         Server {
             socket_timeout: Some(socket_timeout),
+            ..self
+        }
+    }
+
+    /// Set the state of a server
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<u32>::new("localhost", 8080)
+    ///     // Set server wide state
+    ///     .state(101);
+    ///
+    /// // Start the server
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn state(self, state: State) -> Self {
+        trace!("📦️ Setting Server State [{}]", type_name::<State>());
+
+        Self {
+            state: Some(Arc::new(state)),
             ..self
         }
     }
@@ -371,7 +406,7 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Keep the server from starting and blocking the main thread
     /// server.set_run(false);
@@ -383,6 +418,8 @@ impl Server {
     // But that will require modifying *every* example so that can wait...
     #[doc(hidden)]
     pub fn set_run(&mut self, run: bool) {
+        trace!("👟 {} Server", if run { "Enableing" } else { "Disableing" });
+
         self.run = run;
     }
 
@@ -399,7 +436,7 @@ impl Server {
     /// use afire::{Server, Response};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Set the panic handler response
     /// server.error_handler(|_req, err| {
@@ -429,7 +466,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/nose", |req| {
@@ -457,5 +494,40 @@ impl Server {
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
+    }
+
+    /// Create a new stateful route
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<u32>::new("localhost", 8080)
+    ///    .state(101);
+    ///
+    /// // Define a route
+    /// server.stateful_route(Method::GET, "/nose", |sta, req| {
+    ///     Response::new().text(sta.to_string())
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn stateful_route<T>(
+        &mut self,
+        method: Method,
+        path: T,
+        handler: impl Fn(Arc<State>, Request) -> Response + Send + Sync + 'static,
+    ) where
+        T: AsRef<str>,
+    {
+        let path = path.as_ref().to_owned();
+        trace!("🚗 Adding Route {} {}", method, path);
+
+        self.routes
+            .push(Route::new_stateful(method, path, Box::new(handler)));
     }
 }

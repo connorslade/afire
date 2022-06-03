@@ -16,7 +16,7 @@ impl Example for ErrorHandling {
 
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server = Server::new("localhost", 8080);
+        let mut server = Server::<()>::new("localhost", 8080);
 
         // Define a route that will panic
         server.route(Method::GET, "/panic", |_req| panic!("This is a panic!"));

@@ -60,7 +60,7 @@ impl RateLimiter {
     /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
     /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
+    /// let mut server = Server::<()>::new("localhost", 1234);
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
@@ -88,7 +88,7 @@ impl RateLimiter {
     /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
     /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
+    /// let mut server = Server::<()>::new("localhost", 1234);
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
@@ -116,7 +116,7 @@ impl RateLimiter {
     /// use afire::{Server, Response, extension::RateLimiter, Middleware};
     ///
     /// // Create a new server
-    /// let mut server: Server = Server::new("localhost", 1234);
+    /// let mut server = Server::<()>::new("localhost", 1234);
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()

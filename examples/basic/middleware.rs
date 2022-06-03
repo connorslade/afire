@@ -51,7 +51,7 @@ impl Example for MiddlewareExample {
     }
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server = Server::new("localhost", 8080);
+        let mut server = Server::<()>::new("localhost", 8080);
 
         // Define a basic route
         server.route(Method::GET, "/", |_req| {

@@ -60,9 +60,10 @@ pub trait Middleware {
     fn end(&self, _req: &Request, _res: &Response) {}
 
     /// Attatch Middleware to a Server
-    fn attach(self, server: &mut Server)
+    fn attach<State>(self, server: &mut Server<State>)
     where
-        Self: Sized + Send + Sync + 'static,
+        Self: 'static + Send + Sync + Sized,
+        State: 'static + Send + Sync,
     {
         trace!("📦 Adding Middleware {}", type_name::<Self>());
 

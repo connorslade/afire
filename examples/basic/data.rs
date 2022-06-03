@@ -12,7 +12,7 @@ impl Example for Data {
 
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server = Server::new("localhost", 8080);
+        let mut server = Server::<()>::new("localhost", 8080);
 
         // Define a route to handel query string
         // This will try to find a name value pair in the query string

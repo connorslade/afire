@@ -34,7 +34,7 @@ Below is a super simple example so you can see the basics of aire syntax.
 use afire::{Server, Method, Response, Header, Content};
 
 // Create Server
-let mut server = Server::new("localhost", 8080);
+let mut server = Server::<()>::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/greet/{name}", |req| {

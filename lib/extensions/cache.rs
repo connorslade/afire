@@ -38,7 +38,7 @@ impl Cache {
     /// use afire::{Server, Middleware, extension::Cache};
     ///
     /// // Create Server
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// // Add Cache Middleware
     /// Cache::new().attach(&mut server);
     /// ```
@@ -62,7 +62,7 @@ impl Cache {
     /// use afire::{Server, Middleware, extension::Cache};
     ///
     /// // Create Server
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// // Create and Add Cache Middleware
     /// Cache::new()
     ///     // Cache paths that start with `/cache`
@@ -85,7 +85,7 @@ impl Cache {
     /// use afire::{Server, Middleware, extension::Cache};
     ///
     /// // Create Server
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// // Create and Add Cache Middleware
     /// Cache::new()
     ///     .timeout(60 * 60 * 24)

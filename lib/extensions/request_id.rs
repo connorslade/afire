@@ -7,7 +7,7 @@ use crate::{
 
 /// Add an id to evey incomming Request
 ///
-/// The is is just incremented on each request to not have to worry about it clashes
+/// The is is just incremented on each request to not have to worry about collisions
 pub struct RequestId {
     id_header: String,
     id: AtomicUsize,
@@ -21,7 +21,7 @@ impl RequestId {
     /// use afire::{Server, Middleware, extension::RequestId};
     ///
     /// // Create Server & RequestId Middleware
-    /// let mut server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// RequestId::new("X-REQ-ID").attach(&mut server);
     ///
     /// // Start Server

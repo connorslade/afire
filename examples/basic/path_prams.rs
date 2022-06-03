@@ -13,7 +13,7 @@ impl Example for PathParam {
 
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server: Server = Server::new("localhost", 8081);
+        let mut server: Server = Server::<()>::new("localhost", 8081);
 
         // Define a handler for GET "/greet/{name}"
         // This will handel requests with anything where the {name} is

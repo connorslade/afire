@@ -13,6 +13,7 @@ mod rate_limit;
 mod routing;
 mod serve_file;
 mod serve_static;
+mod state;
 mod threading;
 
 pub trait Example {
@@ -26,12 +27,13 @@ fn main() {
         Box::new(serve_file::ServeFile),
         Box::new(routing::Routing),
         Box::new(data::Data),
+        Box::new(path_prams::PathParam),
         Box::new(header::Header),
+        Box::new(state::State),
+        Box::new(cookie::Cookie),
         Box::new(error_handling::ErrorHandling),
         Box::new(serve_static::ServeStatic),
-        Box::new(path_prams::PathParam),
         Box::new(middleware::MiddlewareExample),
-        Box::new(cookie::Cookie),
         Box::new(logging::Logging),
         Box::new(rate_limit::RateLimit),
         Box::new(threading::Threading),

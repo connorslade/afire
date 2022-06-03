@@ -20,7 +20,7 @@ impl Example for Routing {
 
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server: Server = Server::new("localhost", 8080);
+        let mut server: Server = Server::<()>::new("localhost", 8080);
 
         // Define 404 page
         // This route will run for all requests but because any other route

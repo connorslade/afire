@@ -16,7 +16,7 @@ impl Example for ServeStatic {
 
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server = Server::new("localhost", 8080);
+        let mut server = Server::<()>::new("localhost", 8080);
 
         // Make a new static file server with a path
         extension::ServeStatic::new(STATIC_DIR)
