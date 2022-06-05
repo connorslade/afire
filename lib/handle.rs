@@ -71,6 +71,8 @@ where
     // Remove trailing null bytes
     trim_end_bytes(&mut buffer);
 
+    crate::Request::from_bytes(&buffer).unwrap();
+
     // TODO: Parse Bytes
     // TODO: Have one mut HTTP string that is chipted away at theough parseing
 
@@ -265,6 +267,7 @@ where
             .status(404)
             .text(format!("Cannot {} {}", method, path))
             .content(Content::TXT),
+        HandleError::Parse(err) => todo!(),
         #[cfg(feature = "panic_handler")]
         HandleError::Panic(r, e) => (server.error_handler)(r, e),
         #[cfg(not(feature = "panic_handler"))]

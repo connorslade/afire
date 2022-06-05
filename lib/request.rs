@@ -2,6 +2,7 @@
 use crate::cookie::Cookie;
 use crate::header::Header;
 use crate::method::Method;
+use crate::middleware::ParseError;
 use crate::query::Query;
 
 /// Http Request
@@ -53,6 +54,39 @@ impl Request {
             address: "".to_owned(),
             raw_data: Vec::new(),
         }
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+        // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
+        let meta_end_index = match (0..bytes.len() - 3).find(|i| {
+            bytes[*i] == 0x0D
+                && bytes[i + 1] == 0x0A
+                && bytes[i + 2] == 0x0D
+                && bytes[i + 3] == 0x0A
+        }) {
+            Some(i) => i,
+            None => return Err(ParseError::NoSeparator),
+        };
+        // Turn the meta bytes into a string
+        let meta_string = String::from_utf8_lossy(&bytes[0..meta_end_index]);
+        let mut lines = meta_string.lines();
+
+        // Parse the first like to get the method, path, query and verion
+        let (method, path, query, version) = crate::http::parse_first_meta(lines.next().unwrap()).unwrap();
+
+        // Parse headers
+        let mut headers = Vec::new();
+        let mut inc = 0;
+        while let Some(i) = lines.next() {
+            headers.push(match Header::from_string(i) {
+                Some(i) => i,
+                None => return Err(ParseError::InvalidHeader(inc))
+            });
+            inc += 1;
+        }
+
+        todo!()
+        // let meta_info = String::from(bytes)
     }
 
     /// Get request body data as a string!

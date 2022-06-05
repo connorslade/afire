@@ -11,11 +11,22 @@ pub enum HandleError {
     /// Error readint the stream
     StreamRead,
 
+    Parse(ParseError),
+
     /// Route matching request path not found
     NotFound(Method, String),
 
     /// A route or middleware paniced while running
     Panic(Request, String),
+}
+
+#[derive(Debug, Clone)]
+pub enum ParseError {
+    NoSeparator,
+    NoMethod,
+    NoPath,
+    InvalidQuery,
+    InvalidHeader(usize)
 }
 
 /// Middleware `post` Responses
