@@ -1,8 +1,5 @@
 //! Stuff for working with Raw HTTP data
 
-use std::borrow::Cow;
-use std::os::linux::raw;
-
 #[cfg(feature = "path_decode_url")]
 use crate::common;
 #[cfg(feature = "cookies")]
@@ -10,64 +7,6 @@ use crate::cookie::Cookie;
 use crate::header::Header;
 use crate::method::Method;
 use crate::query::Query;
-
-//* NEW *//
-
-/// (Method, Path, Query, Version)
-pub fn parse_first_meta(str: &str) -> Option<(Method, String, Query, &str)> {
-    let mut parts = str.split_whitespace();
-    let raw_method = parts.next()?;
-    let method = match raw_method.to_uppercase().as_str() {
-        "GET" => Method::GET,
-        "POST" => Method::POST,
-        "PUT" => Method::PUT,
-        "DELETE" => Method::DELETE,
-        "OPTIONS" => Method::OPTIONS,
-        "HEAD" => Method::HEAD,
-        "PATCH" => Method::PATCH,
-        "TRACE" => Method::TRACE,
-        _ => Method::CUSTOM(raw_method.to_owned()),
-    };
-
-    let mut raw_path = parts.next()?.chars();
-    let mut final_path = String::new();
-    let mut final_query = String::new();
-    let mut last_is_slash = false;
-    while let Some(i) = raw_path.next() {
-        match i {
-            '/' | '\\' => {
-                if last_is_slash {
-                    continue;
-                }
-
-                last_is_slash = true;
-                final_path.push('/');
-            }
-            '?' => {
-                final_query.extend(raw_path);
-                break;
-            }
-            _ => {
-                last_is_slash = false;
-                final_path.push(i);
-            }
-        }
-    }
-
-    #[cfg(feature = "path_decode_url")]
-    {
-        final_path = common::decode_url(final_path)
-    }
-
-    Some((
-        method,
-        final_path,
-        Query::from_body(final_query)?,
-        parts.next()?,
-    ))
-}
-
-//* NEW *//
 
 /// Get the request method of a raw HTTP request.
 ///

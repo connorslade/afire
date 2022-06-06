@@ -1,9 +1,6 @@
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
-use crate::header::Header;
-use crate::method::Method;
-use crate::middleware::ParseError;
-use crate::query::Query;
+use crate::{common, middleware::ParseError, Header, Method, Query};
 
 /// Http Request
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
@@ -56,7 +53,7 @@ impl Request {
         }
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ParseError> {
+    pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, ParseError> {
         // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
         let meta_end_index = match (0..bytes.len() - 3).find(|i| {
             bytes[*i] == 0x0D
@@ -72,21 +69,40 @@ impl Request {
         let mut lines = meta_string.lines();
 
         // Parse the first like to get the method, path, query and verion
-        let (method, path, query, version) = crate::http::parse_first_meta(lines.next().unwrap()).unwrap();
+        let first_meta = match lines.next() {
+            Some(i) => i,
+            None => return Err(ParseError::NoRequestLine),
+        };
+        let (method, path, query, version) = parse_first_meta(first_meta)?;
 
         // Parse headers
         let mut headers = Vec::new();
+        let mut cookies = Vec::new();
         let mut inc = 0;
         while let Some(i) = lines.next() {
             headers.push(match Header::from_string(i) {
-                Some(i) => i,
-                None => return Err(ParseError::InvalidHeader(inc))
+                Some(i) => {
+                    if i.name == "Cookie" {
+                        cookies.extend(parse_cookie(i.clone()))
+                    }
+                    i
+                }
+                None => return Err(ParseError::InvalidHeader(inc)),
             });
             inc += 1;
         }
 
-        todo!()
-        // let meta_info = String::from(bytes)
+        Ok(Request {
+            method,
+            path,
+            path_params: Vec::new(),
+            query,
+            headers,
+            cookies,
+            body: bytes[meta_end_index..].to_vec(),
+            address,
+            raw_data: bytes.to_vec(),
+        })
     }
 
     /// Get request body data as a string!
@@ -170,4 +186,92 @@ impl Request {
             .find(|x| x.0 == name)
             .map(|i| i.1.to_owned())
     }
+}
+
+/// (Method, Path, Query, Version)
+fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), ParseError> {
+    let mut parts = str.split_whitespace();
+    let raw_method = match parts.next() {
+        Some(i) => i,
+        None => return Err(ParseError::NoMethod),
+    };
+    let method = match raw_method.to_uppercase().as_str() {
+        "GET" => Method::GET,
+        "POST" => Method::POST,
+        "PUT" => Method::PUT,
+        "DELETE" => Method::DELETE,
+        "OPTIONS" => Method::OPTIONS,
+        "HEAD" => Method::HEAD,
+        "PATCH" => Method::PATCH,
+        "TRACE" => Method::TRACE,
+        _ => Method::CUSTOM(raw_method.to_owned()),
+    };
+
+    let mut raw_path = match parts.next() {
+        Some(i) => i.chars(),
+        None => return Err(ParseError::NoVersion),
+    };
+    let mut final_path = String::new();
+    let mut final_query = String::new();
+    let mut last_is_slash = false;
+    while let Some(i) = raw_path.next() {
+        match i {
+            '/' | '\\' => {
+                if last_is_slash {
+                    continue;
+                }
+
+                last_is_slash = true;
+                final_path.push('/');
+            }
+            '?' => {
+                final_query.extend(raw_path);
+                break;
+            }
+            _ => {
+                last_is_slash = false;
+                final_path.push(i);
+            }
+        }
+    }
+
+    #[cfg(feature = "path_decode_url")]
+    {
+        final_path = common::decode_url(final_path)
+    }
+
+    let query = match Query::from_body(final_query) {
+        Some(i) => i,
+        None => return Err(ParseError::InvalidQuery),
+    };
+
+    let version = match parts.next() {
+        Some(i) => i,
+        None => return Err(ParseError::NoVersion),
+    };
+
+    Ok((method, final_path, query, version))
+}
+
+fn parse_cookie(header: Header) -> Vec<Cookie> {
+    let mut final_cookies = Vec::new();
+    for i in header.value.split(";") {
+        let mut cookie_parts = i.splitn(2, '=');
+        let name = match cookie_parts.next() {
+            Some(i) => i.trim(),
+            None => continue,
+        };
+
+        let value = match &cookie_parts.next() {
+            Some(i) => i.trim(),
+            None => continue,
+        };
+
+        final_cookies.push(Cookie::new(
+            common::decode_url(name.to_owned()),
+            common::decode_url(value.to_owned()),
+        ));
+    }
+
+    final_cookies
 }

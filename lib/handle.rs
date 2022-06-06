@@ -13,7 +13,7 @@ use crate::content_type::Content;
 use crate::header::{headers_to_string, Header};
 use crate::http;
 use crate::method::Method;
-use crate::middleware::{HandleError, MiddleRequest, MiddleResponse};
+use crate::middleware::{HandleError, MiddleRequest, MiddleResponse, ParseError};
 use crate::request::Request;
 use crate::response::Response;
 use crate::route::RouteType;
@@ -23,7 +23,7 @@ use crate::server::Server;
 pub(crate) fn handle_connection<State>(
     stream: &mut TcpStream,
     this: &Server<State>,
-) -> (Request, Result<Response, HandleError>)
+) -> (Result<Request, ParseError>, Result<Response, HandleError>)
 where
     State: 'static + Send + Sync,
 {
@@ -38,7 +38,7 @@ where
     // Read stream into buffer
     match (this.socket_handler.socket_read)(stream, &mut buffer) {
         Some(_) => {}
-        None => return (Request::new_empty(), Err(HandleError::StreamRead)),
+        None => return (Err(ParseError::StreamRead), Err(HandleError::StreamRead)),
     };
 
     #[cfg(feature = "dynamic_resize")]
@@ -71,35 +71,9 @@ where
     // Remove trailing null bytes
     trim_end_bytes(&mut buffer);
 
-    crate::Request::from_bytes(&buffer).unwrap();
-
-    // TODO: Parse Bytes
-    // TODO: Have one mut HTTP string that is chipted away at theough parseing
-
-    // Get Buffer as string for parseing Path, Method, Query, etc
-    let stream_string = String::from_utf8_lossy(&buffer);
-
-    // Make Request Object
-    let req_method = http::get_request_method(&stream_string);
-    let req_path = http::get_request_path(&stream_string);
-    let req_query = http::get_request_query(&stream_string);
-    let body = http::get_request_body(&buffer);
-    let headers = http::get_request_headers(&stream_string);
-    #[cfg(feature = "cookies")]
-    let cookies = http::get_request_cookies(&stream_string);
-
-    let mut req = Request {
-        method: req_method,
-        path: req_path,
-        query: req_query,
-        headers,
-        #[cfg(feature = "cookies")]
-        cookies,
-        body,
-        address: stream.peer_addr().unwrap().to_string(),
-        raw_data: buffer,
-        #[cfg(feature = "path_patterns")]
-        path_params: Vec::new(),
+    let mut req = match Request::from_bytes(&buffer, stream.peer_addr().unwrap().to_string()) {
+        Ok(i) => i,
+        Err(e) => todo!(),
     };
 
     // Use middleware to handle request
@@ -112,9 +86,9 @@ where
                 Ok(i) => match i {
                     MiddleRequest::Continue => {}
                     MiddleRequest::Add(i) => req = i,
-                    MiddleRequest::Send(i) => return (req, Ok(i)),
+                    MiddleRequest::Send(i) => return (Ok(req), Ok(i)),
                 },
-                Err(e) => return (req.to_owned(), Err(HandleError::Panic(req, any_string(e)))),
+                Err(e) => return (Ok(req), Err(HandleError::Panic(req, any_string(e)))),
             }
         }
 
@@ -151,25 +125,22 @@ where
                         ),
                     }));
                 let err = match result {
-                    Ok(i) => return (req, Ok(i)),
+                    Ok(i) => return (Ok(req), Ok(i)),
                     Err(e) => any_string(e),
                 };
 
-                return (req.to_owned(), Err(HandleError::Panic(req, err)));
+                return (Ok(req), Err(HandleError::Panic(req, err)));
             }
 
             #[cfg(not(feature = "panic_handler"))]
             {
-                return (req.to_owned(), Ok((route.handler)(req)));
+                return (Ok(req), Ok((route.handler)(req)));
             }
         }
     }
 
     // If no route was found, return a default 404
-    (
-        req.to_owned(),
-        Err(HandleError::NotFound(req.method, req.path)),
-    )
+    (Ok(req), Err(HandleError::NotFound(req.method, req.path)))
 }
 
 pub(crate) fn response_http<State>(
@@ -267,7 +238,6 @@ where
             .status(404)
             .text(format!("Cannot {} {}", method, path))
             .content(Content::TXT),
-        HandleError::Parse(err) => todo!(),
         #[cfg(feature = "panic_handler")]
         HandleError::Panic(r, e) => (server.error_handler)(r, e),
         #[cfg(not(feature = "panic_handler"))]

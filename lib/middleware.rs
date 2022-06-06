@@ -11,8 +11,6 @@ pub enum HandleError {
     /// Error readint the stream
     StreamRead,
 
-    Parse(ParseError),
-
     /// Route matching request path not found
     NotFound(Method, String),
 
@@ -22,11 +20,14 @@ pub enum HandleError {
 
 #[derive(Debug, Clone)]
 pub enum ParseError {
+    StreamRead,
     NoSeparator,
     NoMethod,
     NoPath,
+    NoVersion,
+    NoRequestLine,
     InvalidQuery,
-    InvalidHeader(usize)
+    InvalidHeader(usize),
 }
 
 /// Middleware `post` Responses
