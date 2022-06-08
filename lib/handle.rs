@@ -1,5 +1,5 @@
 // Import STD libraries
-use std::net::TcpStream;
+use std::net::{SocketAddr, TcpStream};
 
 // Feature Imports
 #[cfg(not(feature = "panic_handler"))]
@@ -8,22 +8,22 @@ use crate::Middleware;
 use std::panic;
 
 // Import local files
-use crate::common::{any_string, has_header, reason_phrase, trim_end_bytes};
-use crate::content_type::Content;
-use crate::header::{headers_to_string, Header};
-use crate::http;
-use crate::method::Method;
-use crate::middleware::{HandleError, MiddleRequest, MiddleResponse, ParseError};
-use crate::request::Request;
-use crate::response::Response;
-use crate::route::RouteType;
-use crate::server::Server;
+use crate::{
+    common::{any_string, has_header, reason_phrase, trim_end_bytes},
+    content_type::Content,
+    error::{Error, HandleError, ParseError},
+    header::{headers_to_string, Header},
+    http,
+    middleware::{MiddleRequest, MiddleResponse},
+    route::RouteType,
+    Method, Request, Response, Server,
+};
 
-/// Handle a request
+/// Handle a connection, outputting a byte vec
 pub(crate) fn handle_connection<State>(
     stream: &mut TcpStream,
     this: &Server<State>,
-) -> (Result<Request, ParseError>, Result<Response, HandleError>)
+) -> Result<(Vec<u8>, SocketAddr), Error>
 where
     State: 'static + Send + Sync,
 {
@@ -37,9 +37,9 @@ where
 
     // Read stream into buffer
     match (this.socket_handler.socket_read)(stream, &mut buffer) {
-        Some(_) => {}
-        None => return (Err(ParseError::StreamRead), Err(HandleError::StreamRead)),
-    };
+        Ok(_) => {}
+        Err(e) => return Err(Error::Io(e.kind())),
+    }
 
     #[cfg(feature = "dynamic_resize")]
     {
@@ -63,7 +63,10 @@ where
 
             trim_end_bytes(&mut buffer);
             let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
-            (this.socket_handler.socket_read_exact)(stream, &mut new_buffer).unwrap();
+            match (this.socket_handler.socket_read_exact)(stream, &mut new_buffer) {
+                Ok(_) => {}
+                Err(e) => return Err(Error::Io(e.kind())),
+            }
             buffer.extend(new_buffer);
         };
     }
@@ -71,13 +74,20 @@ where
     // Remove trailing null bytes
     trim_end_bytes(&mut buffer);
 
-    let mut req = match Request::from_bytes(&buffer, stream.peer_addr().unwrap().to_string()) {
-        Ok(i) => i,
-        Err(e) => todo!(),
-    };
+    Ok((buffer, stream.peer_addr().unwrap()))
+}
 
+// Request::from_bytes(&data, addr.to_string())
+
+pub(crate) fn handle_request<State>(
+    server: &Server<State>,
+    mut req: Request,
+) -> Result<Response, Error>
+where
+    State: 'static + Send + Sync,
+{
     // Use middleware to handle request
-    for middleware in this.middleware.iter().rev() {
+    for middleware in server.middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(&req)));
@@ -86,9 +96,9 @@ where
                 Ok(i) => match i {
                     MiddleRequest::Continue => {}
                     MiddleRequest::Add(i) => req = i,
-                    MiddleRequest::Send(i) => return (Ok(req), Ok(i)),
+                    MiddleRequest::Send(i) => return Ok(i),
                 },
-                Err(e) => return (Ok(req), Err(HandleError::Panic(req, any_string(e)))),
+                Err(e) => return Err(Error::Handle(HandleError::Panic(req, any_string(e)))),
             }
         }
 
@@ -98,13 +108,13 @@ where
             match result {
                 MiddleRequest::Continue => {}
                 MiddleRequest::Add(i) => req = i,
-                MiddleRequest::Send(i) => return (req, Ok(i)),
+                MiddleRequest::Send(i) => return Ok(i),
             }
         }
     }
 
     // Loop through all routes and check if the request matches
-    for route in this.routes.iter().rev() {
+    for route in server.routes.iter().rev() {
         let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             // Set the Pattern params of the Request
@@ -120,33 +130,38 @@ where
                     panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
                         RouteType::Stateless(i) => (i)(req.clone()),
                         RouteType::Statefull(i) => (i)(
-                            this.state.clone().expect("State not initialized"),
-                            req.to_owned(),
+                            server.state.clone().expect("State not initialized"),
+                            req.clone(),
                         ),
                     }));
+
                 let err = match result {
-                    Ok(i) => return (Ok(req), Ok(i)),
+                    Ok(i) => return Ok(i),
                     Err(e) => any_string(e),
                 };
 
-                return (Ok(req), Err(HandleError::Panic(req, err)));
+                return Err(Error::Handle(HandleError::Panic(req, err)));
             }
 
             #[cfg(not(feature = "panic_handler"))]
             {
-                return (Ok(req), Ok((route.handler)(req)));
+                match route.handler {
+                    RouteType::Stateless(i) => return Ok((i)(req.clone())),
+                    RouteType::Statefull(i) => {
+                        return Ok((i)(server.state.expect("State not initialized"), req))
+                    }
+                }
             }
         }
     }
 
-    // If no route was found, return a default 404
-    (Ok(req), Err(HandleError::NotFound(req.method, req.path)))
+    Err(Error::Handle(HandleError::NotFound(req.method, req.path)))
 }
 
 pub(crate) fn response_http<State>(
     this: &Server<State>,
     req: &Request,
-    mut res: Result<Response, HandleError>,
+    mut res: Result<Response, Error>,
 ) -> (Vec<u8>, Response)
 where
     State: 'static + Send + Sync,
@@ -155,7 +170,7 @@ where
         #[cfg(feature = "panic_handler")]
         {
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                middleware.post(req, res.to_owned())
+                middleware.post(req, res.clone())
             }));
 
             match result {
@@ -167,13 +182,18 @@ where
                         break;
                     }
                 },
-                Err(e) => res = Err(HandleError::Panic(req.to_owned(), any_string(e))),
+                Err(e) => {
+                    res = Err(Error::Handle(HandleError::Panic(
+                        req.to_owned(),
+                        any_string(e),
+                    )))
+                }
             }
         }
 
         #[cfg(not(feature = "panic_handler"))]
         {
-            let result = middleware.post(req, res.to_owned());
+            let result = middleware.post(req, res);
             match result {
                 MiddleResponse::Continue => {}
                 MiddleResponse::Add(i) => res = Ok(i),
@@ -192,13 +212,12 @@ where
 
     // Add default headers to response
     // Only the ones that arent already in the response
-    let mut headers = res.headers.clone();
+    let mut headers = res.headers.to_vec();
     for i in &this.default_headers {
         if !has_header(&headers, &i.name) {
             headers.push(i.clone());
         }
     }
-    // headers.append(&mut this.default_headers.clone());
 
     // Add content-length header to response if it hasent already been deifned by the route or defult headers
     if !has_header(&headers, "Content-Length") {
@@ -207,13 +226,12 @@ where
 
     // Convert the response to a string
     // TODO: Use Bytes instead of String
-    let status = res.status;
     let mut response = format!(
         "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-        status,
+        res.status,
         res.reason
             .to_owned()
-            .unwrap_or_else(|| reason_phrase(status)),
+            .unwrap_or_else(|| reason_phrase(res.status)),
         headers_to_string(headers)
     )
     .as_bytes()
@@ -225,22 +243,39 @@ where
     (response, res)
 }
 
-fn error_response<State>(res: HandleError, server: &Server<State>) -> Response
+fn error_response<State>(err: Error, server: &Server<State>) -> Response
 where
     State: 'static + Send + Sync,
 {
-    match res {
-        HandleError::StreamRead => Response::new()
-            .status(500)
-            .text("Error Reading Stream")
-            .content(Content::TXT),
-        HandleError::NotFound(method, path) => Response::new()
-            .status(404)
-            .text(format!("Cannot {} {}", method, path))
-            .content(Content::TXT),
-        #[cfg(feature = "panic_handler")]
-        HandleError::Panic(r, e) => (server.error_handler)(r, e),
-        #[cfg(not(feature = "panic_handler"))]
-        HandleError::Panic(_, _) => unreachable!(),
+    match err {
+        Error::Parse(e) => match e {
+            ParseError::NoSeparator => Response::new().status(400).text("No separator"),
+            ParseError::NoMethod => Response::new().status(400).text("No method"),
+            ParseError::NoPath => Response::new().status(400).text("No path"),
+            ParseError::NoVersion => Response::new().status(400).text("No HTTP version"),
+            ParseError::NoRequestLine => Response::new().status(400).text("No request line"),
+            ParseError::InvalidQuery => Response::new().status(400).text("Invalid query"),
+            ParseError::InvalidHeader(i) => Response::new()
+                .status(400)
+                .text(format!("Invalid header #{}", i)),
+        },
+        Error::Handle(e) => match e {
+            HandleError::NotFound(method, path) => Response::new()
+                .status(404)
+                .text(format!(
+                    "Cannot {} {}",
+                    match method {
+                        Method::CUSTOM(i) => i,
+                        _ => method.to_string(),
+                    },
+                    path
+                ))
+                .content(Content::TXT),
+            #[cfg(feature = "panic_handler")]
+            HandleError::Panic(r, e) => (server.error_handler)(r, e),
+            #[cfg(not(feature = "panic_handler"))]
+            HandleError::Panic(_, _) => unreachable!(),
+        },
+        Error::Io(e) => Response::new().status(500).text(e.to_string()),
     }
 }

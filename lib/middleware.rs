@@ -3,32 +3,7 @@
 
 use std::any::type_name;
 
-use crate::{Method, Request, Response, Server};
-
-/// Errors thet can arize while handling a request
-#[derive(Debug, Clone)]
-pub enum HandleError {
-    /// Error readint the stream
-    StreamRead,
-
-    /// Route matching request path not found
-    NotFound(Method, String),
-
-    /// A route or middleware paniced while running
-    Panic(Request, String),
-}
-
-#[derive(Debug, Clone)]
-pub enum ParseError {
-    StreamRead,
-    NoSeparator,
-    NoMethod,
-    NoPath,
-    NoVersion,
-    NoRequestLine,
-    InvalidQuery,
-    InvalidHeader(usize),
-}
+use crate::{Error, Request, Response, Server};
 
 /// Middleware `post` Responses
 pub enum MiddleResponse {
@@ -64,7 +39,7 @@ pub trait Middleware {
     }
 
     /// Middleware to run After Routes
-    fn post(&self, _req: &Request, _res: Result<Response, HandleError>) -> MiddleResponse {
+    fn post(&self, _req: &Request, _res: Result<Response, Error>) -> MiddleResponse {
         MiddleResponse::Continue
     }
 

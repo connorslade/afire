@@ -1,6 +1,10 @@
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
-use crate::{common, middleware::ParseError, Header, Method, Query};
+use crate::{
+    common,
+    error::{Error, ParseError},
+    Header, Method, Query,
+};
 
 /// Http Request
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
@@ -53,7 +57,7 @@ impl Request {
         }
     }
 
-    pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, ParseError> {
+    pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, Error> {
         // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
         let meta_end_index = match (0..bytes.len() - 3).find(|i| {
             bytes[*i] == 0x0D
@@ -62,7 +66,7 @@ impl Request {
                 && bytes[i + 3] == 0x0A
         }) {
             Some(i) => i,
-            None => return Err(ParseError::NoSeparator),
+            None => return Err(Error::Parse(ParseError::NoSeparator)),
         };
         // Turn the meta bytes into a string
         let meta_string = String::from_utf8_lossy(&bytes[0..meta_end_index]);
@@ -71,7 +75,7 @@ impl Request {
         // Parse the first like to get the method, path, query and verion
         let first_meta = match lines.next() {
             Some(i) => i,
-            None => return Err(ParseError::NoRequestLine),
+            None => return Err(Error::Parse(ParseError::NoRequestLine)),
         };
         let (method, path, query, version) = parse_first_meta(first_meta)?;
 
@@ -87,7 +91,7 @@ impl Request {
                     }
                     i
                 }
-                None => return Err(ParseError::InvalidHeader(inc)),
+                None => return Err(Error::Parse(ParseError::InvalidHeader(inc))),
             });
             inc += 1;
         }
@@ -189,11 +193,11 @@ impl Request {
 }
 
 /// (Method, Path, Query, Version)
-fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), ParseError> {
+fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), Error> {
     let mut parts = str.split_whitespace();
     let raw_method = match parts.next() {
         Some(i) => i,
-        None => return Err(ParseError::NoMethod),
+        None => return Err(Error::Parse(ParseError::NoMethod)),
     };
     let method = match raw_method.to_uppercase().as_str() {
         "GET" => Method::GET,
@@ -209,7 +213,7 @@ fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), ParseErr
 
     let mut raw_path = match parts.next() {
         Some(i) => i.chars(),
-        None => return Err(ParseError::NoVersion),
+        None => return Err(Error::Parse(ParseError::NoVersion)),
     };
     let mut final_path = String::new();
     let mut final_query = String::new();
@@ -242,12 +246,12 @@ fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), ParseErr
 
     let query = match Query::from_body(final_query) {
         Some(i) => i,
-        None => return Err(ParseError::InvalidQuery),
+        None => return Err(Error::Parse(ParseError::InvalidQuery)),
     };
 
     let version = match parts.next() {
         Some(i) => i,
-        None => return Err(ParseError::NoVersion),
+        None => return Err(Error::Parse(ParseError::NoVersion)),
     };
 
     Ok((method, final_path, query, version))

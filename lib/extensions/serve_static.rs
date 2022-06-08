@@ -3,7 +3,8 @@
 use std::fs;
 
 use crate::{
-    middleware::{HandleError, MiddleResponse, Middleware},
+    error::{Error, HandleError},
+    middleware::{MiddleResponse, Middleware},
     path::normalize_path,
     Request, Response,
 };
@@ -37,9 +38,9 @@ pub struct ServeStatic {
 }
 
 impl Middleware for ServeStatic {
-    fn post(&self, req: &Request, res: Result<Response, HandleError>) -> MiddleResponse {
+    fn post(&self, req: &Request, res: Result<Response, Error>) -> MiddleResponse {
         let path = match res {
-            Err(HandleError::NotFound(_, i)) => i,
+            Err(Error::Handle(HandleError::NotFound(_, i))) => i,
             _ => return MiddleResponse::Continue,
         };
 

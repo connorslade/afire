@@ -9,6 +9,7 @@ use std::time::Duration;
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
+use crate::handle::handle_request;
 // Import local files
 use crate::{
     handle::{handle_connection, response_http},
@@ -172,15 +173,17 @@ where
 
             // Get the response from the handler
             // Uses the most recently defined route that matches the request
-            let (req, res) = handle_connection(&mut stream, self);
+            let connection = handle_connection(&mut stream, self).unwrap();
+            let request = Request::from_bytes(&connection.0, connection.1.to_string()).unwrap();
+            let response = handle_request(self, request.clone());
 
-            if let Ok(i) = &res {
+            if let Ok(i) = &response {
                 if i.close {
                     continue;
                 }
             }
 
-            let (bytes, response) = response_http(self, &req, res);
+            let (bytes, response) = response_http(self, &request, response);
 
             // Send the response
             let _ = (self.socket_handler.socket_write)(&mut stream, &bytes);
@@ -190,11 +193,11 @@ where
             for middleware in self.middleware.iter().rev() {
                 #[cfg(feature = "panic_handler")]
                 let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    middleware.end(&req, &response)
+                    middleware.end(&request, &response)
                 }));
 
                 #[cfg(not(feature = "panic_handler"))]
-                middleware.end(&req, &response);
+                middleware.end(&request, &response);
             }
         }
 
@@ -228,64 +231,64 @@ where
     /// # server.set_run(false);
     /// server.start_threaded(4).unwrap();
     /// ```
-    pub fn start_threaded(self, threads: usize) -> Option<()> {
-        // Exit if the server should not run
-        if !self.run {
-            return Some(());
-        }
+    // pub fn start_threaded(self, threads: usize) -> Option<()> {
+    //     // Exit if the server should not run
+    //     if !self.run {
+    //         return Some(());
+    //     }
 
-        trace!(
-            "✨ Starting Server [{}:{}] ({} threads)",
-            self.ip,
-            self.port,
-            threads
-        );
+    //     trace!(
+    //         "✨ Starting Server [{}:{}] ({} threads)",
+    //         self.ip,
+    //         self.port,
+    //         threads
+    //     );
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
+    //     let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
-        let pool = ThreadPool::new(threads);
-        let this = Arc::new(RwLock::new(self));
+    //     let pool = ThreadPool::new(threads);
+    //     let this = Arc::new(RwLock::new(self));
 
-        for event in listener.incoming() {
-            let this = Arc::clone(&this);
-            pool.execute(move || {
-                // TODO: keep-alive stuff (in dev branch)
-                // please done forget to do it in dev
-                // pleeeeeeeeeeeeeeease
-                let this = this.read().unwrap();
+    //     for event in listener.incoming() {
+    //         let this = Arc::clone(&this);
+    //         pool.execute(move || {
+    //             // TODO: keep-alive stuff (in dev branch)
+    //             // please done forget to do it in dev
+    //             // pleeeeeeeeeeeeeeease
+    //             let this = this.read().unwrap();
 
-                // Read stream into buffer
-                let mut stream = event.unwrap();
+    //             // Read stream into buffer
+    //             let mut stream = event.unwrap();
 
-                // Get the response from the handler
-                // Uses the most recently defined route that matches the request
-                let (req, res) = handle_connection(&mut stream, &this);
+    //             // Get the response from the handler
+    //             // Uses the most recently defined route that matches the request
+    //             let (req, res) = handle_connection(&mut stream, &this);
 
-                if let Ok(i) = &res {
-                    if i.close {
-                        return;
-                    }
-                }
+    //             if let Ok(i) = &res {
+    //                 if i.close {
+    //                     return;
+    //                 }
+    //             }
 
-                let (bytes, res) = response_http(&this, &req, res);
+    //             let (bytes, res) = response_http(&this, &req, res);
 
-                let _ = (this.socket_handler.socket_write)(&mut stream, &bytes);
-                (this.socket_handler.socket_flush)(&mut stream).unwrap();
+    //             let _ = (this.socket_handler.socket_write)(&mut stream, &bytes);
+    //             (this.socket_handler.socket_flush)(&mut stream).unwrap();
 
-                // Run end middleware
-                for middleware in this.middleware.iter().rev() {
-                    #[cfg(feature = "panic_handler")]
-                    let _ =
-                        panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.end(&req, &res)));
+    //             // Run end middleware
+    //             for middleware in this.middleware.iter().rev() {
+    //                 #[cfg(feature = "panic_handler")]
+    //                 let _ =
+    //                     panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.end(&req, &res)));
 
-                    #[cfg(not(feature = "panic_handler"))]
-                    middleware.end(&req, &res);
-                }
-            });
-        }
+    //                 #[cfg(not(feature = "panic_handler"))]
+    //                 middleware.end(&req, &res);
+    //             }
+    //         });
+    //     }
 
-        unreachable!()
-    }
+    //     unreachable!()
+    // }
 
     /// Set the satrting buffer size. The default is `1024`
     ///

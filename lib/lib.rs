@@ -51,6 +51,10 @@ pub use content_type::Content;
 pub mod middleware;
 pub use middleware::Middleware;
 
+// Errors from parseing and handling requests
+pub mod error;
+pub use error::Error;
+
 // Cookies 🍪
 #[cfg(feature = "cookies")]
 mod cookie;
@@ -61,7 +65,7 @@ pub use self::cookie::{Cookie, SetCookie};
 /// Unless you are using extentions or internial lower level stuff
 pub mod prelude {
     pub use crate::{
-        middleware::{HandleError, MiddleRequest, MiddleResponse, Middleware},
+        middleware::{MiddleRequest, MiddleResponse, Middleware},
         Content, Header, Method, Request, Response, Server,
     };
     #[cfg(feature = "cookies")]
