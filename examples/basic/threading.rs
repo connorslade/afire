@@ -32,10 +32,7 @@ impl Example for Threading {
                 // It just gets the thread ID to show the user what thread is handling the request
                 .text(format!(
                     "Hello from thread number {:#?}!",
-                    unsafe {
-                        std::mem::transmute::<thread::ThreadId, NonZeroU64>(thread::current().id())
-                    }
-                    .get()
+                    unsafe { std::mem::transmute::<_, NonZeroU64>(thread::current().id()) }.get()
                         - 1
                 ))
                 .header("Content-Type", "text/plain")

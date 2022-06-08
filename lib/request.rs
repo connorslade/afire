@@ -15,6 +15,9 @@ pub struct Request {
     /// Request path
     pub path: String,
 
+    /// HTTP version
+    pub version: String,
+
     /// Path Params
     #[cfg(feature = "path_patterns")]
     pub path_params: Vec<(String, String)>,
@@ -40,23 +43,7 @@ pub struct Request {
 }
 
 impl Request {
-    /// Make a new Empty Request
-    pub fn new_empty() -> Request {
-        Request {
-            method: Method::CUSTOM("NONE".to_owned()),
-            path: "".to_owned(),
-            #[cfg(feature = "path_patterns")]
-            path_params: Vec::new(),
-            query: Query::new_empty(),
-            headers: Vec::new(),
-            #[cfg(feature = "cookies")]
-            cookies: Vec::new(),
-            body: Vec::new(),
-            address: "".to_owned(),
-            raw_data: Vec::new(),
-        }
-    }
-
+    /// Parse an HTTP request into a [`Request]
     pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, Error> {
         // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
         let meta_end_index = match (0..bytes.len() - 3).find(|i| {
@@ -82,23 +69,22 @@ impl Request {
         // Parse headers
         let mut headers = Vec::new();
         let mut cookies = Vec::new();
-        let mut inc = 0;
-        while let Some(i) = lines.next() {
-            headers.push(match Header::from_string(i) {
-                Some(i) => {
-                    if i.name == "Cookie" {
-                        cookies.extend(parse_cookie(i.clone()))
+        for (i, e) in lines.enumerate() {
+            headers.push(match Header::from_string(e) {
+                Some(j) => {
+                    if j.name == "Cookie" {
+                        cookies.extend(parse_cookie(j.clone()))
                     }
-                    i
+                    j
                 }
-                None => return Err(Error::Parse(ParseError::InvalidHeader(inc))),
+                None => return Err(Error::Parse(ParseError::InvalidHeader(i))),
             });
-            inc += 1;
         }
 
         Ok(Request {
             method,
             path,
+            version: version.to_owned(),
             path_params: Vec::new(),
             query,
             headers,
@@ -126,6 +112,7 @@ impl Request {
     /// let request = Request {
     ///     method: Method::GET,
     ///     path: "/".to_owned(),
+    ///     version: "HTTP/1.1".to_owned(),
     ///     #[cfg(feature = "path_patterns")]
     ///     path_params: Vec::new(),
     ///     query: Query::new_empty(),
@@ -259,7 +246,7 @@ fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), Error> {
 
 fn parse_cookie(header: Header) -> Vec<Cookie> {
     let mut final_cookies = Vec::new();
-    for i in header.value.split(";") {
+    for i in header.value.split(';') {
         let mut cookie_parts = i.splitn(2, '=');
         let name = match cookie_parts.next() {
             Some(i) => i.trim(),

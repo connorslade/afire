@@ -40,7 +40,10 @@ pub struct ServeStatic {
 impl Middleware for ServeStatic {
     fn post(&self, req: &Request, res: Result<Response, Error>) -> MiddleResponse {
         let path = match res {
-            Err(Error::Handle(HandleError::NotFound(_, i))) => i,
+            Err(Error::Handle(e)) => match *e {
+                HandleError::NotFound(_, i) => i,
+                _ => return MiddleResponse::Continue,
+            },
             _ => return MiddleResponse::Continue,
         };
 

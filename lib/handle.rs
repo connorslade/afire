@@ -98,7 +98,12 @@ where
                     MiddleRequest::Add(i) => req = i,
                     MiddleRequest::Send(i) => return Ok(i),
                 },
-                Err(e) => return Err(Error::Handle(HandleError::Panic(req, any_string(e)))),
+                Err(e) => {
+                    return Err(Error::Handle(Box::new(HandleError::Panic(
+                        Box::new(req),
+                        any_string(e),
+                    ))))
+                }
             }
         }
 
@@ -140,7 +145,10 @@ where
                     Err(e) => any_string(e),
                 };
 
-                return Err(Error::Handle(HandleError::Panic(req, err)));
+                return Err(Error::Handle(Box::new(HandleError::Panic(
+                    Box::new(req),
+                    err,
+                ))));
             }
 
             #[cfg(not(feature = "panic_handler"))]
@@ -155,7 +163,9 @@ where
         }
     }
 
-    Err(Error::Handle(HandleError::NotFound(req.method, req.path)))
+    Err(Error::Handle(Box::new(HandleError::NotFound(
+        req.method, req.path,
+    ))))
 }
 
 pub(crate) fn response_http<State>(
@@ -183,10 +193,10 @@ where
                     }
                 },
                 Err(e) => {
-                    res = Err(Error::Handle(HandleError::Panic(
-                        req.to_owned(),
+                    res = Err(Error::Handle(Box::new(HandleError::Panic(
+                        Box::new(req.to_owned()),
                         any_string(e),
-                    )))
+                    ))))
                 }
             }
         }
@@ -259,7 +269,7 @@ where
                 .status(400)
                 .text(format!("Invalid header #{}", i)),
         },
-        Error::Handle(e) => match e {
+        Error::Handle(e) => match *e {
             HandleError::NotFound(method, path) => Response::new()
                 .status(404)
                 .text(format!(
@@ -272,7 +282,7 @@ where
                 ))
                 .content(Content::TXT),
             #[cfg(feature = "panic_handler")]
-            HandleError::Panic(r, e) => (server.error_handler)(r, e),
+            HandleError::Panic(r, e) => (server.error_handler)(*r, e),
             #[cfg(not(feature = "panic_handler"))]
             HandleError::Panic(_, _) => unreachable!(),
         },
