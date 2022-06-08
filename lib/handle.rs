@@ -11,7 +11,7 @@ use std::panic;
 use crate::{
     common::{any_string, has_header, reason_phrase, trim_end_bytes},
     content_type::Content,
-    error::{Error, HandleError, ParseError},
+    error::{Error, HandleError, ParseError, Result},
     header::{headers_to_string, Header},
     http,
     middleware::{MiddleRequest, MiddleResponse},
@@ -19,11 +19,102 @@ use crate::{
     Method, Request, Response, Server,
 };
 
-/// Handle a connection, outputting a byte vec
-pub(crate) fn handle_connection<State>(
+/// Handle all aspects of a request
+pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
+where
+    State: 'static + Send + Sync,
+{
+    let (bytes, response, request) = handle_critical(stream, this);
+
+    if response.close {
+        return;
+    }
+
+    let _ = (this.socket_handler.socket_write)(stream, &bytes);
+    (this.socket_handler.socket_flush)(stream).unwrap();
+
+    // Run end middleware
+    for middleware in this.middleware.iter().rev() {
+        #[cfg(feature = "panic_handler")]
+        let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+            middleware.end(&request, &response)
+        }));
+
+        #[cfg(not(feature = "panic_handler"))]
+        middleware.end(&request, &response);
+    }
+}
+
+fn handle_critical<State>(
     stream: &mut TcpStream,
     this: &Server<State>,
-) -> Result<(Vec<u8>, SocketAddr), Error>
+) -> (Vec<u8>, Response, Result<Request>)
+where
+    State: 'static + Send + Sync,
+{
+    let connection = match handle_connection(stream, this) {
+        Ok(i) => i,
+        Err(e) => {
+            return {
+                let out = response_http(this, Err(e));
+                (out.0, out.1, Err(Error::None))
+            }
+        }
+    };
+
+    let req = Request::from_bytes(&connection.0, connection.1.to_string());
+    let mut res = match req.clone() {
+        Ok(i) => handle_request(this, i),
+        Err(e) => Err(e),
+    };
+
+    for middleware in this.middleware.iter().rev() {
+        #[cfg(feature = "panic_handler")]
+        {
+            let result =
+                panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.post(&req, &res)));
+
+            match result {
+                Ok(i) => match i {
+                    MiddleResponse::Continue => {}
+                    MiddleResponse::Add(i) => res = Ok(i),
+                    MiddleResponse::Send(i) => {
+                        res = Ok(i);
+                        break;
+                    }
+                },
+                Err(e) => {
+                    res = Err(Error::Handle(Box::new(HandleError::Panic(
+                        Box::new(req.clone()),
+                        any_string(e),
+                    ))))
+                }
+            }
+        }
+
+        #[cfg(not(feature = "panic_handler"))]
+        {
+            let result = middleware.post(req, res);
+            match result {
+                MiddleResponse::Continue => {}
+                MiddleResponse::Add(i) => res = Ok(i),
+                MiddleResponse::Send(i) => {
+                    res = Ok(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    let out = response_http(this, res);
+    (out.0, out.1, req)
+}
+
+/// Handle a connection, outputting a byte vec
+pub fn handle_connection<State>(
+    stream: &mut TcpStream,
+    this: &Server<State>,
+) -> Result<(Vec<u8>, SocketAddr)>
 where
     State: 'static + Send + Sync,
 {
@@ -79,10 +170,7 @@ where
 
 // Request::from_bytes(&data, addr.to_string())
 
-pub(crate) fn handle_request<State>(
-    server: &Server<State>,
-    mut req: Request,
-) -> Result<Response, Error>
+pub fn handle_request<State>(server: &Server<State>, mut req: Request) -> Result<Response>
 where
     State: 'static + Send + Sync,
 {
@@ -90,7 +178,8 @@ where
     for middleware in server.middleware.iter().rev() {
         #[cfg(feature = "panic_handler")]
         {
-            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(&req)));
+            let result =
+                panic::catch_unwind(panic::AssertUnwindSafe(|| middleware.pre(&Ok(req.clone()))));
 
             match result {
                 Ok(i) => match i {
@@ -100,7 +189,7 @@ where
                 },
                 Err(e) => {
                     return Err(Error::Handle(Box::new(HandleError::Panic(
-                        Box::new(req),
+                        Box::new(Ok(req)),
                         any_string(e),
                     ))))
                 }
@@ -146,7 +235,7 @@ where
                 };
 
                 return Err(Error::Handle(Box::new(HandleError::Panic(
-                    Box::new(req),
+                    Box::new(Ok(req)),
                     err,
                 ))));
             }
@@ -168,56 +257,13 @@ where
     ))))
 }
 
-pub(crate) fn response_http<State>(
-    this: &Server<State>,
-    req: &Request,
-    mut res: Result<Response, Error>,
-) -> (Vec<u8>, Response)
+pub fn response_http<State>(this: &Server<State>, res: Result<Response>) -> (Vec<u8>, Response)
 where
     State: 'static + Send + Sync,
 {
-    for middleware in this.middleware.iter().rev() {
-        #[cfg(feature = "panic_handler")]
-        {
-            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                middleware.post(req, res.clone())
-            }));
-
-            match result {
-                Ok(i) => match i {
-                    MiddleResponse::Continue => {}
-                    MiddleResponse::Add(i) => res = Ok(i),
-                    MiddleResponse::Send(i) => {
-                        res = Ok(i);
-                        break;
-                    }
-                },
-                Err(e) => {
-                    res = Err(Error::Handle(Box::new(HandleError::Panic(
-                        Box::new(req.to_owned()),
-                        any_string(e),
-                    ))))
-                }
-            }
-        }
-
-        #[cfg(not(feature = "panic_handler"))]
-        {
-            let result = middleware.post(req, res);
-            match result {
-                MiddleResponse::Continue => {}
-                MiddleResponse::Add(i) => res = Ok(i),
-                MiddleResponse::Send(i) => {
-                    res = Ok(i);
-                    break;
-                }
-            }
-        }
-    }
-
     let res = match res {
         Ok(i) => i,
-        Err(e) => error_response(e, this),
+        Err(e) => error_response(e, Error::None, this),
     };
 
     // Add default headers to response
@@ -248,16 +294,20 @@ where
     .to_vec();
 
     // Add Bytes of data to response
-    response.append(&mut res.data.to_owned());
+    response.extend(res.data.clone());
 
     (response, res)
 }
 
-fn error_response<State>(err: Error, server: &Server<State>) -> Response
+pub fn error_response<State>(req: Error, mut res: Error, server: &Server<State>) -> Response
 where
     State: 'static + Send + Sync,
 {
-    match err {
+    if res == Error::None {
+        res = req;
+    }
+
+    match res {
         Error::Parse(e) => match e {
             ParseError::NoSeparator => Response::new().status(400).text("No separator"),
             ParseError::NoMethod => Response::new().status(400).text("No method"),
@@ -287,5 +337,6 @@ where
             HandleError::Panic(_, _) => unreachable!(),
         },
         Error::Io(e) => Response::new().status(500).text(e.to_string()),
+        Error::None => unreachable!(),
     }
 }

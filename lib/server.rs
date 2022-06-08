@@ -2,20 +2,17 @@
 use std::any::type_name;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 // Feature Imports
 #[cfg(feature = "panic_handler")]
 use std::panic;
 
-use crate::handle::handle_request;
 // Import local files
 use crate::{
-    handle::{handle_connection, response_http},
-    internal::socket_handler::SocketHandler,
-    thread_pool::ThreadPool,
-    Header, Method, Middleware, Request, Response, Route, VERSION,
+    error::Result, handle::handle, internal::socket_handler::SocketHandler,
+    thread_pool::ThreadPool, Header, Method, Middleware, Request, Response, Route, VERSION,
 };
 
 /// Defines a server.
@@ -47,7 +44,7 @@ where
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    pub error_handler: Box<dyn Fn(Request, String) -> Response + Send + Sync>,
+    pub error_handler: Box<dyn Fn(Result<Request>, String) -> Response + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
@@ -168,37 +165,7 @@ where
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         for event in listener.incoming() {
-            // Read stream into buffer
-            let mut stream = event.unwrap();
-
-            // Get the response from the handler
-            // Uses the most recently defined route that matches the request
-            let connection = handle_connection(&mut stream, self).unwrap();
-            let request = Request::from_bytes(&connection.0, connection.1.to_string()).unwrap();
-            let response = handle_request(self, request.clone());
-
-            if let Ok(i) = &response {
-                if i.close {
-                    continue;
-                }
-            }
-
-            let (bytes, response) = response_http(self, &request, response);
-
-            // Send the response
-            let _ = (self.socket_handler.socket_write)(&mut stream, &bytes);
-            (self.socket_handler.socket_flush)(&mut stream).unwrap();
-
-            // Run end middleware
-            for middleware in self.middleware.iter().rev() {
-                #[cfg(feature = "panic_handler")]
-                let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    middleware.end(&request, &response)
-                }));
-
-                #[cfg(not(feature = "panic_handler"))]
-                middleware.end(&request, &response);
-            }
+            handle(&mut event.unwrap(), self);
         }
 
         // We should Never Get Here
@@ -247,44 +214,12 @@ where
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         let pool = ThreadPool::new(threads);
-        let this = Arc::new(RwLock::new(self));
+        let this = Arc::new(self);
 
         for event in listener.incoming() {
             let this = Arc::clone(&this);
             pool.execute(move || {
-                let this = this.read().unwrap();
-
-                // Read stream into buffer
-                let mut stream = event.unwrap();
-
-                // Get the response from the handler
-                // Uses the most recently defined route that matches the request
-                let connection = handle_connection(&mut stream, &this).unwrap();
-                let request = Request::from_bytes(&connection.0, connection.1.to_string()).unwrap();
-                let response = handle_request(&this, request.clone());
-
-                if let Ok(i) = &response {
-                    if i.close {
-                        return;
-                    }
-                }
-
-                let (bytes, response) = response_http(&this, &request, response);
-
-                // Send the response
-                let _ = (this.socket_handler.socket_write)(&mut stream, &bytes);
-                (this.socket_handler.socket_flush)(&mut stream).unwrap();
-
-                // Run end middleware
-                for middleware in this.middleware.iter().rev() {
-                    #[cfg(feature = "panic_handler")]
-                    let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.end(&request, &response)
-                    }));
-
-                    #[cfg(not(feature = "panic_handler"))]
-                    middleware.end(&request, &response);
-                }
+                handle(&mut event.unwrap(), &this);
             });
         }
 
@@ -456,7 +391,7 @@ where
     #[cfg(feature = "panic_handler")]
     pub fn error_handler(
         &mut self,
-        res: impl Fn(Request, String) -> Response + Send + Sync + 'static,
+        res: impl Fn(Result<Request>, String) -> Response + Send + Sync + 'static,
     ) {
         trace!("✌ Setting Error Handler");
 

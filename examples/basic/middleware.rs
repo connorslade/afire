@@ -1,4 +1,5 @@
 use afire::{
+    error,
     internal::common::remove_address_port,
     middleware::{MiddleRequest, Middleware},
     Method, Request, Response, Server,
@@ -26,7 +27,13 @@ struct Log;
 impl Middleware for Log {
     // Redefine the `pre` function
     // (Runs before Routes)
-    fn pre(&self, req: &Request) -> MiddleRequest {
+    fn pre(&self, req: &error::Result<Request>) -> MiddleRequest {
+        // In the case that the request is an error, continue
+        let req = match req {
+            Ok(i) => i,
+            Err(_) => return MiddleRequest::Continue,
+        };
+
         // Print some info
         println!(
             "[{}] {} {}",

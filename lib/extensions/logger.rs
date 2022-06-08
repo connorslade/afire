@@ -5,10 +5,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-use crate::common::remove_address_port;
-use crate::middleware::Middleware;
-use crate::Request;
-use crate::Response;
+use crate::{common::remove_address_port, error::Result, Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -203,8 +200,10 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn end(&self, req: &Request, _res: &Response) {
-        self.log(req);
+    fn end(&self, req: &Result<Request>, _res: &Response) {
+        if let Ok(req) = req {
+            self.log(req);
+        }
     }
 }
 

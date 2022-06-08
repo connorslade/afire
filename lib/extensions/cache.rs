@@ -5,8 +5,9 @@ use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
+    error::Result,
     middleware::{MiddleRequest, Middleware},
-    Request, Response,
+    Method, Request, Response,
 };
 
 /// A Middleware to cache route responses
@@ -14,8 +15,8 @@ use crate::{
 /// By defult it caches *every* request
 /// this can be changed with the .to_cache method
 pub struct Cache {
-    /// Cache Data (Path String -> (Route Response, Cache Epoch))
-    cache: RwLock<HashMap<String, (Response, u64)>>,
+    /// Cache Data (Route -> (Route Response, Cache Epoch))
+    cache: RwLock<HashMap<(Method, String), (Response, u64)>>,
 
     /// Function thaat defines weather a request should be cached
     to_cache: Box<dyn Fn(&Request) -> bool + Send + Sync>,
@@ -97,13 +98,27 @@ impl Cache {
 }
 
 impl Middleware for Cache {
-    fn pre(&self, req: &Request) -> MiddleRequest {
+    fn pre(&self, req: &Result<Request>) -> MiddleRequest {
+        let req = match req {
+            Ok(i) => i.to_owned(),
+            Err(_) => return MiddleRequest::Continue,
+        };
+
         // Get response from cache
-        if let Some((res, time)) = self.cache.read().unwrap().get(&req.path) {
+        if let Some((res, time)) = self
+            .cache
+            .read()
+            .unwrap()
+            .get(&(req.method.to_owned(), req.path.to_owned()))
+        {
             // If resource has expired remove from cache and continue
             // Cache never times out if timeout is 0
             if self.timeout != 0 && current_epoch() - time >= self.timeout {
-                self.cache.write().unwrap().remove(&req.path).unwrap();
+                self.cache
+                    .write()
+                    .unwrap()
+                    .remove(&(req.method, req.path))
+                    .unwrap();
                 return MiddleRequest::Continue;
             }
 
@@ -115,10 +130,22 @@ impl Middleware for Cache {
         MiddleRequest::Continue
     }
 
-    fn end(&self, req: &Request, res: &Response) {
+    fn end(&self, req: &Result<Request>, res: &Response) {
+        let req = match req {
+            Ok(i) => i.to_owned(),
+            Err(_) => return,
+        };
+
         // Return if its not ment to be
         // or if response is already in cache
-        if !(self.to_cache)(req) || self.cache.read().unwrap().get(&req.path).is_some() {
+        if !(self.to_cache)(&req)
+            || self
+                .cache
+                .read()
+                .unwrap()
+                .get(&(req.method.to_owned(), req.path.to_owned()))
+                .is_some()
+        {
             return;
         }
 
@@ -126,7 +153,7 @@ impl Middleware for Cache {
         self.cache
             .write()
             .unwrap()
-            .insert(req.path.clone(), (res.to_owned(), current_epoch()));
+            .insert((req.method, req.path), (res.to_owned(), current_epoch()));
     }
 }
 

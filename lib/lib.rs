@@ -65,6 +65,7 @@ pub use self::cookie::{Cookie, SetCookie};
 /// Unless you are using extentions or internial lower level stuff
 pub mod prelude {
     pub use crate::{
+        error::{self, Error},
         middleware::{MiddleRequest, MiddleResponse, Middleware},
         Content, Header, Method, Request, Response, Server,
     };

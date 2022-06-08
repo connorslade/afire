@@ -6,9 +6,12 @@ use std::sync::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::common::remove_address_port;
-use crate::middleware::{MiddleRequest, Middleware};
-use crate::{Content, Request, Response};
+use crate::{
+    common::remove_address_port,
+    error::Result,
+    middleware::{MiddleRequest, Middleware},
+    Content, Request, Response,
+};
 
 // Handler Type
 type Handler = Box<dyn Fn(&Request) -> Option<Response> + Send + Sync>;
@@ -161,7 +164,12 @@ impl RateLimiter {
 }
 
 impl Middleware for RateLimiter {
-    fn pre(&self, req: &Request) -> MiddleRequest {
+    fn pre(&self, req: &Result<Request>) -> MiddleRequest {
+        let req = match req {
+            Ok(i) => i,
+            Err(_) => return MiddleRequest::Continue,
+        };
+
         if self.is_over_limit(remove_address_port(&req.address)) {
             return match (self.handler)(req) {
                 Some(i) => MiddleRequest::Send(i),
@@ -172,7 +180,12 @@ impl Middleware for RateLimiter {
         MiddleRequest::Continue
     }
 
-    fn end(&self, req: &Request, _res: &Response) {
+    fn end(&self, req: &Result<Request>, _res: &Response) {
+        let req = match req {
+            Ok(i) => i,
+            Err(_) => return,
+        };
+
         self.check_reset();
         self.add_request(remove_address_port(&req.address));
     }

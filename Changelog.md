@@ -18,7 +18,9 @@ _coming soon?_
 - Add Cache Middleware
 - Remove insane build script
 - When building http response only add Content-Length and default headers if they are not already present
-- Add server state system
+- Add server state syste
+- Improved Request Parsing
+- Redo Error system
 
 # 1.1.0
 

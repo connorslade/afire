@@ -46,7 +46,7 @@ impl Request {
     /// Parse an HTTP request into a [`Request]
     pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, Error> {
         // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
-        let meta_end_index = match (0..bytes.len() - 3).find(|i| {
+        let meta_end_index = match (0..bytes.len().saturating_sub(3)).find(|i| {
             bytes[*i] == 0x0D
                 && bytes[i + 1] == 0x0A
                 && bytes[i + 2] == 0x0D
