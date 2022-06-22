@@ -336,7 +336,7 @@ where
             #[cfg(not(feature = "panic_handler"))]
             HandleError::Panic(_, _) => unreachable!(),
         },
-        Error::Io(e) => Response::new().status(500).text(e.to_string()),
+        Error::Io(e) => Response::new().status(500).text(format!("{:?}", e)),
         Error::None => unreachable!(),
     }
 }
