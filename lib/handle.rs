@@ -30,8 +30,8 @@ where
         return;
     }
 
-    let _ = (this.socket_handler.socket_write)(stream, &bytes);
-    (this.socket_handler.socket_flush)(stream).unwrap();
+    let _ =(this.socket_handler.socket_write)(stream, &bytes);
+    let _ = (this.socket_handler.socket_flush)(stream);
 
     // Run end middleware
     for middleware in this.middleware.iter().rev() {
