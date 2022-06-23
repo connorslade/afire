@@ -89,7 +89,7 @@ impl Request {
             query,
             headers,
             cookies,
-            body: bytes[meta_end_index..].to_vec(),
+            body: bytes[4 + meta_end_index..].to_vec(),
             address,
             raw_data: bytes.to_vec(),
         })
