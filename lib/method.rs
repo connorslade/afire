@@ -1,7 +1,7 @@
 use std::fmt;
 
 /// Methods for a request
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum Method {
     /// GET Method
     ///
@@ -72,9 +72,9 @@ impl Method {
     /// ```
     pub fn from_string<T>(s: T) -> Method
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
-        let upper_s = s.to_string().to_uppercase();
+        let upper_s = s.as_ref().to_uppercase();
         match &upper_s[..] {
             "GET" => Method::GET,
             "POST" => Method::POST,
@@ -111,31 +111,5 @@ impl fmt::Display for Method {
             Method::CUSTOM(ref s) => write!(f, "CUSTOM({})", s),
             Method::ANY => write!(f, "ANY"),
         }
-    }
-}
-
-// Impl Clone for Method
-impl Clone for Method {
-    fn clone(&self) -> Method {
-        match *self {
-            Method::GET => Method::GET,
-            Method::POST => Method::POST,
-            Method::PUT => Method::PUT,
-            Method::DELETE => Method::DELETE,
-            Method::OPTIONS => Method::OPTIONS,
-            Method::HEAD => Method::HEAD,
-            Method::PATCH => Method::PATCH,
-            Method::TRACE => Method::TRACE,
-            Method::CUSTOM(ref s) => Method::CUSTOM(s.clone()),
-            Method::ANY => Method::ANY,
-        }
-    }
-}
-
-impl fmt::Debug for Method {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Method")
-            .field("method", &self.to_string())
-            .finish()
     }
 }

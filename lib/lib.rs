@@ -1,98 +1,8 @@
-/*!
-# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="#"><img src="https://img.shields.io/tokei/lines/github/Basicprogrammer10/afire?label=Total%20Lines"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"> <img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
-
-A blazing fast dependency free web framework for Rust
-
-## 💠 Install
-
-Just add the following to your `Cargo.toml`:
-
-```toml
-[dependencies]
-afire = "1.1.0"
-```
-
-## 📄 Info
-
-This is kinda like express.js for rust. It is not _that_ complicated but it still makes development of apis / web servers much easier. It supports Middleware and comes with some built in for Static File Serving, Logging and Rate limiting.
-
-For more information on this lib check the docs [here](https://crates.io/crates/afire)
-
-## 💥 Examples
-
-For some examples go [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
-
-Here is a super simple example:
-
-```rust
-// Import Lib
-use afire::{Server, Method, Response, Header, Content};
-
-// Create Server
-let mut server: Server = Server::new("localhost", 8080);
-
-// Add a route
-server.route(Method::GET, "/greet/{name}", |req| {
-  let name = req.path_param("name").unwrap();
-
-  Response::new()
-    .text(format!("Hello, {}", name))
-    .content(Content::TXT)
-});
-
-// Start the server
-// This is blocking
-# server.set_run(false);
-server.start().unwrap();
-```
-
-## 🔧 Features
-
-Here I will outline interesting features that are available in afire.
-
-- Builtin Middleware
-
-afire comes with some builtin extensions in the form of middleware.
-Currently the builtin middleware includes [rate_limit](), [logging](), and [serve_static]().
-For these you will need to enable the features.
-
-To use these extra features enable them like this:
-
-```toml
-afire = { version = "1.1.0", features = ["rate_limit", "logging", "serve_static"] }
-```
-
-- Content Types
-
-As an easy way to set the Content-Type of a Response you can use the `.content` methood of the Response.
-Then you can put one of the common predefined types.
-
-```rust
-// Import Lib
-use afire::{Server, Method, Response, Header, Content};
-
-// Create Server
-let mut server: Server = Server::new("localhost", 8080);
-
-// Add a route
-server.route(Method::GET, "/", |_req| {
-  Response::new()
-    .text("Hello, World!")
-    .content(Content::TXT)
-});
-
-// Start the server
-// This is blocking
-# server.set_run(false);
-server.start().unwrap();
-```
-*/
-
-// #![feature(test)]
+#![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
 #[doc(hidden)]
-pub const VERSION: &str = "1.1.0";
+pub const VERSION: &str = "1.2.0";
 
 // Export Internal Functions
 #[macro_use]
@@ -141,34 +51,48 @@ pub use content_type::Content;
 pub mod middleware;
 pub use middleware::Middleware;
 
+// Errors from parseing and handling requests
+pub mod error;
+pub use error::Error;
+
 // Cookies 🍪
 #[cfg(feature = "cookies")]
 mod cookie;
 #[cfg(feature = "cookies")]
 pub use self::cookie::{Cookie, SetCookie};
 
-// TODO: Finish Discription
-/// Prelude
+/// The Prelude is a collection of very commenly used *things* in afire
+/// Unless you are using extentions or internial lower level stuff
 pub mod prelude {
     pub use crate::{
+        error::{self, Error},
         middleware::{MiddleRequest, MiddleResponse, Middleware},
         Content, Header, Method, Request, Response, Server,
     };
+    #[cfg(feature = "cookies")]
+    pub use crate::{Cookie, SetCookie};
 }
 
 // Extra Features
+#[cfg(feature = "extensions")]
 mod extensions;
-
-#[cfg(feature = "rate_limit")]
-pub use extensions::ratelimit::RateLimiter;
-
-#[cfg(feature = "logging")]
-pub use extensions::logger::{Level, Logger};
-
-#[cfg(feature = "serve_static")]
-pub use extensions::serve_static;
-#[cfg(feature = "serve_static")]
-pub use extensions::serve_static::ServeStatic;
+#[cfg(feature = "extensions")]
+pub mod extension {
+    //! Built in Extensions
+    //!
+    //! - Serve Static
+    //! - RateLimit
+    //! - Logger
+    //! - Response Cache
+    //! - Request Id
+    pub use crate::extensions::{
+        cache::{self, Cache},
+        logger::{self, Logger},
+        ratelimit::RateLimiter,
+        request_id::RequestId,
+        serve_static::{self, ServeStatic},
+    };
+}
 
 // Unit Tests
 #[cfg(test)]

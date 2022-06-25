@@ -53,12 +53,12 @@ impl Cookie {
     /// ```
     pub fn new<T, M>(name: T, value: M) -> Cookie
     where
-        T: std::fmt::Display,
-        M: std::fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         Cookie {
-            name: name.to_string(),
-            value: value.to_string(),
+            name: name.as_ref().to_owned(),
+            value: value.as_ref().to_owned(),
         }
     }
 
@@ -129,8 +129,8 @@ impl SetCookie {
     /// ```
     pub fn new<T, M>(name: T, value: M) -> SetCookie
     where
-        T: std::fmt::Display,
-        M: std::fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         SetCookie {
             cookie: Cookie::new(name, value),
@@ -170,10 +170,10 @@ impl SetCookie {
     /// ```
     pub fn domain<T>(self, domain: T) -> SetCookie
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
         SetCookie {
-            domain: Some(domain.to_string()),
+            domain: Some(domain.as_ref().to_owned()),
             ..self
         }
     }
@@ -189,10 +189,10 @@ impl SetCookie {
     /// ```
     pub fn path<T>(self, path: T) -> SetCookie
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
         SetCookie {
-            path: Some(path.to_string()),
+            path: Some(path.as_ref().to_owned()),
             ..self
         }
     }

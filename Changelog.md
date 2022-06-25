@@ -1,26 +1,59 @@
+# 1.2.0
+
+June 24, 2022
+
+- oh windows,,,
+- Fix Path Traversal on windows
+- Use AsRef<str> more instead of Display
+- Add a serve path to Serve Static
+- Serve index from serve path
+- Remove the `ignore_trailing_path_slash` feature
+- Redo Internal Error handling system
+- Middleware use references to Requests and Responses and stuff
+- Improve built-in serve_static middleware
+- Re organize extension stuff
+- RateLimit use RwLock
+- Add Request ID Middleware
+- Server Wide State
+- Add Cache Middleware
+- Remove insane build script
+- When building http response only add Content-Length and default headers if they are not already present
+- Add server state syste
+- Improved Request Parsing
+- Redo Error system
+- Remove the requests raw_data feild
+- Remove Request::body_string in favor of String::from_utf8()
+- Fix HTTP parseing and genatation issues
+
 # 1.1.0
 
-- Update Path Matcher to support AnyAfter segments (**)
+Apr 10, 2022
+
+- Update Path Matcher to support AnyAfter segments (\*\*)
 - Remove Test Example
 - Add Paste Bin App Example
-- Add SocketHandler struct to hold socket ineracting functions
+- Add SocketHandler struct to hold socket interacting functions
 - Fix Path Traversal Exploit O_O
 
 # 1.0.0!
+
+Mar 14, 2022
 
 - Add ThreadPool Back!
 - Tracing Feature
 - Remove Middleware Interior Mutability by Default
 - Make remove_address_port usable without Feature
-- Add *end* middleware to run after sending a request
+- Add _end_ middleware to run after sending a request
 - Make use of end middleware on logger
 
 # 0.4.0
 
+Feb 19, 2022
+
 - Make serve static types public
 - Fix File Uploading stuff
 - Add a Prelude for afire essentials
-- Optimize HTTP parser *(saving nanoseconds!)*
+- Optimize HTTP parser _(saving nanoseconds!)_
 - More unit tests
 - Middleware Error Handling!
 - Make Route and Error Handler functions take closures
@@ -31,6 +64,8 @@
 - Now .header takes in a key and value rather than a Header struct
 
 # 0.3.0
+
+Jan 25, 2022 s
 
 - Add content types
 - Update Logger syntax
@@ -60,11 +95,15 @@
 
 # 0.2.2
 
+Dec 04, 2021
+
 - Remove Debug Print Left in...
 - Small changes to features
 - This is mostly about the Debug Print
 
 # 0.2.1
+
+Dec 04, 2021
 
 - Only Build common::remove_address_port if logger or rate-limiter are enabled
 - Make Header name / value Public
@@ -81,10 +120,12 @@
 - Store Raw Request data and Request body as `Vec<u8>`
 - Fix Panic Handler feature compile problems
 - Dont use an Option for Vec of default headers
-- Fix Header Parseing
+- Fix Header Parsing
 - Add a `header` method on Request to get headers
 
 # 0.2.0
+
+Nov 04, 2021
 
 - Response Overhaul, Now more like a Response Builder
 - Update _every_ example with new syntax...
@@ -97,9 +138,11 @@
 - Update Readme in /examples
 - Add a dynamic buffer resize feature
 - Update Logger Middleware to be a builder
-- Add Path param Example in 04_data
+- Add Path parameter Example in 04_data
 
 # 0.1.7
+
+Oct 27, 2021
 
 - Add Panic Message to Error Handel
 - Add http.rs to move raw http parsing out of server.rs
@@ -111,6 +154,8 @@
 - Add Socket Timeout Docs
 
 # 0.1.6
+
+Oct 20, 2021
 
 - Add Example for Logging
 - Add Example for Rate Limiter
@@ -130,6 +175,8 @@
 
 # 0.1.5
 
+Sep 17, 2021
+
 - Add a route error handler
 - Add `set_error_handler` fn to set the error handler
 - Implement clone for more structs
@@ -146,19 +193,27 @@
 
 # 0.1.4
 
+Sep 05, 2021
+
 - Allow responding with bytes, not just strings
 - Add Serving Favoricon as example thing
 
 # 0.1.3
+
+Sep 03, 2021
 
 - Add Support for query strings in paths
 - Add More docs for Query
 
 # 0.1.2
 
+Sep 01, 2021
+
 - Fix a bug where '.any' routes were not working
 
 # 0.1.1
+
+Aug 31, 2021
 
 - Add Optional Rate limiter _beta_
 - Update readme abit
@@ -172,5 +227,7 @@
 - Code Cleanup
 
 # 0.1.0
+
+Aug 21, 2021
 
 - Base Code

@@ -1,8 +1,5 @@
-#[cfg(feature = "rate_limit")]
-pub mod ratelimit;
-
-#[cfg(feature = "logging")]
+pub mod cache;
 pub mod logger;
-
-#[cfg(feature = "serve_static")]
+pub mod ratelimit;
+pub mod request_id;
 pub mod serve_static;

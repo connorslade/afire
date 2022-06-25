@@ -1,8 +1,8 @@
 // Import STD libraries
-use std::fmt;
+use std::any::type_name;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::str;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 // Feature Imports
@@ -10,19 +10,16 @@ use std::time::Duration;
 use std::panic;
 
 // Import local files
-use crate::handle::{handle_connection, response_http};
-use crate::header::Header;
-use crate::internal::socket_handler::SocketHandler;
-use crate::method::Method;
-use crate::middleware::Middleware;
-use crate::request::Request;
-use crate::response::Response;
-use crate::route::Route;
-use crate::thread_pool::ThreadPool;
-use crate::VERSION;
+use crate::{
+    error::Result, handle::handle, internal::socket_handler::SocketHandler,
+    thread_pool::ThreadPool, Header, Method, Middleware, Request, Response, Route, VERSION,
+};
 
 /// Defines a server.
-pub struct Server {
+pub struct Server<State = ()>
+where
+    State: 'static + Send + Sync,
+{
     /// Port to listen on.
     pub port: u16,
 
@@ -36,15 +33,18 @@ pub struct Server {
     pub buff_size: usize,
 
     /// Routes to handle.
-    pub routes: Vec<Route>,
+    pub routes: Vec<Route<State>>,
 
     // Other stuff
     /// Middleware
     pub middleware: Vec<Box<dyn Middleware + Send + Sync>>,
 
+    /// Server wide App State
+    pub state: Option<Arc<State>>,
+
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    pub error_handler: Box<dyn Fn(Request, String) -> Response + Send + Sync>,
+    pub error_handler: Box<dyn Fn(Result<Request>, String) -> Response + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
@@ -61,10 +61,11 @@ pub struct Server {
     pub run: bool,
 }
 
-unsafe impl Sync for Server {}
-
 /// Implementations for Server
-impl Server {
+impl<State> Server<State>
+where
+    State: Send + Sync,
+{
     /// Creates a new server.
     ///
     /// ## Example
@@ -74,15 +75,15 @@ impl Server {
     ///
     /// // Create a server for localhost on port 8080
     /// // Note: The server has not been started yet
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
-    pub fn new<T>(raw_ip: T, port: u16) -> Server
+    pub fn new<T>(raw_ip: T, port: u16) -> Self
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
         trace!("🐍 Initializing Server v{}", VERSION);
 
-        let mut raw_ip = raw_ip.to_string();
+        let mut raw_ip = raw_ip.as_ref().to_owned();
         let mut ip: [u8; 4] = [0; 4];
 
         // If the ip is localhost, use the loop back ip
@@ -122,6 +123,7 @@ impl Server {
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
             socket_handler: SocketHandler::default(),
             socket_timeout: None,
+            state: None,
         }
     }
 
@@ -135,7 +137,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -162,35 +164,7 @@ impl Server {
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         for event in listener.incoming() {
-            // Read stream into buffer
-            let mut stream = event.ok()?;
-
-            // Get the response from the handler
-            // Uses the most recently defined route that matches the request
-            let (req, res) = handle_connection(&mut stream, self);
-
-            if res.close {
-                continue;
-            }
-
-            let end_res = res.clone();
-            let end_req = req.clone();
-            let response = response_http(self, req, res);
-
-            // Send the response
-            let _ = (self.socket_handler.socket_write)(&mut stream, &response);
-            (self.socket_handler.socket_flush)(&mut stream).unwrap();
-
-            // Run end middleware
-            for middleware in self.middleware.iter().rev() {
-                #[cfg(feature = "panic_handler")]
-                let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    middleware.end(end_req.clone(), end_res.clone())
-                }));
-
-                #[cfg(not(feature = "panic_handler"))]
-                middleware.end(end_req.clone(), end_res.clone());
-            }
+            handle(&mut event.unwrap(), self);
         }
 
         // We should Never Get Here
@@ -207,7 +181,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Starts a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/", |req| {
@@ -239,41 +213,12 @@ impl Server {
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
 
         let pool = ThreadPool::new(threads);
-        let this = Arc::new(RwLock::new(self));
+        let this = Arc::new(self);
 
         for event in listener.incoming() {
             let this = Arc::clone(&this);
             pool.execute(move || {
-                let this = this.read().unwrap();
-
-                // Read stream into buffer
-                let mut stream = event.unwrap();
-
-                // Get the response from the handler
-                // Uses the most recently defined route that matches the request
-                let (req, res) = handle_connection(&mut stream, &this);
-
-                if res.close {
-                    return;
-                }
-
-                let end_res = res.clone();
-                let end_req = req.clone();
-                let response = response_http(&this, req, res);
-
-                let _ = (this.socket_handler.socket_write)(&mut stream, &response);
-                (this.socket_handler.socket_flush)(&mut stream).unwrap();
-
-                // Run end middleware
-                for middleware in this.middleware.iter().rev() {
-                    #[cfg(feature = "panic_handler")]
-                    let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                        middleware.end(end_req.clone(), end_res.clone())
-                    }));
-
-                    #[cfg(not(feature = "panic_handler"))]
-                    middleware.end(end_req.clone(), end_res.clone());
-                }
+                handle(&mut event.unwrap(), &this);
             });
         }
 
@@ -290,10 +235,10 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     .buffer(2048);
     /// ```
-    pub fn buffer(self, buf: usize) -> Server {
+    pub fn buffer(self, buf: usize) -> Self {
         trace!("🥫 Setting Buffer to {} bytes", buf);
 
         Server {
@@ -311,7 +256,7 @@ impl Server {
     /// use afire::{Server, Header};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Add a default header to the response
     ///     .default_header("Content-Type", "text/plain");
     ///
@@ -320,7 +265,7 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn default_header<T, K>(self, key: T, value: K) -> Server
+    pub fn default_header<T, K>(self, key: T, value: K) -> Self
     where
         T: AsRef<str>,
         K: AsRef<str>,
@@ -345,7 +290,7 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080)
+    /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Set socket timeout
     ///     .socket_timeout(Duration::from_secs(1));
     ///
@@ -354,11 +299,35 @@ impl Server {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn socket_timeout(self, socket_timeout: Duration) -> Server {
+    pub fn socket_timeout(self, socket_timeout: Duration) -> Self {
         trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
 
         Server {
             socket_timeout: Some(socket_timeout),
+            ..self
+        }
+    }
+
+    /// Set the state of a server
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::Server;
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<u32>::new("localhost", 8080)
+    ///     // Set server wide state
+    ///     .state(101);
+    ///
+    /// // Start the server
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn state(self, state: State) -> Self {
+        trace!("📦️ Setting Server State [{}]", type_name::<State>());
+
+        Self {
+            state: Some(Arc::new(state)),
             ..self
         }
     }
@@ -375,7 +344,7 @@ impl Server {
     /// use afire::Server;
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Keep the server from starting and blocking the main thread
     /// server.set_run(false);
@@ -387,6 +356,8 @@ impl Server {
     // But that will require modifying *every* example so that can wait...
     #[doc(hidden)]
     pub fn set_run(&mut self, run: bool) {
+        trace!("👟 {} Server", if run { "Enableing" } else { "Disableing" });
+
         self.run = run;
     }
 
@@ -403,7 +374,7 @@ impl Server {
     /// use afire::{Server, Response};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Set the panic handler response
     /// server.error_handler(|_req, err| {
@@ -419,7 +390,7 @@ impl Server {
     #[cfg(feature = "panic_handler")]
     pub fn error_handler(
         &mut self,
-        res: impl Fn(Request, String) -> Response + Send + Sync + 'static,
+        res: impl Fn(Result<Request>, String) -> Response + Send + Sync + 'static,
     ) {
         trace!("✌ Setting Error Handler");
 
@@ -433,7 +404,7 @@ impl Server {
     /// use afire::{Server, Response, Header, Method};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Define a route
     /// server.route(Method::GET, "/nose", |req| {
@@ -461,5 +432,40 @@ impl Server {
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
+    }
+
+    /// Create a new stateful route
+    /// ## Example
+    /// ```rust
+    /// // Import Library
+    /// use afire::{Server, Response, Header, Method};
+    ///
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<u32>::new("localhost", 8080)
+    ///    .state(101);
+    ///
+    /// // Define a route
+    /// server.stateful_route(Method::GET, "/nose", |sta, req| {
+    ///     Response::new().text(sta.to_string())
+    /// });
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// # server.set_run(false);
+    /// server.start().unwrap();
+    /// ```
+    pub fn stateful_route<T>(
+        &mut self,
+        method: Method,
+        path: T,
+        handler: impl Fn(Arc<State>, Request) -> Response + Send + Sync + 'static,
+    ) where
+        T: AsRef<str>,
+    {
+        let path = path.as_ref().to_owned();
+        trace!("🚗 Adding Route {} {}", method, path);
+
+        self.routes
+            .push(Route::new_stateful(method, path, Box::new(handler)));
     }
 }

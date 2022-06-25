@@ -15,10 +15,10 @@ impl Query {
     /// ```
     pub fn new<T>(query: T) -> Option<Query>
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
         // Remove the leading '?' if it exists
-        let mut body = query.to_string();
+        let mut body = query.as_ref().to_owned();
         if body.starts_with('?') {
             body = body.split_off(1);
         }
@@ -72,9 +72,9 @@ impl Query {
     /// ```
     pub fn get<T>(&self, key: T) -> Option<String>
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
-        let key = key.to_string();
+        let key = key.as_ref().to_owned();
 
         for i in self.0.clone() {
             if *i.first()? == key {

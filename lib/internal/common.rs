@@ -1,5 +1,7 @@
 //! Some little functions used here and thare
 
+use crate::Header;
+
 /// Get Reason Phrase for a status code
 ///
 /// Supports Status:
@@ -98,10 +100,16 @@ pub fn decode_url(url: String) -> String {
     res
 }
 
+#[inline]
 fn try_push(vec: &mut String, c: Option<&char>) {
     if let Some(c) = c {
         vec.push(*c);
     }
+}
+
+#[inline]
+pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
+    headers.iter().any(|x| x.name == name)
 }
 
 pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {
@@ -122,13 +130,18 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
     "".to_owned()
 }
 
+#[doc(hidden)]
+pub fn trace(str: String) {
+    #[cfg(feature = "tracing")]
+    println!("{}", str);
+}
+
 /// Internal Debug Printing
 ///
 /// Enabled with the `tracing` feature
 #[macro_export]
 macro_rules! trace {
     ($($arg : tt) +) => {
-        #[cfg(feature = "tracing")]
-        println!($($arg)+);
+        crate::internal::common::trace(format!($($arg)+));
     };
 }

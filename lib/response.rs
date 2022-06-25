@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::Display;
 
 #[cfg(feature = "cookies")]
 use super::cookie::SetCookie;
@@ -77,10 +77,10 @@ impl Response {
     /// ```
     pub fn reason<T>(self, reason: T) -> Response
     where
-        T: fmt::Display,
+        T: AsRef<str>,
     {
         Response {
-            reason: Some(reason.to_string()),
+            reason: Some(reason.as_ref().to_owned()),
             ..self
         }
     }
@@ -99,7 +99,7 @@ impl Response {
     /// ```
     pub fn text<T>(self, text: T) -> Response
     where
-        T: fmt::Display,
+        T: Display,
     {
         Response {
             data: text.to_string().as_bytes().to_vec(),

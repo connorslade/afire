@@ -1,15 +1,25 @@
-//! Extention to serve static files from disk
+//! extension to serve static files from disk
 
 use std::fs;
-use std::sync::RwLock;
 
-use crate::{Method, Request, Response, Server};
+use crate::{
+    error::Result,
+    error::{Error, HandleError},
+    middleware::{MiddleResponse, Middleware},
+    path::normalize_path,
+    Request, Response,
+};
 
-type Middleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
+type SSMiddleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
 
 /// Serve Static Content
 #[derive(Clone)]
 pub struct ServeStatic {
+    /// Path to serve static content on
+    ///
+    /// Defaults to '/' (root)
+    pub serve_path: String,
+
     /// Content Path
     pub data_dir: String,
 
@@ -22,10 +32,40 @@ pub struct ServeStatic {
     /// Middleware
     ///
     /// (Request, Static Response, Sucess [eg If file found])
-    pub middleware: Vec<Middleware>,
+    pub middleware: Vec<SSMiddleware>,
 
     /// MIME Types
     pub types: Vec<(String, String)>,
+}
+
+impl Middleware for ServeStatic {
+    fn post(&self, req: &Result<Request>, res: &Result<Response>) -> MiddleResponse {
+        let req = match req {
+            Ok(req) => req,
+            Err(_) => return MiddleResponse::Continue,
+        };
+
+        let path = match res {
+            Err(Error::Handle(e)) => match &**e {
+                HandleError::NotFound(_, i) => i,
+                _ => return MiddleResponse::Continue,
+            },
+            _ => return MiddleResponse::Continue,
+        };
+
+        if !path.starts_with(&self.serve_path) {
+            return MiddleResponse::Continue;
+        }
+
+        let mut res = process_req(req, self);
+        for i in self.middleware.iter().rev() {
+            if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
+                res = i
+            };
+        }
+
+        MiddleResponse::Add(res.0)
+    }
 }
 
 impl ServeStatic {
@@ -33,10 +73,10 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static file server and attach it to the afire server
     /// ServeStatic::new("data/static").attach(&mut server);
@@ -44,12 +84,13 @@ impl ServeStatic {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn new<T>(path: T) -> Self
+    pub fn new<T>(data_path: T) -> Self
     where
-        T: std::fmt::Display,
+        T: AsRef<str>,
     {
         Self {
-            data_dir: path.to_string(),
+            serve_path: normalize_path("/".to_owned()),
+            data_dir: data_path.as_ref().to_owned(),
             disabled_files: Vec::new(),
             not_found: |req, _| {
                 Response::new()
@@ -71,10 +112,10 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -88,10 +129,10 @@ impl ServeStatic {
     /// ```
     pub fn disable<T>(self, file_path: T) -> Self
     where
-        T: std::fmt::Display,
+        T: AsRef<str>,
     {
         let mut disabled = self.disabled_files;
-        disabled.push(file_path.to_string());
+        disabled.push(file_path.as_ref().to_owned());
 
         Self {
             disabled_files: disabled,
@@ -99,15 +140,15 @@ impl ServeStatic {
         }
     }
 
-    /// Disable serving a many files at once
+    /// Disable serving many files at once
     /// Path is relative to the dir being served
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -121,11 +162,11 @@ impl ServeStatic {
     /// ```
     pub fn disable_vec<T>(self, file_paths: Vec<T>) -> Self
     where
-        T: std::fmt::Display,
+        T: AsRef<str>,
     {
         let mut disabled = self.disabled_files;
         for i in file_paths {
-            disabled.push(i.to_string());
+            disabled.push(i.as_ref().to_owned());
         }
 
         Self {
@@ -145,10 +186,10 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -165,7 +206,7 @@ impl ServeStatic {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn middleware(self, f: Middleware) -> Self {
+    pub fn middleware(self, f: SSMiddleware) -> Self {
         let mut middleware = self.middleware;
         middleware.push(f);
 
@@ -180,10 +221,10 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Response, Server, ServeStatic};
+    /// use afire::{Response, Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -213,10 +254,10 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -230,12 +271,12 @@ impl ServeStatic {
     /// ```
     pub fn mime_type<T, M>(self, key: T, value: M) -> Self
     where
-        T: std::fmt::Display,
-        M: std::fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         let mut types = self.types;
 
-        types.push((key.to_string(), value.to_string()));
+        types.push((key.as_ref().to_owned(), value.as_ref().to_owned()));
 
         Self { types, ..self }
     }
@@ -250,10 +291,10 @@ impl ServeStatic {
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
@@ -267,12 +308,12 @@ impl ServeStatic {
     /// ```
     pub fn mime_types<T, M>(self, new_types: Vec<(T, M)>) -> Self
     where
-        T: std::fmt::Display,
-        M: std::fmt::Display,
+        T: AsRef<str>,
+        M: AsRef<str>,
     {
         let mut new_types = new_types
             .iter()
-            .map(|x| (x.0.to_string(), x.1.to_string()))
+            .map(|x| (x.0.as_ref().to_owned(), x.1.as_ref().to_owned()))
             .collect();
         let mut types = self.types;
 
@@ -281,46 +322,49 @@ impl ServeStatic {
         Self { types, ..self }
     }
 
-    /// Attatch it to a Server
+    /// Set path to serve static files on
     ///
-    /// Not much to say really
+    /// Default is '/' (root)
     /// ## Example
     /// ```rust
     /// // Import Library
-    /// use afire::{Server, ServeStatic};
+    /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
     /// // Create a server for localhost on port 8080
-    /// let mut server: Server = Server::new("localhost", 8080);
+    /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
+    ///     // Set serve path
+    ///     .path("/static")
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn attach(self, server: &mut Server) {
-        let cell = RwLock::new(self);
-
-        server.route(Method::ANY, "**", move |req| {
-            let mut res = process_req(req.clone(), &cell);
-
-            for i in cell.read().unwrap().middleware.clone().iter().rev() {
-                if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                    res = i
-                };
-            }
-
-            res.0
-        });
+    pub fn path<T>(self, path: T) -> Self
+    where
+        T: AsRef<str>,
+    {
+        Self {
+            serve_path: normalize_path(path.as_ref().to_owned()),
+            ..self
+        }
     }
 }
 
-fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
-    let this = cell.read().unwrap();
-
-    let mut path = format!("{}{}", this.data_dir, safe_path(req.path.to_owned()));
+fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
+    let mut path = format!(
+        "{}/{}",
+        this.data_dir,
+        safe_path(
+            req.path
+                .strip_prefix(&this.serve_path)
+                .unwrap_or(&req.path)
+                .to_owned()
+        )
+    );
 
     // Add Index.html if path ends with /
     if path.ends_with('/') {
@@ -336,36 +380,34 @@ fn process_req(req: Request, cell: &RwLock<ServeStatic>) -> (Response, bool) {
         .disabled_files
         .contains(&path.splitn(2, &this.data_dir).last().unwrap().to_string())
     {
-        return ((this.not_found)(&req, true), false);
+        return ((this.not_found)(req, true), false);
     }
 
     // Try to read File
     match fs::read(&path) {
         // If its found send it as response
         Ok(content) => (
-            Response::new()
-                .bytes(content)
-                .header("Content-Type", get_type(&path, &this.types)),
+            Response::new().bytes(content).header(
+                "Content-Type",
+                get_type(&path, &this.types)
+                    .unwrap_or_else(|| "application/octet-stream".to_owned()),
+            ),
             true,
         ),
 
         // If not send the 404 route defined
-        Err(_) => ((this.not_found)(&req, false), false),
+        Err(_) => ((this.not_found)(req, false), false),
     }
 }
 
-fn get_type(path: &str, types: &[(String, String)]) -> String {
-    let ext = path.split('.').last().unwrap_or("");
-    types
-        .iter()
-        .map(|x| x.to_owned())
-        .find(|x| x.0 == ext)
-        .unwrap_or_else(|| ("".to_owned(), "application/octet-stream".to_owned()))
-        .1
+fn get_type(path: &str, types: &[(String, String)]) -> Option<String> {
+    let ext = path.split('.').last()?;
+    Some(types.iter().map(|x| x.to_owned()).find(|x| x.0 == ext)?.1)
 }
 
 #[inline]
 fn safe_path(mut path: String) -> String {
+    path = path.replace('\\', "/");
     while path.contains("/..") {
         path = path.replace("/..", "");
     }
@@ -374,7 +416,7 @@ fn safe_path(mut path: String) -> String {
 
 /// Common MIME Types
 ///
-/// Used by Servestatic Extentions
+/// Used by Servestatic extensions
 pub const TYPES: [(&str, &str); 56] = [
     ("html", "text/html"),
     ("css", "text/css"),

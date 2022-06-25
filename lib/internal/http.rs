@@ -55,7 +55,6 @@ pub fn get_request_path(raw_data: &str) -> String {
     }
 
     // Trim trailing slash
-    #[cfg(feature = "ignore_trailing_path_slash")]
     if new_path.chars().last().unwrap_or_default() == '/' {
         new_path.pop();
     }
@@ -114,6 +113,12 @@ pub fn get_request_headers(raw_data: &str) -> Vec<Header> {
     }
 
     headers
+}
+
+// TODO: Test This
+/// Check if the socket connetion wants to use keep alive
+pub fn connection_mode(headers: &[Header]) -> bool {
+    matches!(headers.iter().find(|x| x.name == "Connection"), Some(i) if i.value == "keep-alive")
 }
 
 /// Get Cookies of a raw HTTP request.

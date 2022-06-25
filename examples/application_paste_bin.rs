@@ -27,7 +27,7 @@ struct Paste {
 }
 
 fn main() {
-    let mut server = Server::new("localhost", 8080);
+    let mut server = Server::<()>::new("localhost", 8080);
     let pub_pastes = Arc::new(Mutex::new(Vec::new()));
 
     // New paste Handler
