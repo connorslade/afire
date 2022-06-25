@@ -2,7 +2,7 @@
 #![warn(missing_docs)]
 
 #[doc(hidden)]
-pub const VERSION: &str = "1.1.0*";
+pub const VERSION: &str = "1.2.0";
 
 // Export Internal Functions
 #[macro_use]

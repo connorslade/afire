@@ -1,12 +1,12 @@
 [package]
 name = "afire"
-version = "1.1.0"
+version = "1.2.0"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 
 repository = "https://github.com/Basicprogrammer10/afire"
-documentation = "https://docs.rs/afire"
 homepage = "https://connorcode.com/writing/afire"
+documentation = "https://docs.rs/afire"
 description = "🔥 A blazing fast web framework for Rust"
 keywords = ["afire", "http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]

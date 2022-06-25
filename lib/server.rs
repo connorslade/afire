@@ -80,7 +80,6 @@ where
     pub fn new<T>(raw_ip: T, port: u16) -> Self
     where
         T: AsRef<str>,
-        State: Default,
     {
         trace!("🐍 Initializing Server v{}", VERSION);
 

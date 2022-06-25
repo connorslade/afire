@@ -1,6 +1,6 @@
 # 1.2.0
 
-_coming soon?_
+June 24, 2022
 
 - oh windows,,,
 - Fix Path Traversal on windows
@@ -21,6 +21,9 @@ _coming soon?_
 - Add server state syste
 - Improved Request Parsing
 - Redo Error system
+- Remove the requests raw_data feild
+- Remove Request::body_string in favor of String::from_utf8()
+- Fix HTTP parseing and genatation issues
 
 # 1.1.0
 
