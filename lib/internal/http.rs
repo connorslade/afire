@@ -1,7 +1,5 @@
 //! Stuff for working with Raw HTTP data
 
-#[cfg(feature = "path_decode_url")]
-use crate::common;
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
 use crate::header::Header;
@@ -59,9 +57,6 @@ pub fn get_request_path(raw_data: &str) -> String {
         new_path.pop();
     }
 
-    #[cfg(feature = "path_decode_url")]
-    return common::decode_url(new_path);
-    #[cfg(not(feature = "path_decode_url"))]
     return new_path;
 }
 

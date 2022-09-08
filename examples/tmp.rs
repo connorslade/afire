@@ -17,8 +17,10 @@ fn main() {
     let mut server = Server::<()>::new("localhost", 8080);
 
     // Define a handler for GET "/"
-    server.route(Method::GET, "/", |req| {
-        Response::new().text(req.body_string().unwrap())
+    server.route(Method::GET, "/p/{URL}", |req| {
+        Response::new()
+            .text(req.path_param("URL").unwrap())
+            .content(Content::TXT)
     });
 
     Middle.attach(&mut server);

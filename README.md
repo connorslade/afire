@@ -8,7 +8,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "1.2.0"
+afire = "1.3.0"
 ```
 
 ## 📄 Info

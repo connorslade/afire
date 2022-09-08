@@ -226,11 +226,6 @@ fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), Error> {
         }
     }
 
-    #[cfg(feature = "path_decode_url")]
-    {
-        final_path = common::decode_url(final_path)
-    }
-
     let query = match Query::from_body(final_query) {
         Some(i) => i,
         None => return Err(Error::Parse(ParseError::InvalidQuery)),

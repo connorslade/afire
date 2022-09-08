@@ -1,5 +1,8 @@
 //! HTTP Path stuff
 
+#[cfg(feature = "path_decode_url")]
+use crate::common;
+
 /// Http Path
 #[derive(Debug, PartialEq, Eq)]
 pub struct Path {
@@ -64,7 +67,13 @@ impl Path {
                         return None;
                     }
                 }
-                PathPart::Param(x) => out.push((x.to_owned(), j.to_owned())),
+                PathPart::Param(x) => {
+                    #[cfg(feature = "path_decode_url")]
+                    out.push((x.to_owned(), common::decode_url(j.to_owned())));
+
+                    #[cfg(not(feature = "path_decode_url"))]
+                    out.push((x.to_owned(), j.to_owned()));
+                }
                 PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}
             }
