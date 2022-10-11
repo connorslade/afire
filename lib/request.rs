@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
 use crate::{
@@ -33,13 +35,10 @@ pub struct Request {
     pub cookies: Vec<Cookie>,
 
     /// Request body
-    pub body: Vec<u8>,
+    pub body: Arc<Vec<u8>>,
 
     /// Client address
     pub address: String,
-
-    /// Raw Http Request
-    pub raw_data: Vec<u8>,
 }
 
 impl Request {
@@ -89,15 +88,9 @@ impl Request {
             query,
             headers,
             cookies,
-            body: bytes[4 + meta_end_index..].to_vec(),
+            body: Arc::new(bytes[4 + meta_end_index..].to_vec()),
             address,
-            raw_data: bytes.to_vec(),
         })
-    }
-
-    /// Get request body data as a string!
-    pub fn body_string(&self) -> Option<String> {
-        String::from_utf8(self.body.clone()).ok()
     }
 
     /// Get a request header by its name
@@ -105,6 +98,8 @@ impl Request {
     /// This is not case sensitive
     /// ## Example
     /// ```rust
+    /// use std::sync::Arc;
+    /// 
     /// // Import Library
     /// use afire::{Request, Header, Method, Query};
     ///
@@ -119,9 +114,8 @@ impl Request {
     ///     headers: vec![Header::new("hello", "world")],
     ///     #[cfg(feature = "cookies")]
     ///     cookies: Vec::new(),
-    ///     body: Vec::new(),
+    ///     body: Arc::new(Vec::new()),
     ///     address: "0.0.0.0".to_owned(),
-    ///     raw_data: Vec::new(),
     /// };
     ///
     /// assert_eq!(request.header("hello").unwrap(), "world");

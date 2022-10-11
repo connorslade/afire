@@ -36,7 +36,8 @@ impl Example for Data {
             // Instead it is part of the req.body but as a string
             // We will need to parse it get it as a query
             // This is *super* easy to do with afire
-            let body_data = Query::from_body(String::from_utf8(req.body).unwrap()).unwrap();
+            let body_data =
+                Query::from_body(String::from_utf8_lossy(&req.body).to_string()).unwrap();
 
             let name = body_data
                 .get("name")

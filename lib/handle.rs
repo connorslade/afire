@@ -30,7 +30,7 @@ where
         return;
     }
 
-    let _ =(this.socket_handler.socket_write)(stream, &bytes);
+    let _ = (this.socket_handler.socket_write)(stream, &bytes);
     let _ = (this.socket_handler.socket_flush)(stream);
 
     // Run end middleware
@@ -294,7 +294,7 @@ where
     .to_vec();
 
     // Add Bytes of data to response
-    response.extend(res.data.clone());
+    response.extend(res.data.iter());
 
     (response, res)
 }

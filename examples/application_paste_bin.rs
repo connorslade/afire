@@ -39,10 +39,7 @@ fn main() {
         }
 
         // Get the data as string
-        let body_str = match req.body_string() {
-            Some(i) => i,
-            None => return Response::new().status(400).text("Invalid Text"),
-        };
+        let body_str = String::from_utf8_lossy(&req.body).to_string();
 
         // Get the name from the Name header
         let name = req.header("Name").unwrap_or_else(|| "Untitled".to_owned());

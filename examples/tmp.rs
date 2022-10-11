@@ -23,6 +23,12 @@ fn main() {
             .content(Content::TXT)
     });
 
+    server.route(Method::POST, "/upload", |req| {
+        Response::new()
+            .content(Content::Custom(&req.header("Content-Type").unwrap()))
+            .bytes(Vec::new())
+    });
+
     Middle.attach(&mut server);
 
     // Start the server

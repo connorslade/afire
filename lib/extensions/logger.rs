@@ -152,9 +152,7 @@ impl Logger {
                     new_path,
                     query,
                     headers,
-                    String::from_utf8(req.body.clone())
-                        .unwrap_or_default()
-                        .replace('\n', "\\n")
+                    String::from_utf8_lossy(&req.body).replace('\n', "\\n")
                 ))
             }
 
