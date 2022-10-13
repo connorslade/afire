@@ -99,7 +99,7 @@ impl Request {
     /// ## Example
     /// ```rust
     /// use std::sync::Arc;
-    /// 
+    ///
     /// // Import Library
     /// use afire::{Request, Header, Method, Query};
     ///

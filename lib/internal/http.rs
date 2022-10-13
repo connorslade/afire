@@ -2,9 +2,7 @@
 
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
-use crate::header::Header;
-use crate::method::Method;
-use crate::query::Query;
+use crate::{Header, Method, Query};
 
 /// Get the request method of a raw HTTP request.
 ///
@@ -57,7 +55,7 @@ pub fn get_request_path(raw_data: &str) -> String {
         new_path.pop();
     }
 
-    return new_path;
+    new_path
 }
 
 /// Get The Query Data of a raw HTTP request.

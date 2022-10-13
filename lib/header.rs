@@ -3,7 +3,7 @@ use std::fmt;
 /// Http header
 ///
 /// Has a name and a value.
-#[derive(Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Header {
     /// Name of the Header
     pub name: String,
@@ -85,16 +85,7 @@ impl fmt::Display for Header {
 /// Each header is in the format `name: value`
 ///
 /// Every header is separated by a newline (`\r\n`)
-pub fn headers_to_string(headers: Vec<Header>) -> String {
-    let headers_string: Vec<String> = headers.iter().map(|header| header.to_string()).collect();
+pub(crate) fn headers_to_string(headers: Vec<Header>) -> String {
+    let headers_string = headers.iter().map(Header::to_string).collect::<Vec<_>>();
     headers_string.join("\r\n")
-}
-
-impl fmt::Debug for Header {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Header")
-            .field("name", &self.name)
-            .field("value", &self.value)
-            .finish()
-    }
 }

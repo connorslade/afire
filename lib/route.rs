@@ -60,6 +60,13 @@ impl<State> fmt::Debug for Route<State> {
         f.debug_struct("Route")
             .field("method", &self.method)
             .field("path", &self.path)
+            .field(
+                "handler",
+                &match self.handler {
+                    RouteType::Stateless(_) => "stateless",
+                    RouteType::Statefull(_) => "statefull",
+                },
+            )
             .finish()
     }
 }

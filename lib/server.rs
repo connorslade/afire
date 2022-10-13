@@ -168,7 +168,7 @@ where
         }
 
         // We should Never Get Here
-        None
+        unreachable!()
     }
 
     /// Start the server with a threadpool.

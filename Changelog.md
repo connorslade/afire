@@ -1,3 +1,11 @@
+# 1.3.0
+
+Comming Soon
+
+- Fix improper URL decoding behavior
+- Improve Memory Usage On `Request`s
+- Internal code cleanup
+
 # 1.2.0
 
 June 24, 2022

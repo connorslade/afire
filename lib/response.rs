@@ -5,7 +5,7 @@ use super::cookie::SetCookie;
 use super::header::Header;
 
 /// Http Response
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Response {
     /// Response status code
     pub status: u16,
@@ -39,8 +39,8 @@ impl Response {
     /// // Create Response
     /// let response = Response::new();
     /// ```
-    pub fn new() -> Response {
-        Response {
+    pub fn new() -> Self {
+        Self {
             status: 200,
             data: vec![79, 75],
             headers: Vec::new(),
@@ -59,8 +59,8 @@ impl Response {
     /// let response = Response::new()
     ///    .status(200); // <- Here it is
     /// ```
-    pub fn status(self, code: u16) -> Response {
-        Response {
+    pub fn status(self, code: u16) -> Self {
+        Self {
             status: code,
             ..self
         }
@@ -75,11 +75,11 @@ impl Response {
     /// let response = Response::new()
     ///    .reason("OK");
     /// ```
-    pub fn reason<T>(self, reason: T) -> Response
+    pub fn reason<T>(self, reason: T) -> Self
     where
         T: AsRef<str>,
     {
-        Response {
+        Self {
             reason: Some(reason.as_ref().to_owned()),
             ..self
         }
@@ -97,11 +97,11 @@ impl Response {
     /// let response = Response::new()
     ///    .text("Hi :P");
     /// ```
-    pub fn text<T>(self, text: T) -> Response
+    pub fn text<T>(self, text: T) -> Self
     where
         T: Display,
     {
-        Response {
+        Self {
             data: text.to_string().as_bytes().to_vec(),
             ..self
         }
@@ -117,8 +117,8 @@ impl Response {
     /// let response = Response::new()
     ///   .bytes(vec![79, 75]);
     /// ```
-    pub fn bytes(self, bytes: Vec<u8>) -> Response {
-        Response {
+    pub fn bytes(self, bytes: Vec<u8>) -> Self {
+        Self {
             data: bytes,
             ..self
         }
@@ -134,7 +134,7 @@ impl Response {
     /// let response = Response::new()
     ///    .header("Content-Type", "text/html");
     /// ```
-    pub fn header<T, K>(self, key: T, value: K) -> Response
+    pub fn header<T, K>(self, key: T, value: K) -> Self
     where
         T: AsRef<str>,
         K: AsRef<str>,
@@ -142,7 +142,7 @@ impl Response {
         let mut new_headers = self.headers;
         new_headers.push(Header::new(key.as_ref(), value.as_ref()));
 
-        Response {
+        Self {
             headers: new_headers,
             ..self
         }
@@ -158,12 +158,12 @@ impl Response {
     /// let response = Response::new()
     ///   .headers(vec![Header::new("Content-Type", "text/html")]);
     /// ```
-    pub fn headers(self, headers: Vec<Header>) -> Response {
+    pub fn headers(self, headers: Vec<Header>) -> Self {
         let mut new_headers = self.headers;
         let mut headers = headers;
         new_headers.append(&mut headers);
 
-        Response {
+        Self {
             headers: new_headers,
             ..self
         }
@@ -181,8 +181,8 @@ impl Response {
     /// let response = Response::new()
     ///   .close();
     /// ```
-    pub fn close(self) -> Response {
-        Response {
+    pub fn close(self) -> Self {
+        Self {
             close: true,
             ..self
         }
@@ -199,7 +199,7 @@ impl Response {
     ///     .cookie(SetCookie::new("name", "value"));
     /// ```
     #[cfg(feature = "cookies")]
-    pub fn cookie(self, cookie: SetCookie) -> Response {
+    pub fn cookie(self, cookie: SetCookie) -> Self {
         let mut new = self;
         new.headers
             .push(Header::new("Set-Cookie", &cookie.to_string()));
@@ -217,7 +217,7 @@ impl Response {
     ///     .cookies(vec![SetCookie::new("name", "value")]);
     /// ```
     #[cfg(feature = "cookies")]
-    pub fn cookies(self, cookie: Vec<SetCookie>) -> Response {
+    pub fn cookies(self, cookie: Vec<SetCookie>) -> Self {
         let mut new = Vec::new();
 
         for c in cookie {
@@ -237,11 +237,11 @@ impl Response {
     /// let response = Response::new()
     ///     .content(Content::HTML);
     /// ```
-    pub fn content(self, content_type: crate::Content) -> Response {
+    pub fn content(self, content_type: crate::Content) -> Self {
         let mut new_headers = self.headers;
         new_headers.push(Header::new("Content-Type", content_type.as_type()));
 
-        Response {
+        Self {
             headers: new_headers,
             ..self
         }
@@ -252,18 +252,5 @@ impl Response {
 impl Default for Response {
     fn default() -> Response {
         Response::new()
-    }
-}
-
-// Impl Clone for Response
-impl Clone for Response {
-    fn clone(&self) -> Response {
-        Response {
-            status: self.status,
-            data: self.data.clone(),
-            headers: self.headers.clone(),
-            reason: self.reason.clone(),
-            close: self.close,
-        }
     }
 }
