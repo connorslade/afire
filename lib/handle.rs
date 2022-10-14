@@ -129,7 +129,7 @@ where
     // Read stream into buffer
     match (this.socket_handler.socket_read)(stream, &mut buffer) {
         Ok(_) => {}
-        Err(e) => return Err(Error::Io(e.kind())),
+        Err(e) => return Err(Error::Io(format!("{:?}", e))),
     }
 
     #[cfg(feature = "dynamic_resize")]
@@ -156,7 +156,7 @@ where
             let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
             match (this.socket_handler.socket_read_exact)(stream, &mut new_buffer) {
                 Ok(_) => {}
-                Err(e) => return Err(Error::Io(e.kind())),
+                Err(e) => return Err(Error::Io(format!("{:?}", e))),
             }
             buffer.extend(new_buffer);
         };
@@ -303,7 +303,7 @@ pub fn error_response<State>(req: Error, mut res: Error, server: &Server<State>)
 where
     State: 'static + Send + Sync,
 {
-    if res == Error::None {
+    if matches!(res, Error::None) {
         res = req;
     }
 
@@ -336,7 +336,10 @@ where
             #[cfg(not(feature = "panic_handler"))]
             HandleError::Panic(_, _) => unreachable!(),
         },
-        Error::Io(e) => Response::new().status(500).text(format!("{:?}", e)),
+        Error::Io(e) => {
+            println!("[DEBUG] IO ERROR: {}", e);
+            Response::new().status(500).text(e)
+        }
         Error::None => unreachable!(),
     }
 }

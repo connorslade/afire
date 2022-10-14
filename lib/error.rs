@@ -1,6 +1,6 @@
 //! Errors that can occur in the process of connectioning to clients, parseing HTTP and handling requests.
 
-use std::{io, result};
+use std::result;
 
 use crate::{Method, Request};
 
@@ -17,7 +17,7 @@ pub enum Error {
     Parse(ParseError),
 
     /// IO Errors
-    Io(io::ErrorKind),
+    Io(String),
 
     /// Response does not exist (probably because of an error with the request)
     None,
