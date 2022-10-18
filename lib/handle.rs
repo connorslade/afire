@@ -129,7 +129,7 @@ where
     // Read stream into buffer
     match (this.socket_handler.socket_read)(stream, &mut buffer) {
         Ok(_) => {}
-        Err(e) => return Err(Error::Io(format!("{:?}", e))),
+        Err(e) => return Err(Error::Io(format!("SOCKET_READ: {:?}", e))),
     }
 
     #[cfg(feature = "dynamic_resize")]
@@ -146,17 +146,18 @@ where
         {
             let header_size = http::get_header_size(&stream_string);
             let content_length = dyn_buf.value.parse::<usize>().unwrap_or(0);
-            let new_buffer_size = (content_length as i64 + header_size as i64) as usize;
-
-            if new_buffer_size > this.buff_size {
-                buffer.reserve(content_length + header_size);
+            if content_length == 0 {
+                trim_end_bytes(&mut buffer);
+                return Ok((buffer, stream.peer_addr().unwrap()));
             }
 
+            let new_buffer_size = content_length + header_size;
+            buffer.reserve(new_buffer_size);
             trim_end_bytes(&mut buffer);
             let mut new_buffer = vec![0; new_buffer_size - buffer.len()];
             match (this.socket_handler.socket_read_exact)(stream, &mut new_buffer) {
                 Ok(_) => {}
-                Err(e) => return Err(Error::Io(format!("{:?}", e))),
+                Err(e) => return Err(Error::Io(format!("READ_DYNAMIC: {:?}", e))),
             }
             buffer.extend(new_buffer);
         };
@@ -164,7 +165,6 @@ where
 
     // Remove trailing null bytes
     trim_end_bytes(&mut buffer);
-
     Ok((buffer, stream.peer_addr().unwrap()))
 }
 
