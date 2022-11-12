@@ -1,4 +1,4 @@
-# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="#"><img src="https://img.shields.io/tokei/lines/github/Basicprogrammer10/afire?label=Total%20Lines"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"> <img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
+# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"> <img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
 
 afire is a _blazing fast_ web server micro framework for rust.
 
@@ -19,9 +19,9 @@ It comes with some built extensions in for Static File Serving, Rate limiting, m
 
 Below you can fine links to some afire related resources.
 
+- [Homepage](https://connorcode.com/writing/afire)
 - [Crates.io page](https://crates.io/crates/afire)
 - [API Docs](https://docs.rs/afire/latest/afire/)
-- [Homepage](https://connorcode.com/writing/afire)
 
 ## 💥 Example
 

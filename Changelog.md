@@ -5,6 +5,7 @@ Comming Soon
 - Fix improper URL decoding behavior
 - Improve Memory Usage On `Request`s
 - Internal code cleanup
+- Make SocketAddr accessible from Request
 
 # 1.2.0
 
