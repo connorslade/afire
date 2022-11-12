@@ -5,7 +5,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-use crate::{common::remove_address_port, error::Result, Middleware, Request, Response};
+use crate::{error::Result, Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -147,7 +147,7 @@ impl Logger {
 
                 self.send_log(format!(
                     "[{}] {} {} [{}] ({}) {{{}}}",
-                    remove_address_port(&req.address),
+                    &req.address.ip(),
                     req.method,
                     new_path,
                     query,
@@ -164,7 +164,7 @@ impl Logger {
 
                 self.send_log(format!(
                     "[{}] {} {}{}",
-                    remove_address_port(&req.address),
+                    req.address.ip(),
                     req.method,
                     new_path,
                     req.query

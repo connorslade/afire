@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 #[cfg(feature = "cookies")]
 use crate::cookie::Cookie;
@@ -38,12 +38,12 @@ pub struct Request {
     pub body: Arc<Vec<u8>>,
 
     /// Client address
-    pub address: String,
+    pub address: SocketAddr,
 }
 
 impl Request {
     /// Parse an HTTP request into a [`Request]
-    pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: &[u8], address: SocketAddr) -> Result<Self, Error> {
         // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
         let meta_end_index = match (0..bytes.len().saturating_sub(3)).find(|i| {
             bytes[*i] == 0x0D
@@ -98,6 +98,7 @@ impl Request {
     /// This is not case sensitive
     /// ## Example
     /// ```rust
+    /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     /// use std::sync::Arc;
     ///
     /// // Import Library
@@ -115,7 +116,7 @@ impl Request {
     ///     #[cfg(feature = "cookies")]
     ///     cookies: Vec::new(),
     ///     body: Arc::new(Vec::new()),
-    ///     address: "0.0.0.0".to_owned(),
+    ///     address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5261),
     /// };
     ///
     /// assert_eq!(request.header("hello").unwrap(), "world");

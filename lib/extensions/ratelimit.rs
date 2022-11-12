@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::net::IpAddr;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     RwLock,
@@ -7,7 +8,6 @@ use std::sync::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
-    common::remove_address_port,
     error::Result,
     middleware::{MiddleRequest, Middleware},
     Content, Request, Response,
@@ -28,7 +28,7 @@ pub struct RateLimiter {
     req_timeout: u64,
 
     /// Table of requests per IP
-    requests: RwLock<HashMap<String, u64>>,
+    requests: RwLock<HashMap<IpAddr, u64>>,
 
     /// Handler for when the limit is reached
     handler: Handler,
@@ -138,7 +138,7 @@ impl RateLimiter {
     }
 
     /// Count a request.
-    fn add_request(&self, ip: String) {
+    fn add_request(&self, ip: IpAddr) {
         let mut req = self.requests.write().unwrap();
         let count = req.get(&ip).unwrap_or(&0) + 1;
         req.insert(ip, count);
@@ -158,7 +158,7 @@ impl RateLimiter {
     }
 
     /// Check if the request limit has been reached for an ip.
-    fn is_over_limit(&self, ip: String) -> bool {
+    fn is_over_limit(&self, ip: IpAddr) -> bool {
         self.requests.read().unwrap().get(&ip).unwrap_or(&0) >= &self.req_limit
     }
 }
@@ -170,7 +170,7 @@ impl Middleware for RateLimiter {
             Err(_) => return MiddleRequest::Continue,
         };
 
-        if self.is_over_limit(remove_address_port(&req.address)) {
+        if self.is_over_limit(req.address.ip()) {
             return match (self.handler)(req) {
                 Some(i) => MiddleRequest::Send(i),
                 None => MiddleRequest::Continue,
@@ -187,7 +187,7 @@ impl Middleware for RateLimiter {
         };
 
         self.check_reset();
-        self.add_request(remove_address_port(&req.address));
+        self.add_request(req.address.ip());
     }
 }
 

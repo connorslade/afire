@@ -62,7 +62,7 @@ where
         }
     };
 
-    let req = Request::from_bytes(&connection.0, connection.1.to_string());
+    let req = Request::from_bytes(&connection.0, connection.1);
     let mut res = match req.clone() {
         Ok(i) => handle_request(this, i),
         Err(e) => Err(e),
@@ -336,10 +336,7 @@ where
             #[cfg(not(feature = "panic_handler"))]
             HandleError::Panic(_, _) => unreachable!(),
         },
-        Error::Io(e) => {
-            println!("[DEBUG] IO ERROR: {}", e);
-            Response::new().status(500).text(e)
-        }
+        Error::Io(e) => Response::new().status(500).text(e),
         Error::None => unreachable!(),
     }
 }

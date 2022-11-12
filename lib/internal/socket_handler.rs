@@ -5,7 +5,6 @@ use std::io::{self, Read, Write};
 use std::net::TcpStream;
 
 /// Hold TCP socket read and write operations
-// #[derive(Clone, Copy)]
 pub struct SocketHandler {
     /// Function for reading from a tcp socket
     pub socket_read: Box<dyn Fn(&mut TcpStream, &mut Vec<u8>) -> io::Result<usize> + Send + Sync>,

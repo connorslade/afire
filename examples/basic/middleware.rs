@@ -1,6 +1,5 @@
 use afire::{
     error,
-    internal::common::remove_address_port,
     middleware::{MiddleRequest, Middleware},
     Method, Request, Response, Server,
 };
@@ -35,12 +34,7 @@ impl Middleware for Log {
         };
 
         // Print some info
-        println!(
-            "[{}] {} {}",
-            remove_address_port(req.address.to_owned()),
-            req.method,
-            req.path
-        );
+        println!("[{}] {} {}", req.address.ip(), req.method, req.path);
         // Note: req.address also has the client port
         // This is being removed with
         // Ex: 127.0.0.1:6264 => 127.0.0.1

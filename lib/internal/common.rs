@@ -63,21 +63,6 @@ pub fn reason_phrase(status: u16) -> String {
     .to_string()
 }
 
-/// Remove the port from an address
-///
-/// '192.168.1.26:1234' -> '192.168.1.26'
-pub fn remove_address_port<T>(address: T) -> String
-where
-    T: AsRef<str>,
-{
-    let raw = address.as_ref().to_owned();
-
-    raw.rsplit_once(':')
-        .unwrap_or((raw.as_str(), "null"))
-        .0
-        .to_string()
-}
-
 /// Decode a url encoded string
 pub fn decode_url(url: String) -> String {
     // Convert input to Char array
@@ -142,6 +127,6 @@ pub fn trace(str: String) {
 #[macro_export]
 macro_rules! trace {
     ($($arg : tt) +) => {
-        crate::internal::common::trace(format!($($arg)+));
+        $crate::internal::common::trace(format!($($arg)+));
     };
 }
