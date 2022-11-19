@@ -1,6 +1,6 @@
 //! extension to serve static files from disk
 
-use std::fs;
+use std::{fs, path::Path};
 
 use crate::{
     error::Result,
@@ -86,11 +86,11 @@ impl ServeStatic {
     /// ```
     pub fn new<T>(data_path: T) -> Self
     where
-        T: AsRef<str>,
+        T: AsRef<Path>,
     {
         Self {
             serve_path: normalize_path("/".to_owned()),
-            data_dir: data_path.as_ref().to_owned(),
+            data_dir: data_path.as_ref().to_string_lossy().to_string(),
             disabled_files: Vec::new(),
             not_found: |req, _| {
                 Response::new()

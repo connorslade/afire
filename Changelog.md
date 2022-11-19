@@ -5,7 +5,10 @@ Comming Soon
 - Fix improper URL decoding behavior
 - Improve Memory Usage On `Request`s
 - Internal code cleanup
+- More clear info on IO errors
 - Make SocketAddr accessible from Request
+- Remade social share image
+- Let ServeStatic::new take in strings and paths (previously only strings)
 
 # 1.2.0
 
