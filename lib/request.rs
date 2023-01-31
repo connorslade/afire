@@ -1,9 +1,13 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    io::{BufRead, BufReader, Read},
+    net::{SocketAddr, TcpStream},
+    sync::Arc,
+};
 
 use crate::{
-    common,
-    error::{Error, ParseError},
-    Cookie, Header, Method, Query,
+    error::{Result, StreamError},
+    internal::http::parse_request_line,
+    Cookie, Header, Method, Query, BUFF_SIZE,
 };
 
 /// Http Request
@@ -38,55 +42,62 @@ pub struct Request {
 }
 
 impl Request {
-    /// Parse an HTTP request into a [`Request]
-    pub fn from_bytes(bytes: &[u8], address: SocketAddr) -> Result<Self, Error> {
-        // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
-        let meta_end_index = match (0..bytes.len().saturating_sub(3)).find(|i| {
-            bytes[*i] == 0x0D
-                && bytes[i + 1] == 0x0A
-                && bytes[i + 2] == 0x0D
-                && bytes[i + 3] == 0x0A
-        }) {
-            Some(i) => i,
-            None => return Err(Error::Parse(ParseError::NoSeparator)),
-        };
-        // Turn the meta bytes into a string
-        let meta_string = String::from_utf8_lossy(&bytes[0..meta_end_index]);
-        let mut lines = meta_string.lines();
+    pub(crate) fn from_socket(stream: &mut TcpStream) -> Result<Self> {
+        trace!("Reading header");
+        let peer_addr = stream.peer_addr()?;
+        let mut reader = BufReader::new(stream);
+        let mut request_line = Vec::with_capacity(BUFF_SIZE);
+        reader
+            .read_until(10, &mut request_line)
+            .map_err(|_| StreamError::UnexpectedEof)?;
 
-        // Parse the first like to get the method, path, query and verion
-        let first_meta = match lines.next() {
-            Some(i) => i,
-            None => return Err(Error::Parse(ParseError::NoRequestLine)),
-        };
-        let (method, path, query, version) = parse_first_meta(first_meta)?;
+        let (method, path, query, version) = parse_request_line(&request_line)?;
 
-        // Parse headers
         let mut headers = Vec::new();
-        let mut cookies = Vec::new();
-        for (i, e) in lines.enumerate() {
-            headers.push(match Header::from_string(e) {
-                Some(j) => {
-                    if j.name == "Cookie" {
-                        cookies.extend(parse_cookie(j.clone()))
-                    }
-                    j
-                }
-                None => return Err(Error::Parse(ParseError::InvalidHeader(i))),
-            });
+        loop {
+            let mut buff = Vec::with_capacity(BUFF_SIZE);
+            reader
+                .read_until(10, &mut buff)
+                .map_err(|_| StreamError::UnexpectedEof)?;
+            let line = String::from_utf8_lossy(&buff);
+            if line.len() <= 2 {
+                break;
+            }
+
+            headers.push(Header::from_string(&line[..line.len() - 2])?);
         }
 
-        Ok(Request {
+        let content_len = headers
+            .iter()
+            .find(|i| i.name.to_lowercase() == "content-length")
+            .map(|i| i.value.parse::<usize>().unwrap_or(0))
+            .unwrap_or(0);
+        let mut body = vec![0; content_len];
+
+        if content_len > 0 {
+            reader
+                .read_exact(&mut body)
+                .map_err(|_| StreamError::UnexpectedEof)?;
+        }
+
+        // TODO parse cookies
+        Ok(Self {
             method,
             path,
-            version: version.to_owned(),
+            version,
             path_params: Vec::new(),
             query,
             headers,
-            cookies,
-            body: Arc::new(bytes[4 + meta_end_index..].to_vec()),
-            address,
+            cookies: Vec::new(),
+            body: Arc::new(body),
+            address: peer_addr,
         })
+    }
+
+    pub(crate) fn keep_alive(&self) -> bool {
+        self.header("Connection")
+            .map(|i| i.to_lowercase() == "keep-alive")
+            .unwrap_or(false)
     }
 
     /// Get a request header by its name
@@ -115,14 +126,14 @@ impl Request {
     ///
     /// assert_eq!(request.header("hello").unwrap(), "world");
     /// ```
-    pub fn header<T>(&self, name: T) -> Option<String>
+    pub fn header<T>(&self, name: T) -> Option<&str>
     where
         T: AsRef<str>,
     {
         let name = name.as_ref().to_lowercase();
-        for i in self.headers.clone() {
+        for i in &self.headers {
             if name == i.name.to_lowercase() {
-                return Some(i.value);
+                return Some(&i.value);
             }
         }
         None
@@ -165,87 +176,4 @@ impl Request {
             .find(|x| x.0 == name)
             .map(|i| i.1.to_owned())
     }
-}
-
-/// (Method, Path, Query, Version)
-fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), Error> {
-    let mut parts = str.split_whitespace();
-    let raw_method = match parts.next() {
-        Some(i) => i,
-        None => return Err(Error::Parse(ParseError::NoMethod)),
-    };
-    let method = match raw_method.to_uppercase().as_str() {
-        "GET" => Method::GET,
-        "POST" => Method::POST,
-        "PUT" => Method::PUT,
-        "DELETE" => Method::DELETE,
-        "OPTIONS" => Method::OPTIONS,
-        "HEAD" => Method::HEAD,
-        "PATCH" => Method::PATCH,
-        "TRACE" => Method::TRACE,
-        _ => Method::CUSTOM(raw_method.to_owned()),
-    };
-
-    let mut raw_path = match parts.next() {
-        Some(i) => i.chars(),
-        None => return Err(Error::Parse(ParseError::NoVersion)),
-    };
-    let mut final_path = String::new();
-    let mut final_query = String::new();
-    let mut last_is_slash = false;
-    while let Some(i) = raw_path.next() {
-        match i {
-            '/' | '\\' => {
-                if last_is_slash {
-                    continue;
-                }
-
-                last_is_slash = true;
-                final_path.push('/');
-            }
-            '?' => {
-                final_query.extend(raw_path);
-                break;
-            }
-            _ => {
-                last_is_slash = false;
-                final_path.push(i);
-            }
-        }
-    }
-
-    let query = match Query::from_body(final_query) {
-        Some(i) => i,
-        None => return Err(Error::Parse(ParseError::InvalidQuery)),
-    };
-
-    let version = match parts.next() {
-        Some(i) => i,
-        None => return Err(Error::Parse(ParseError::NoVersion)),
-    };
-
-    Ok((method, final_path, query, version))
-}
-
-fn parse_cookie(header: Header) -> Vec<Cookie> {
-    let mut final_cookies = Vec::new();
-    for i in header.value.split(';') {
-        let mut cookie_parts = i.splitn(2, '=');
-        let name = match cookie_parts.next() {
-            Some(i) => i.trim(),
-            None => continue,
-        };
-
-        let value = match &cookie_parts.next() {
-            Some(i) => i.trim(),
-            None => continue,
-        };
-
-        final_cookies.push(Cookie::new(
-            common::decode_url(name.to_owned()),
-            common::decode_url(value.to_owned()),
-        ));
-    }
-
-    final_cookies
 }

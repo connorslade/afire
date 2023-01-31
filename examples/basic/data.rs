@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use afire::{Method, Query, Response, Server};
 
 use crate::Example;
@@ -21,7 +23,7 @@ impl Example for Data {
             let text = format!(
                 "<h1>Hello, {}!</h1>",
                 // Get the query value of name and default to "Nobody" if not found
-                req.query.get("name").unwrap_or_else(|| "Nobody".to_owned())
+                req.query.get("name").unwrap_or("Nobody")
             );
 
             Response::new()
@@ -37,11 +39,9 @@ impl Example for Data {
             // We will need to parse it get it as a query
             // This is *super* easy to do with afire
             let body_data =
-                Query::from_body(String::from_utf8_lossy(&req.body).to_string()).unwrap();
+                Query::from_str(&String::from_utf8_lossy(&req.body).to_string()).unwrap();
 
-            let name = body_data
-                .get("name")
-                .unwrap_or_else(|| "Nobody".to_string());
+            let name = body_data.get("name").unwrap_or("Nobody");
             let text = format!("<h1>Hello, {}</h1>", name);
 
             Response::new()

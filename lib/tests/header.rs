@@ -30,7 +30,7 @@ fn header_parse() {
 fn header_parse_empty() {
     let header = Header::from_string("");
 
-    assert!(header.is_none());
+    assert!(header.is_err());
 }
 
 #[test]

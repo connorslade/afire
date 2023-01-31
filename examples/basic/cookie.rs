@@ -41,8 +41,8 @@ impl Example for Cookie {
         server.route(Method::GET, "/set", |req| {
             // Create a new cookie
             let cookie = SetCookie::new(
-                req.query.get("name").unwrap_or_else(|| "test".to_string()),
-                req.query.get("value").unwrap_or_else(|| "test".to_string()),
+                req.query.get("name").unwrap_or("test"),
+                req.query.get("value").unwrap_or("test"),
             )
             // Set some options
             .max_age(60 * 60)

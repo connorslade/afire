@@ -10,6 +10,9 @@ pub type Result<T> = result::Result<T, Error>;
 /// Errors that can occur,,,
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
+    /// Stream error
+    Stream(StreamError),
+
     /// Error while handling a Request
     Handle(Box<HandleError>),
 
@@ -54,6 +57,40 @@ pub enum ParseError {
     /// Invalid Query in Path
     InvalidQuery,
 
+    /// Invalid Method in Request HTTP
+    InvalidMethod,
+
     /// Invalid Header in Request HTTP
-    InvalidHeader(usize),
+    InvalidHeader,
+}
+
+/// Error that can occur while reading or writing to a stream
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StreamError {
+    /// The stream ended unexpectedly
+    UnexpectedEof,
+}
+
+impl From<StreamError> for Error {
+    fn from(e: StreamError) -> Self {
+        Error::Stream(e)
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(e: ParseError) -> Self {
+        Error::Parse(e)
+    }
+}
+
+impl From<HandleError> for Error {
+    fn from(e: HandleError) -> Self {
+        Error::Handle(Box::new(e))
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Io(e.to_string())
+    }
 }

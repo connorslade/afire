@@ -153,18 +153,18 @@ where
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    pub fn start(&self) -> Option<()> {
+    pub fn start(&self) -> Result<()> {
         // Exit if the server should not run
         if !self.run {
-            return Some(());
+            return Ok(());
         }
 
         trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
+        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
 
         for event in listener.incoming() {
-            handle(&mut event.unwrap(), self);
+            handle(&mut event?, self);
         }
 
         // We should Never Get Here

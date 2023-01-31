@@ -3,6 +3,7 @@
 
 #[doc(hidden)]
 pub const VERSION: &str = "1.3.0*";
+const BUFF_SIZE: usize = 256;
 
 // Export Internal Functions
 #[macro_use]

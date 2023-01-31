@@ -97,12 +97,6 @@ pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
     headers.iter().any(|x| x.name == name)
 }
 
-pub(crate) fn trim_end_bytes(bytes: &mut Vec<u8>) {
-    while bytes.last() == Some(&b'\0') {
-        bytes.pop();
-    }
-}
-
 pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
     if let Some(i) = any.downcast_ref::<String>() {
         return i.to_owned();

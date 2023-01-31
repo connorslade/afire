@@ -42,10 +42,10 @@ fn main() {
         let body_str = String::from_utf8_lossy(&req.body).to_string();
 
         // Get the name from the Name header
-        let name = req.header("Name").unwrap_or_else(|| "Untitled".to_owned());
+        let name = req.header("Name").unwrap_or("Untitled");
 
         let paste = Paste {
-            name,
+            name: name.to_owned(),
             body: body_str,
             time: Instant::now(),
         };

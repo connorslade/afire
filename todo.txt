@@ -1,0 +1,12 @@
+# To Do
+
+- Rewrite socket handler
+- Remove CUSTOM method
+- Options handler middleware
+- Lazy body loading
+- Test keep_alive
+- Chunked encoding
+
+# In Progress
+
+# Done

@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 /// Methods for a request
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -43,49 +43,44 @@ pub enum Method {
     /// Used for tracing the route of a request
     TRACE,
 
-    /// Custom Method
-    CUSTOM(String),
-
     /// For routes that run on all methods
     ///
     /// Will not be use in a request
     ANY,
 }
 
-impl Method {
+impl FromStr for Method {
+    type Err = ();
+
     /// Convert a string to a method.
     ///
     /// If the string is not a valid method, `Method::CUSTOM(s)` is returned.
     /// ## Examples
     /// ```rust
+    /// use std::str::FromStr;
     /// use afire::{Method};
     ///
-    /// assert!(Method::from_string("GET") == Method::GET);
-    /// assert!(Method::from_string("POST") == Method::POST);
-    /// assert!(Method::from_string("PUT") == Method::PUT);
-    /// assert!(Method::from_string("DELETE") == Method::DELETE);
-    /// assert!(Method::from_string("OPTIONS") == Method::OPTIONS);
-    /// assert!(Method::from_string("HEAD") == Method::HEAD);
-    /// assert!(Method::from_string("PATCH") == Method::PATCH);
-    /// assert!(Method::from_string("TRACE") == Method::TRACE);
-    /// assert!(Method::from_string("foo") == Method::CUSTOM("FOO".to_string()));
+    /// assert!(Method::from_str("GET").unwrap() == Method::GET);
+    /// assert!(Method::from_str("POST").unwrap() == Method::POST);
+    /// assert!(Method::from_str("PUT").unwrap() == Method::PUT);
+    /// assert!(Method::from_str("DELETE").unwrap() == Method::DELETE);
+    /// assert!(Method::from_str("OPTIONS").unwrap() == Method::OPTIONS);
+    /// assert!(Method::from_str("HEAD").unwrap() == Method::HEAD);
+    /// assert!(Method::from_str("PATCH").unwrap() == Method::PATCH);
+    /// assert!(Method::from_str("TRACE").unwrap() == Method::TRACE);
+    /// assert!(Method::from_str("foo") == Err(()));
     /// ```
-    pub fn from_string<T>(s: T) -> Method
-    where
-        T: AsRef<str>,
-    {
-        let upper_s = s.as_ref().to_uppercase();
-        match &upper_s[..] {
-            "GET" => Method::GET,
-            "POST" => Method::POST,
-            "PUT" => Method::PUT,
-            "DELETE" => Method::DELETE,
-            "OPTIONS" => Method::OPTIONS,
-            "HEAD" => Method::HEAD,
-            "PATCH" => Method::PATCH,
-            "TRACE" => Method::TRACE,
-            "ANY" => Method::ANY,
-            _ => Method::CUSTOM(upper_s),
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "GET" => Ok(Method::GET),
+            "POST" => Ok(Method::POST),
+            "PUT" => Ok(Method::PUT),
+            "DELETE" => Ok(Method::DELETE),
+            "OPTIONS" => Ok(Method::OPTIONS),
+            "HEAD" => Ok(Method::HEAD),
+            "PATCH" => Ok(Method::PATCH),
+            "TRACE" => Ok(Method::TRACE),
+            _ => Err(()),
         }
     }
 }
@@ -108,7 +103,6 @@ impl fmt::Display for Method {
             Method::HEAD => write!(f, "HEAD"),
             Method::PATCH => write!(f, "PATCH"),
             Method::TRACE => write!(f, "TRACE"),
-            Method::CUSTOM(ref s) => write!(f, "CUSTOM({})", s),
             Method::ANY => write!(f, "ANY"),
         }
     }

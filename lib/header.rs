@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::error::{ParseError, Result};
+
 /// Http header
 ///
 /// Has a name and a value.
@@ -46,19 +48,27 @@ impl Header {
     ///
     /// assert!(header2 == header1);
     /// ```
-    pub fn from_string<T>(header: T) -> Option<Header>
+    pub fn from_string<T>(header: T) -> Result<Header>
     where
         T: AsRef<str>,
     {
         let header = header.as_ref();
         let mut split_header = header.splitn(2, ':');
         if split_header.clone().count() != 2 {
-            return None;
+            return Err(ParseError::InvalidHeader.into());
         }
-        Some(Header {
-            name: split_header.next()?.trim().to_string(),
-            value: split_header.next()?.trim().to_string(),
-        })
+
+        let name = match split_header.next() {
+            Some(i) => i.trim().to_string(),
+            None => return Err(ParseError::InvalidHeader.into()),
+        };
+
+        let value = match split_header.next() {
+            Some(i) => i.trim().to_string(),
+            None => return Err(ParseError::InvalidHeader.into()),
+        };
+
+        Ok(Header { name, value })
     }
 }
 

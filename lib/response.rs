@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+use crate::header::headers_to_string;
+use crate::internal::common::{has_header, reason_phrase};
+
 use super::cookie::SetCookie;
 use super::header::Header;
 
@@ -243,9 +246,46 @@ impl Response {
             ..self
         }
     }
+
+    pub(crate) fn to_bytes(&self, default_headers: &[Header]) -> Vec<u8> {
+        // Add default headers to response
+        // Only the ones that arent already in the response
+        let mut headers = self.headers.to_vec();
+        for i in default_headers {
+            if !has_header(&headers, &i.name) {
+                headers.push(i.clone());
+            }
+        }
+
+        // Add content-length header to response if it hasent already been deifned by the route or defult headers
+        if !has_header(&headers, "Content-Length") {
+            headers.push(Header::new("Content-Length", &self.data.len().to_string()));
+        }
+
+        // Add Connection: close if response is set to close
+        if self.close && !has_header(&headers, "Connection") {
+            headers.push(Header::new("Connection", "close"));
+        }
+
+        // Convert the response to a string
+        let mut response = format!(
+            "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
+            self.status,
+            self.reason
+                .to_owned()
+                .unwrap_or_else(|| reason_phrase(self.status)),
+            headers_to_string(headers)
+        )
+        .as_bytes()
+        .to_vec();
+
+        // Add Bytes of data to response
+        response.extend(self.data.iter());
+
+        response
+    }
 }
 
-// Impl Default for Response
 impl Default for Response {
     fn default() -> Response {
         Response::new()
