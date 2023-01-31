@@ -1,8 +1,10 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
+/// Current version of afire
 #[doc(hidden)]
 pub const VERSION: &str = "1.3.0*";
+/// The defualt buffer allocation
 const BUFF_SIZE: usize = 256;
 
 // Export Internal Functions
@@ -10,10 +12,8 @@ const BUFF_SIZE: usize = 256;
 pub mod internal;
 
 // Import Internal Functions
-mod handle;
 mod thread_pool;
-use internal::common;
-use internal::path;
+use internal::{common, handle, path};
 
 // The main server
 mod server;

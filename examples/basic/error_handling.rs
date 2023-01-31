@@ -1,4 +1,7 @@
-use std::sync::RwLock;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    RwLock,
+};
 
 use afire::{Method, Response, Server};
 
@@ -32,16 +35,14 @@ impl Example for ErrorHandling {
         // You can optionally define a custom error handler
         // This can be defined anywhere in the server and will take affect for all routes
         // Its like a normal route, but it will only be called if the route panics
-        let errors = RwLock::new(0);
+        let errors = AtomicUsize::new(1);
         server.error_handler(move |_req, err| {
-            let mut errors = errors.write().unwrap();
-            *errors += 1;
-
             Response::new()
                 .status(500)
                 .text(format!(
                     "<h1>Internal Server Error #{}</h1><br>Panicked at '{}'",
-                    errors, err
+                    errors.fetch_add(1, Ordering::Relaxed),
+                    err
                 ))
                 .header("Content-Type", "text/html")
         });

@@ -21,7 +21,7 @@ impl Query {
     /// ```
     /// use afire::Query;
     /// use std::str::FromStr;
-    /// 
+    ///
     /// let query = Query::from_str("foo=bar&nose=dog").unwrap();
     ///
     /// assert_eq!(query.get("foo"), Some("bar"));
@@ -49,7 +49,7 @@ impl FromStr for Query {
     /// ```
     /// use afire::Query;
     /// use std::str::FromStr;
-    /// 
+    ///
     /// let query = Query::from_str("foo=bar&nose=dog");
     /// ```
     fn from_str(body: &str) -> Result<Self, Self::Err> {

@@ -17,7 +17,7 @@ pub enum Content<'a> {
 
 impl Content<'_> {
     /// Get Content as a MIME Type
-    pub fn as_type(&self) -> String {
+    pub fn as_type(&self) -> &str {
         match self {
             Content::HTML => "text/html",
             Content::TXT => "text/plain",
@@ -26,6 +26,5 @@ impl Content<'_> {
             Content::XML => "application/xml",
             Content::Custom(i) => i,
         }
-        .to_owned()
     }
 }

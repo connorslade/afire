@@ -12,5 +12,7 @@ fn main() {
             .header("Access-Control-Allow-Origin", "https://gogo.mango")
     });
 
-    server.start().unwrap();
+    server.route(Method::GET, "/", |_| Response::new().text("Hello World!"));
+
+    server.start_threaded(5).unwrap();
 }

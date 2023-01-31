@@ -20,13 +20,6 @@ fn server_ip_string() {
 }
 
 #[test]
-fn server_buff_resize() {
-    let server = Server::<()>::new("localhost", 8080).buffer(1000);
-
-    assert_eq!(server.buff_size, 1000);
-}
-
-#[test]
 fn server_default_headers() {
     let server = Server::<()>::new("localhost", 8080)
         .default_header("Hello", "World")

@@ -11,13 +11,15 @@ pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
 where
     State: 'static + Send + Sync,
 {
+    trace!("Opening socket {}", stream.peer_addr().unwrap());
     loop {
         let mut keep_alive = false;
-        let res = match Request::from_socket(stream) {
-            Ok(req) => {
-                keep_alive = req.keep_alive();
-                handle_route(req, this).unwrap()
-            }
+        let res = match Request::from_socket(stream).and_then(|req| {
+            keep_alive = req.keep_alive();
+            trace!("{} {} {}", req.method, req.path, keep_alive);
+            handle_route(req, this)
+        }) {
+            Ok(req) => req,
             Err(Error::Stream(_)) => break,
             Err(e) => error_response(Error::None, e, this),
         };
@@ -31,6 +33,7 @@ where
         }
 
         if !keep_alive || close {
+            trace!("Closeing socket");
             break;
         }
     }
@@ -40,17 +43,18 @@ fn handle_route<State>(mut req: Request, this: &Server<State>) -> Result<Respons
 where
     State: 'static + Send + Sync,
 {
-    for route in &this.routes {
+    trace!("{:?}", req);
+    // let req = Arc::new(req);
+    for route in this.routes.iter().rev() {
         let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
             req.path_params = path_match.unwrap_or_default();
 
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
-                RouteType::Stateless(i) => (i)(req.clone()),
-                RouteType::Statefull(i) => (i)(
-                    this.state.clone().expect("State not initialized"),
-                    req.clone(),
-                ),
+                RouteType::Stateless(i) => (i)(&req),
+                RouteType::Statefull(i) => {
+                    (i)(this.state.clone().expect("State not initialized"), &req)
+                }
             }));
 
             let err = match result {

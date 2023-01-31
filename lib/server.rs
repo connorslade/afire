@@ -11,8 +11,8 @@ use std::panic;
 
 // Import local files
 use crate::{
-    error::Result, handle::handle, internal::socket_handler::SocketHandler,
-    thread_pool::ThreadPool, Header, Method, Middleware, Request, Response, Route, VERSION,
+    error::Result, handle::handle, thread_pool::ThreadPool, Header, Method, Middleware, Request,
+    Response, Route, VERSION,
 };
 
 /// Defines a server.
@@ -25,12 +25,6 @@ where
 
     /// Ip address to listen on.
     pub ip: Ipv4Addr,
-
-    /// Default Buffer Size
-    ///
-    /// Needs to be big enough to hold a the request headers
-    /// in order to read the content length (1024 seams to work)
-    pub buff_size: usize,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -48,9 +42,6 @@ where
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
-
-    /// Functions for interfacing with TCP sockets
-    pub socket_handler: SocketHandler,
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
@@ -102,12 +93,9 @@ where
             ip[i] = octet;
         }
 
-        let ip = Ipv4Addr::from(ip);
-
         Server {
             port,
-            ip,
-            buff_size: 1024,
+            ip: Ipv4Addr::from(ip),
             routes: Vec::new(),
             middleware: Vec::new(),
             run: true,
@@ -121,7 +109,6 @@ where
             }),
 
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
-            socket_handler: SocketHandler::default(),
             socket_timeout: None,
             state: None,
         }
@@ -197,10 +184,10 @@ where
     /// # server.set_run(false);
     /// server.start_threaded(4).unwrap();
     /// ```
-    pub fn start_threaded(self, threads: usize) -> Option<()> {
+    pub fn start_threaded(self, threads: usize) -> Result<()> {
         // Exit if the server should not run
         if !self.run {
-            return Some(());
+            return Ok(());
         }
 
         trace!(
@@ -210,41 +197,17 @@ where
             threads
         );
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port)).ok()?;
+        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
 
         let pool = ThreadPool::new(threads);
         let this = Arc::new(self);
 
         for event in listener.incoming() {
-            let this = Arc::clone(&this);
-            pool.execute(move || {
-                handle(&mut event.unwrap(), &this);
-            });
+            let this = this.clone();
+            pool.execute(move || handle(&mut event.unwrap(), &this));
         }
 
         unreachable!()
-    }
-
-    /// Set the satrting buffer size. The default is `1024`
-    ///
-    /// Needs to be big enough to hold a the request headers
-    /// in order to read the content length (1024 seams to work)
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::Server;
-    ///
-    /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080)
-    ///     .buffer(2048);
-    /// ```
-    pub fn buffer(self, buf: usize) -> Self {
-        trace!("🥫 Setting Buffer to {} bytes", buf);
-
-        Server {
-            buff_size: buf,
-            ..self
-        }
     }
 
     /// Add a new default header to the response
@@ -423,7 +386,7 @@ where
         &mut self,
         method: Method,
         path: T,
-        handler: impl Fn(Request) -> Response + Send + Sync + 'static,
+        handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
     ) where
         T: AsRef<str>,
     {
@@ -458,7 +421,7 @@ where
         &mut self,
         method: Method,
         path: T,
-        handler: impl Fn(Arc<State>, Request) -> Response + Send + Sync + 'static,
+        handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
     ) where
         T: AsRef<str>,
     {

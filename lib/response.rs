@@ -203,7 +203,7 @@ impl Response {
     pub fn cookie(self, cookie: SetCookie) -> Self {
         let mut new = self;
         new.headers
-            .push(Header::new("Set-Cookie", &cookie.to_string()));
+            .push(Header::new("Set-Cookie", cookie.to_string()));
         new
     }
 
@@ -221,7 +221,7 @@ impl Response {
         let mut new = Vec::new();
 
         for c in cookie {
-            new.push(Header::new("Set-Cookie", &c.to_string()));
+            new.push(Header::new("Set-Cookie", c.to_string()));
         }
 
         self.headers(new)
@@ -259,7 +259,7 @@ impl Response {
 
         // Add content-length header to response if it hasent already been deifned by the route or defult headers
         if !has_header(&headers, "Content-Length") {
-            headers.push(Header::new("Content-Length", &self.data.len().to_string()));
+            headers.push(Header::new("Content-Length", self.data.len().to_string()));
         }
 
         // Add Connection: close if response is set to close

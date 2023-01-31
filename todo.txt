@@ -1,12 +1,20 @@
 # To Do
-
-- Rewrite socket handler
-- Remove CUSTOM method
+ 
 - Options handler middleware
 - Lazy body loading
-- Test keep_alive
+- Streaming response support
+- Response::bytes take in &[u8] not a Vec<u8>
 - Chunked encoding
-
+- Access app in socket handler
+- Clean up error handler
+- Socket timeout system
+- Panic on state uninit at start
+ 
 # In Progress
+ 
+- Rewrite socket handler
+- Remove CUSTOM method
+- Test keep_alive
 
-# Done
+
+ # Done

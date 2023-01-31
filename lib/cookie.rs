@@ -1,10 +1,6 @@
-/*!
-Cookies!
-
-This module provides a simple interface for setting and receiving cookies.
-
-It can be disabled with the `cookies` feature.
-*/
+//! Cookies!
+//!
+//! This module provides a simple interface for setting and receiving cookies.
 
 use std::fmt;
 
@@ -224,19 +220,6 @@ impl fmt::Debug for SetCookie {
             .field("path", &self.path)
             .field("secure", &self.secure)
             .finish()
-    }
-}
-
-// Impl Clone for SetCookie
-impl Clone for SetCookie {
-    fn clone(&self) -> SetCookie {
-        SetCookie {
-            cookie: self.cookie.clone(),
-            max_age: self.max_age,
-            domain: self.domain.clone(),
-            path: self.path.clone(),
-            secure: self.secure,
-        }
     }
 }
 
