@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    RwLock,
-};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use afire::{Method, Response, Server};
 

@@ -10,8 +10,6 @@ use crate::{
     Request, Response,
 };
 
-type SSMiddleware = fn(req: Request, res: Response, success: bool) -> Option<(Response, bool)>;
-
 /// Serve Static Content
 #[derive(Clone)]
 pub struct ServeStatic {
@@ -28,11 +26,6 @@ pub struct ServeStatic {
 
     /// Page not found route
     pub not_found: fn(&Request, bool) -> Response,
-
-    /// Middleware
-    ///
-    /// (Request, Static Response, Sucess [eg If file found])
-    pub middleware: Vec<SSMiddleware>,
 
     /// MIME Types
     pub types: Vec<(String, String)>,
@@ -57,13 +50,7 @@ impl Middleware for ServeStatic {
             return MiddleResponse::Continue;
         }
 
-        let mut res = process_req(req, self);
-        for i in self.middleware.iter().rev() {
-            if let Some(i) = i(req.clone(), res.0.clone(), res.1) {
-                res = i
-            };
-        }
-
+        let res = process_req(req, self);
         MiddleResponse::Add(res.0)
     }
 }
@@ -98,7 +85,6 @@ impl ServeStatic {
                     .text(format!("The page `{}` was not found...", req.path))
                     .header("Content-Type", "text/plain")
             },
-            middleware: Vec::new(),
             types: TYPES
                 .to_vec()
                 .iter()
@@ -173,44 +159,6 @@ impl ServeStatic {
             disabled_files: disabled,
             ..self
         }
-    }
-
-    /// Add a middleware to the static file server
-    ///
-    /// Middleware here works much diffrently to afire middleware
-    ///
-    /// The middleware priority is still by most recently defined
-    ///
-    /// But this middleware takes functions only - no closures.
-    /// The Resultes of the middleware are put togther so more then one middleware can affect thre response
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::{Server, extension::ServeStatic, Middleware};
-    ///
-    /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
-    /// // Make a new static sevrer
-    /// ServeStatic::new("data/static")
-    ///     // Add some middleware to the Static File Server
-    ///     .middleware(|req, res, suc| {
-    ///        // Print the path of the file served
-    ///        println!("Staticly Served: {}", req.path);
-    ///
-    ///         None
-    ///     })
-    ///     // Attatch it to the afire server
-    ///     .attach(&mut server);
-    ///
-    /// # server.set_run(false);
-    /// server.start().unwrap();
-    /// ```
-    pub fn middleware(self, f: SSMiddleware) -> Self {
-        let mut middleware = self.middleware;
-        middleware.push(f);
-
-        Self { middleware, ..self }
     }
 
     /// Set the not found page
@@ -387,7 +335,7 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
     match fs::read(&path) {
         // If its found send it as response
         Ok(content) => (
-            Response::new().bytes(content).header(
+            Response::new().bytes(&content).header(
                 "Content-Type",
                 get_type(&path, &this.types)
                     .unwrap_or_else(|| "application/octet-stream".to_owned()),

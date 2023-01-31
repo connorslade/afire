@@ -1,4 +1,9 @@
-use std::{io::Write, net::TcpStream, panic};
+use std::{
+    cell::RefCell,
+    io::Read,
+    net::{Shutdown, TcpStream},
+    panic,
+};
 
 use crate::{
     error::{HandleError, ParseError, Result},
@@ -6,6 +11,8 @@ use crate::{
     route::RouteType,
     Content, Error, Method, Request, Response, Server,
 };
+
+pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
 pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
 where
@@ -25,15 +32,15 @@ where
         };
 
         let close = res.close;
-        let res = res.to_bytes(&this.default_headers);
-
-        if let Err(e) = stream.write_all(&res) {
-            trace!("Error writing to stream: {}", e);
-            break;
+        if let Err(e) = res.write(stream, &this.default_headers) {
+            trace!("Error writing to socket: {:?}", e);
         }
 
         if !keep_alive || close {
             trace!("Closeing socket");
+            if let Err(e) = stream.shutdown(Shutdown::Both) {
+                trace!("Error closing socket: {:?}", e);
+            }
             break;
         }
     }

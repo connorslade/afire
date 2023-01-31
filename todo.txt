@@ -2,19 +2,20 @@
  
 - Options handler middleware
 - Lazy body loading
-- Streaming response support
-- Response::bytes take in &[u8] not a Vec<u8>
-- Chunked encoding
 - Access app in socket handler
 - Clean up error handler
 - Socket timeout system
 - Panic on state uninit at start
+- Replace Server::set_run with `no_run` in tests
  
 # In Progress
  
 - Rewrite socket handler
+
+# Done
+
+- Streaming response support
+- Chunked encoding
+- Response::bytes take in &[u8] not a Vec<u8>
 - Remove CUSTOM method
 - Test keep_alive
-
-
- # Done

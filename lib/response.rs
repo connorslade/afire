@@ -1,19 +1,23 @@
-use std::fmt::Display;
+use std::cell::RefCell;
+use std::fmt::{Debug, Display};
+use std::io::{Read, Write};
+use std::net::TcpStream;
 
-use crate::header::headers_to_string;
-use crate::internal::common::{has_header, reason_phrase};
-
-use super::cookie::SetCookie;
-use super::header::Header;
+use crate::{
+    common::{has_header, reason_phrase},
+    error::Result,
+    header::headers_to_string,
+    internal::handle::Writeable,
+    Content, Header, SetCookie,
+};
 
 /// Http Response
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Response {
     /// Response status code
     pub status: u16,
 
     /// Response Data as Bytes
-    pub data: Vec<u8>,
+    data: ResponseBody,
 
     /// Response Headers
     pub headers: Vec<Header>,
@@ -23,6 +27,11 @@ pub struct Response {
 
     /// Force Close Connection
     pub close: bool,
+}
+
+enum ResponseBody {
+    Static(Vec<u8>),
+    Stream(Writeable),
 }
 
 impl Response {
@@ -44,7 +53,7 @@ impl Response {
     pub fn new() -> Self {
         Self {
             status: 200,
-            data: vec![79, 75],
+            data: vec![79, 75].into(),
             headers: Vec::new(),
             reason: None,
             close: false,
@@ -104,7 +113,7 @@ impl Response {
         T: Display,
     {
         Self {
-            data: text.to_string().as_bytes().to_vec(),
+            data: text.to_string().as_bytes().to_vec().into(),
             ..self
         }
     }
@@ -117,11 +126,39 @@ impl Response {
     ///
     /// // Create Response
     /// let response = Response::new()
-    ///   .bytes(vec![79, 75]);
+    ///   .bytes(&[79, 75]);
     /// ```
-    pub fn bytes(self, bytes: Vec<u8>) -> Self {
+    pub fn bytes(self, bytes: &[u8]) -> Self {
         Self {
-            data: bytes,
+            data: bytes.to_vec().into(),
+            ..self
+        }
+    }
+
+    /// Add a stream as data to a Response
+    /// It will be streamed to the client in chunks using `Transfer-Encoding: chunked`.
+    /// ## Example
+    /// ```rust,no_run
+    /// # const PATH: &str = "path/to/file.txt";
+    /// // Import Library
+    /// use afire::{Response, Method, Server};
+    /// use std::fs::File;
+    /// 
+    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// 
+    /// server.route(Method::GET, "/download-stream", |_| {
+    ///     let stream = File::open(PATH).unwrap();
+    ///     Response::new().stream(stream)
+    /// });
+    /// 
+    /// server.start().unwrap();
+    /// ```
+    pub fn stream<T>(self, stream: T) -> Self
+    where
+        T: Read + Send + 'static,
+    {
+        Self {
+            data: ResponseBody::Stream(Box::new(RefCell::new(stream))),
             ..self
         }
     }
@@ -142,7 +179,7 @@ impl Response {
         K: AsRef<str>,
     {
         let mut new_headers = self.headers;
-        new_headers.push(Header::new(key.as_ref(), value.as_ref()));
+        new_headers.push(Header::new(key, value));
 
         Self {
             headers: new_headers,
@@ -158,12 +195,11 @@ impl Response {
     ///
     /// // Create Response
     /// let response = Response::new()
-    ///   .headers(vec![Header::new("Content-Type", "text/html")]);
+    ///   .headers(&[Header::new("Content-Type", "text/html")]);
     /// ```
-    pub fn headers(self, headers: Vec<Header>) -> Self {
+    pub fn headers(self, headers: &[Header]) -> Self {
         let mut new_headers = self.headers;
-        let mut headers = headers;
-        new_headers.append(&mut headers);
+        new_headers.append(&mut headers.to_vec());
 
         Self {
             headers: new_headers,
@@ -215,16 +251,16 @@ impl Response {
     ///
     /// // Create Response and add cookie
     /// let response = Response::new()
-    ///     .cookies(vec![SetCookie::new("name", "value")]);
+    ///     .cookies(&[SetCookie::new("name", "value")]);
     /// ```
-    pub fn cookies(self, cookie: Vec<SetCookie>) -> Self {
+    pub fn cookies(self, cookie: &[SetCookie]) -> Self {
         let mut new = Vec::new();
 
         for c in cookie {
             new.push(Header::new("Set-Cookie", c.to_string()));
         }
 
-        self.headers(new)
+        self.headers(&new)
     }
 
     /// Set a Content Type on a Response
@@ -237,57 +273,127 @@ impl Response {
     /// let response = Response::new()
     ///     .content(Content::HTML);
     /// ```
-    pub fn content(self, content_type: crate::Content) -> Self {
-        let mut new_headers = self.headers;
-        new_headers.push(Header::new("Content-Type", content_type.as_type()));
-
-        Self {
-            headers: new_headers,
-            ..self
-        }
+    pub fn content(mut self, content_type: Content) -> Self {
+        self.headers
+            .push(Header::new("Content-Type", content_type.as_type()));
+        self
     }
 
-    pub(crate) fn to_bytes(&self, default_headers: &[Header]) -> Vec<u8> {
+    pub(crate) fn write(
+        mut self,
+        stream: &mut TcpStream,
+        default_headers: &[Header],
+    ) -> Result<()> {
         // Add default headers to response
         // Only the ones that arent already in the response
-        let mut headers = self.headers.to_vec();
         for i in default_headers {
-            if !has_header(&headers, &i.name) {
-                headers.push(i.clone());
+            if !has_header(&self.headers, &i.name) {
+                self.headers.push(i.clone());
             }
         }
 
-        // Add content-length header to response if it hasent already been deifned by the route or defult headers
-        if !has_header(&headers, "Content-Length") {
-            headers.push(Header::new("Content-Length", self.data.len().to_string()));
+        let static_body = self.data.is_static();
+
+        // Add content-length header to response if we are sending a static body
+        if static_body && !has_header(&self.headers, "Content-Length") {
+            self.headers.push(self.data.content_len());
         }
 
         // Add Connection: close if response is set to close
-        if self.close && !has_header(&headers, "Connection") {
-            headers.push(Header::new("Connection", "close"));
+        if self.close && !has_header(&self.headers, "Connection") {
+            self.headers.push(Header::new("Connection", "close"));
+        }
+
+        if !static_body && !has_header(&self.headers, "Transfer-Encoding") {
+            self.headers
+                .push(Header::new("Transfer-Encoding", "chunked"));
         }
 
         // Convert the response to a string
-        let mut response = format!(
+        let response = format!(
             "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
             self.status,
             self.reason
                 .to_owned()
                 .unwrap_or_else(|| reason_phrase(self.status)),
-            headers_to_string(headers)
+            headers_to_string(self.headers)
         )
         .as_bytes()
         .to_vec();
 
-        // Add Bytes of data to response
-        response.extend(self.data.iter());
+        stream.write_all(&response)?;
 
-        response
+        self.data.write(stream)?;
+
+        Ok(())
+    }
+}
+
+impl Debug for Response {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Response")
+            .field("status", &self.status)
+            .field("headers", &self.headers)
+            .field("reason", &self.reason)
+            .field("close", &self.close)
+            .finish()
     }
 }
 
 impl Default for Response {
     fn default() -> Response {
         Response::new()
+    }
+}
+
+impl ResponseBody {
+    fn is_static(&self) -> bool {
+        matches!(self, ResponseBody::Static(_))
+    }
+
+    fn content_len(&self) -> Header {
+        let len = match self {
+            ResponseBody::Static(data) => data.len(),
+            _ => unreachable!("Can't get content length of a stream"),
+        };
+        Header::new("Content-Length", len.to_string())
+    }
+
+    fn write(self, stream: &mut TcpStream) -> Result<()> {
+        match self {
+            ResponseBody::Static(data) => stream.write_all(&data)?,
+            ResponseBody::Stream(mut data) => {
+                let data = data.get_mut();
+                loop {
+                    let mut chunk = vec![0; 16 * 1024];
+                    let read = data.read(&mut chunk)?;
+                    if read == 0 {
+                        break;
+                    }
+
+                    let mut section = format!("{:X}\r\n", read).as_bytes().to_vec();
+                    section.extend(&chunk[..read]);
+                    section.extend(b"\r\n");
+
+                    stream.write_all(&section)?;
+                }
+
+                stream.write_all(b"0\r\n\r\n")?;
+            }
+        };
+
+        Ok(())
+    }
+}
+
+impl From<Vec<u8>> for ResponseBody {
+    fn from(x: Vec<u8>) -> Self {
+        ResponseBody::Static(x)
+    }
+}
+
+impl From<Writeable> for ResponseBody {
+    fn from(x: Writeable) -> Self {
+        ResponseBody::Stream(x)
     }
 }

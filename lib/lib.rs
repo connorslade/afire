@@ -83,7 +83,7 @@ pub mod extension {
     //! - Response Cache
     //! - Request Id
     pub use crate::extensions::{
-        cache::{self, Cache},
+        // cache::{self, Cache},
         logger::{self, Logger},
         ratelimit::RateLimiter,
         request_id::RequestId,

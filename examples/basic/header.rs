@@ -43,7 +43,7 @@ impl Example for Header {
             // 303 -> See Other
             // 307 -> Temporary Redirect
             // 308 -> Permanent Redirect
-            Response::new().status(308).text(text).headers(headers)
+            Response::new().status(308).text(text).headers(&headers)
         });
 
         // Now to define a route to handle client headers

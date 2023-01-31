@@ -20,23 +20,23 @@ impl Example for ServeStatic {
 
         // Make a new static file server with a path
         extension::ServeStatic::new(STATIC_DIR)
-            // Middleware here works much diffrently to afire middleware
-            // The middleware priority is still by most recently defined
-            // But this middleware takes functions only - no closures
-            // and resultes of the middleware are put togther so more then one ac affect thre response
-            //
-            // Args:
-            // - req: Client Request
-            // - res: Current Server Response
-            // - suc: File to serve was found
-            .middleware(|req, res, suc| {
-                // Print path sevred
-                println!("Staticly Served: {}", req.path);
-
-                // Return none to not mess with response
-                // Or in this case add a header and pass through the sucess value
-                Some((res.header("X-Static-Serve", "true"), suc))
-            })
+            // TODO: Add back serve static middleware
+            // // Middleware here works much diffrently to afire middleware
+            // // The middleware priority is still by most recently defined
+            // // But this middleware takes functions only - no closures
+            // // and resultes of the middleware are put togther so more then one ac affect thre response
+            // //
+            // // Args:
+            // // - req: Client Request
+            // // - res: Current Server Response
+            // // - suc: File to serve was found
+            // .middleware(|req, res, suc| {
+            //     // Print path sevred
+            //     println!("Staticly Served: {}", req.path);
+            //     // Return none to not mess with response
+            //     // Or in this case add a header and pass through the sucess value
+            //     Some((res.header("X-Static-Serve", "true"), suc))
+            // })
             // Function that runs when no file is found to serve
             // This will run before middleware
             .not_found(|_req, _dis| Response::new().status(404).text("Page Not Found!"))

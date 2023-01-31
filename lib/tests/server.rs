@@ -50,5 +50,5 @@ fn server_set_run() {
     assert!(!server.run);
 
     // Should Not block thread
-    server.start();
+    server.start().unwrap();
 }

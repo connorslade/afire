@@ -25,7 +25,7 @@ impl Example for ServeFile {
                 // This may not be useful for html files but if you want to to serve an image file this will be useful
                 Ok(content) => Response::new()
                     .status(200)
-                    .bytes(content)
+                    .bytes(&content)
                     .header("Content-Type", "text/html"),
 
                 // If not send a 404 error
