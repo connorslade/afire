@@ -1,11 +1,9 @@
 use std::{net::SocketAddr, sync::Arc};
 
-#[cfg(feature = "cookies")]
-use crate::cookie::Cookie;
 use crate::{
     common,
     error::{Error, ParseError},
-    Header, Method, Query,
+    Cookie, Header, Method, Query,
 };
 
 /// Http Request
@@ -21,7 +19,6 @@ pub struct Request {
     pub version: String,
 
     /// Path Params
-    #[cfg(feature = "path_patterns")]
     pub path_params: Vec<(String, String)>,
 
     /// Request Query
@@ -31,7 +28,6 @@ pub struct Request {
     pub headers: Vec<Header>,
 
     /// Request Cookies
-    #[cfg(feature = "cookies")]
     pub cookies: Vec<Cookie>,
 
     /// Request body
@@ -109,11 +105,9 @@ impl Request {
     ///     method: Method::GET,
     ///     path: "/".to_owned(),
     ///     version: "HTTP/1.1".to_owned(),
-    ///     #[cfg(feature = "path_patterns")]
     ///     path_params: Vec::new(),
     ///     query: Query::new_empty(),
     ///     headers: vec![Header::new("hello", "world")],
-    ///     #[cfg(feature = "cookies")]
     ///     cookies: Vec::new(),
     ///     body: Arc::new(Vec::new()),
     ///     address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5261),
@@ -161,7 +155,6 @@ impl Request {
     /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
-    #[cfg(feature = "path_patterns")]
     pub fn path_param<T>(&self, name: T) -> Option<String>
     where
         T: AsRef<str>,

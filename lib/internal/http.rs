@@ -1,8 +1,6 @@
 //! Stuff for working with Raw HTTP data
 
-#[cfg(feature = "cookies")]
-use crate::cookie::Cookie;
-use crate::{Header, Method, Query};
+use crate::{Cookie, Header, Method, Query};
 
 /// Get the request method of a raw HTTP request.
 ///
@@ -115,7 +113,6 @@ pub fn connection_mode(headers: &[Header]) -> bool {
 }
 
 /// Get Cookies of a raw HTTP request.
-#[cfg(feature = "cookies")]
 pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
     let mut spilt = raw_data.split("\r\n\r\n");
     let raw_headers = spilt.next().unwrap_or_default().split("\r\n");
@@ -134,7 +131,6 @@ pub fn get_request_cookies(raw_data: &str) -> Vec<Cookie> {
 }
 
 /// Get the byte size of the headers of a raw HTTP request.
-#[cfg(feature = "dynamic_resize")]
 pub fn get_header_size(raw_data: &str) -> usize {
     match raw_data.split_once("\r\n\r\n") {
         Some(i) => i.0.len() + 4,

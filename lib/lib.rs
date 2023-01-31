@@ -12,7 +12,6 @@ pub mod internal;
 mod handle;
 mod thread_pool;
 use internal::common;
-use internal::http;
 use internal::path;
 
 // The main server
@@ -56,9 +55,7 @@ pub mod error;
 pub use error::Error;
 
 // Cookies 🍪
-#[cfg(feature = "cookies")]
 mod cookie;
-#[cfg(feature = "cookies")]
 pub use self::cookie::{Cookie, SetCookie};
 
 /// The Prelude is a collection of very commenly used *things* in afire
@@ -69,7 +66,6 @@ pub mod prelude {
         middleware::{MiddleRequest, MiddleResponse, Middleware},
         Content, Header, Method, Request, Response, Server,
     };
-    #[cfg(feature = "cookies")]
     pub use crate::{Cookie, SetCookie};
 }
 

@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-#[cfg(feature = "cookies")]
 use super::cookie::SetCookie;
 use super::header::Header;
 
@@ -198,7 +197,6 @@ impl Response {
     /// let response = Response::new()
     ///     .cookie(SetCookie::new("name", "value"));
     /// ```
-    #[cfg(feature = "cookies")]
     pub fn cookie(self, cookie: SetCookie) -> Self {
         let mut new = self;
         new.headers
@@ -216,7 +214,6 @@ impl Response {
     /// let response = Response::new()
     ///     .cookies(vec![SetCookie::new("name", "value")]);
     /// ```
-    #[cfg(feature = "cookies")]
     pub fn cookies(self, cookie: Vec<SetCookie>) -> Self {
         let mut new = Vec::new();
 

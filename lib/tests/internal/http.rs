@@ -76,7 +76,6 @@ fn get_request_headers() {
     );
 }
 
-#[cfg(feature = "cookies")]
 #[test]
 fn get_request_cookies() {
     assert_eq!(
@@ -87,7 +86,6 @@ fn get_request_cookies() {
     assert_eq!(http::get_request_cookies(HTTP3), vec![]);
 }
 
-#[cfg(feature = "dynamic_resize")]
 #[test]
 fn get_header_size() {
     assert_eq!(http::get_header_size(HTTP), 56);

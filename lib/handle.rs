@@ -13,7 +13,6 @@ use crate::{
     content_type::Content,
     error::{Error, HandleError, ParseError, Result},
     header::{headers_to_string, Header},
-    http,
     middleware::{MiddleRequest, MiddleResponse},
     route::RouteType,
     Method, Request, Response, Server,

@@ -1,6 +1,5 @@
 //! HTTP Path stuff
 
-#[cfg(feature = "path_decode_url")]
 use crate::common;
 
 /// Http Path
@@ -39,11 +38,7 @@ impl Path {
 
         // Split off into Path Parts
         for i in path.split('/') {
-            #[cfg(feature = "path_patterns")]
             out.push(PathPart::from_segment(i));
-
-            #[cfg(not(feature = "path_patterns"))]
-            out.push(PathPart::Normal(i.to_owned()));
         }
 
         Path {
@@ -53,7 +48,6 @@ impl Path {
     }
 
     /// Match Path
-    #[cfg(feature = "path_patterns")]
     pub fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
         let path = normalize_path(path);
         let mut out = Vec::new();
@@ -67,13 +61,7 @@ impl Path {
                         return None;
                     }
                 }
-                PathPart::Param(x) => {
-                    #[cfg(feature = "path_decode_url")]
-                    out.push((x.to_owned(), common::decode_url(j.to_owned())));
-
-                    #[cfg(not(feature = "path_decode_url"))]
-                    out.push((x.to_owned(), j.to_owned()));
-                }
+                PathPart::Param(x) => out.push((x.to_owned(), common::decode_url(j.to_owned()))),
                 PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}
             }
@@ -85,20 +73,10 @@ impl Path {
 
         Some(out)
     }
-
-    /// Match Path
-    #[cfg(not(feature = "path_patterns"))]
-    pub fn match_path(&self, path: String) -> Option<()> {
-        if self.raw == path {
-            return Some(());
-        }
-        None
-    }
 }
 
 impl PathPart {
     /// Decode Path Segment into PathPart
-    #[cfg(feature = "path_patterns")]
     pub fn from_segment(seg: &str) -> PathPart {
         match seg {
             "*" => PathPart::Any,

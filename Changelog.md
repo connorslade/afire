@@ -9,6 +9,7 @@ Comming Soon
 - Make SocketAddr accessible from Request
 - Remade social share image
 - Let ServeStatic::new take in strings and paths (previously only strings)
+- Remove unnecessary feature flags (cookies, path_patterns, dynamic_resize, path_decode_url)
 
 # 1.2.0
 
