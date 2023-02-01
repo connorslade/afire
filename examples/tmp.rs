@@ -1,12 +1,15 @@
 use std::fs::{self, File};
 
+use afire::trace::Level;
 // use afire::extension::Logger;
 use afire::prelude::*;
+use afire::trace::set_log_level;
 
-const PATH: &str = r#"D:\Movies\Breaking.Bad.S01-S05.1080p.BluRay.10bit.HEVC.6CH-MkvCage.ws\Breaking.Bad.S01.1080p.BluRay.10bit.HEVC.6CH-MkvCage.ws\Breaking.Bad.S01E01.Pilot.1080p.BluRay.10bit.HEVC.6CH-MkvCage.ws.mkv"#;
+const PATH: &str = r#"/home/connorslade/Downloads/"#;
 
 fn main() {
     let mut server = Server::<()>::new("localhost", 8080);
+    set_log_level(Level::Debug);
     // Logger::new().attach(&mut server);
 
     server.route(Method::POST, "/upload", |req| {

@@ -6,7 +6,7 @@
 pub const VERSION: &str = "1.3.0*";
 
 mod consts {
-    /// The defualt buffer allocation
+    /// The default buffer allocation
     pub const BUFF_SIZE: usize = 256;
 
     /// Max chunk size
@@ -14,56 +14,38 @@ mod consts {
 }
 
 // Export Internal Functions
-#[macro_use]
 pub mod internal;
 
 // Import Internal Functions
 mod thread_pool;
 use internal::{common, handle, path};
 
-// The main server
-mod server;
-pub use self::server::Server;
-
-// HTTP Header relates things
-mod header;
-pub use self::header::Header;
-
-// Different types of requests e.g. GET, POST, PUT, DELETE
-mod method;
-pub use self::method::Method;
-
-// Routing - the main way of getting things done
-mod route;
-pub use self::route::Route;
-
-// A request object to hold all the information about a request
-mod request;
-pub use self::request::Request;
-
-// A response object that is used to define data to send to the client
-mod response;
-pub use self::response::Response;
-
-// Query string stuff
-mod query;
-pub use self::query::Query;
-
-// Content Types
+#[macro_use]
+pub mod trace;
 mod content_type;
-pub use content_type::Content;
-
-// Middleware and stuff
-pub mod middleware;
-pub use middleware::Middleware;
-
-// Errors from parseing and handling requests
-pub mod error;
-pub use error::Error;
-
-// Cookies 🍪
 mod cookie;
-pub use self::cookie::{Cookie, SetCookie};
+pub mod error;
+mod header;
+mod method;
+pub mod middleware;
+mod query;
+mod request;
+mod response;
+mod route;
+mod server;
+pub use self::{
+    content_type::Content,
+    cookie::{Cookie, SetCookie},
+    error::Error,
+    header::Header,
+    method::Method,
+    middleware::Middleware,
+    query::Query,
+    request::Request,
+    response::Response,
+    route::Route,
+    server::Server,
+};
 
 /// The Prelude is a collection of very commenly used *things* in afire
 /// Unless you are using extentions or internial lower level stuff

@@ -134,19 +134,3 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
 
     "".to_owned()
 }
-
-#[doc(hidden)]
-pub fn trace(str: String) {
-    #[cfg(feature = "tracing")]
-    println!("{}", str);
-}
-
-/// Internal Debug Printing
-///
-/// Enabled with the `tracing` feature
-#[macro_export]
-macro_rules! trace {
-    ($($arg : tt) +) => {
-        $crate::internal::common::trace(format!($($arg)+));
-    };
-}

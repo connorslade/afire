@@ -44,7 +44,7 @@ pub struct Request {
 
 impl Request {
     pub(crate) fn from_socket(stream: &mut TcpStream) -> Result<Self> {
-        trace!("Reading header");
+        trace!(Level::Debug, "Reading header");
         let peer_addr = stream.peer_addr()?;
         let mut reader = BufReader::new(stream);
         let mut request_line = Vec::with_capacity(BUFF_SIZE);

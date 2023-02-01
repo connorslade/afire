@@ -9,7 +9,7 @@ use crate::{
     error::{HandleError, ParseError, Result},
     internal::common::any_string,
     route::RouteType,
-    Content, Error, Method, Request, Response, Server,
+    trace, Content, Error, Method, Request, Response, Server,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
@@ -18,12 +18,16 @@ pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
 where
     State: 'static + Send + Sync,
 {
-    trace!("Opening socket {}", stream.peer_addr().unwrap());
+    trace!(
+        Level::Debug,
+        "Opening socket {}",
+        stream.peer_addr().unwrap()
+    );
     loop {
         let mut keep_alive = false;
         let res = match Request::from_socket(stream).and_then(|req| {
             keep_alive = req.keep_alive();
-            trace!("{} {} {}", req.method, req.path, keep_alive);
+            trace!(Level::Debug, "{} {} {}", req.method, req.path, keep_alive);
             handle_route(req, this)
         }) {
             Ok(req) => req,
@@ -33,13 +37,13 @@ where
 
         let close = res.close;
         if let Err(e) = res.write(stream, &this.default_headers) {
-            trace!("Error writing to socket: {:?}", e);
+            trace!(Level::Error, "Error writing to socket: {:?}", e);
         }
 
         if !keep_alive || close {
-            trace!("Closeing socket");
+            trace!(Level::Debug, "Closing socket");
             if let Err(e) = stream.shutdown(Shutdown::Both) {
-                trace!("Error closing socket: {:?}", e);
+                trace!(Level::Error, "Error closing socket: {:?}", e);
             }
             break;
         }
@@ -50,8 +54,6 @@ fn handle_route<State>(mut req: Request, this: &Server<State>) -> Result<Respons
 where
     State: 'static + Send + Sync,
 {
-    trace!("{:?}", req);
-    // let req = Arc::new(req);
     for route in this.routes.iter().rev() {
         let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {

@@ -1,6 +1,8 @@
 use std::env;
 use std::io::{self, Write};
 
+use afire::trace::{self, Level};
+
 mod basic;
 mod cookie;
 mod data;
@@ -22,6 +24,7 @@ pub trait Example {
 }
 
 fn main() {
+    trace::set_log_level(Level::Debug);
     let examples: Vec<Box<dyn Example>> = vec![
         Box::new(basic::Basic),
         Box::new(serve_file::ServeFile),
