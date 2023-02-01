@@ -1,6 +1,6 @@
 # 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://github.com/Basicprogrammer10/afire/actions/workflows/rust.yml/badge.svg"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"> <img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
 
-afire is a _blazing fast_ web server micro framework for rust.
+afire is a _blazingly fast_ web server micro framework for rust.
 
 ## 💠 Install
 
@@ -29,7 +29,7 @@ For more examples see the examples directory [here](https://github.com/Basicprog
 
 Below is a super simple example so you can see the basics of aire syntax.
 
-```rust
+```rust no_run
 // Import Lib
 use afire::{Server, Method, Response, Header, Content};
 
@@ -47,7 +47,6 @@ server.route(Method::GET, "/greet/{name}", |req| {
 
 // Start the server
 // This is blocking
-# server.set_run(false);
 server.start().unwrap();
 ```
 

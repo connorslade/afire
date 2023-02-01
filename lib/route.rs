@@ -46,7 +46,7 @@ impl<State> Route<State> {
         }
     }
 
-    pub fn is_stateful(&self) -> bool {
+    pub(crate) fn is_stateful(&self) -> bool {
         match self.handler {
             RouteType::Stateless(_) => false,
             RouteType::Statefull(_) => true,

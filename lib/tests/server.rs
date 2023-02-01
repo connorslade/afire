@@ -41,14 +41,3 @@ fn server_socket_timeout() {
 
     assert_eq!(server.socket_timeout, Some(Duration::from_secs(10)));
 }
-
-#[test]
-fn server_set_run() {
-    let mut server = Server::<()>::new("localhost", 8080);
-    server.set_run(false);
-
-    assert!(!server.run);
-
-    // Should Not block thread
-    server.start().unwrap();
-}

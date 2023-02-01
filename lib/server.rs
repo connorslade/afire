@@ -41,11 +41,6 @@ where
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
-
-    /// Run server
-    ///
-    /// Really just for testing.
-    pub run: bool,
 }
 
 /// Implementations for Server
@@ -77,7 +72,6 @@ where
             ip: Ipv4Addr::from(ip),
             routes: Vec::new(),
             middleware: Vec::new(),
-            run: true,
 
             #[cfg(feature = "panic_handler")]
             error_handler: Box::new(|_, err| {
@@ -98,7 +92,7 @@ where
     /// Will be blocking.
     ///
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, Response, Header, Method};
     ///
@@ -115,19 +109,11 @@ where
     ///
     /// // Starts the server
     /// // This is blocking
-    /// # // Keep the server from starting and blocking the main thread
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn start(&self) -> Result<()> {
-        // Exit if the server should not run
-        if !self.run {
-            return Ok(());
-        }
-
-        self.check()?;
-
         trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
+        self.check()?;
 
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
 
@@ -144,7 +130,7 @@ where
     /// Will be blocking.
     ///
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, Response, Header, Method};
     ///
@@ -161,27 +147,18 @@ where
     ///
     /// // Starts the server
     /// // This is blocking
-    /// # // Keep the server from starting and blocking the main thread
-    /// # server.set_run(false);
     /// server.start_threaded(4).unwrap();
     /// ```
     pub fn start_threaded(self, threads: usize) -> Result<()> {
-        // Exit if the server should not run
-        if !self.run {
-            return Ok(());
-        }
-
-        self.check()?;
-
         trace!(
             "✨ Starting Server [{}:{}] ({} threads)",
             self.ip,
             self.port,
             threads
         );
+        self.check()?;
 
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
-
         let pool = ThreadPool::new(threads);
         let this = Arc::new(self);
 
@@ -197,7 +174,7 @@ where
     ///
     /// This will be added to every response
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, Header};
     ///
@@ -208,7 +185,6 @@ where
     ///
     /// // Start the server
     /// // As always, this is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn default_header<T, K>(self, key: T, value: K) -> Self
@@ -230,7 +206,7 @@ where
     /// Set the socket Read / Write Timeout
     ///
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use std::time::Duration;
     /// use afire::Server;
@@ -242,7 +218,6 @@ where
     ///
     /// // Start the server
     /// // As always, this is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Self {
@@ -256,7 +231,7 @@ where
 
     /// Set the state of a server
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::Server;
     ///
@@ -266,7 +241,6 @@ where
     ///     .state(101);
     ///
     /// // Start the server
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn state(self, state: State) -> Self {
@@ -278,35 +252,6 @@ where
         }
     }
 
-    /// Keep a server from starting
-    ///
-    /// Only used for testing
-    ///
-    /// It would be a really dumb idea to use this
-    ///
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::Server;
-    ///
-    /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
-    /// // Keep the server from starting and blocking the main thread
-    /// server.set_run(false);
-    ///
-    /// // 'Start' the server
-    /// server.start().unwrap();
-    /// ```
-    // I want to change this to be Server builder style
-    // But that will require modifying *every* example so that can wait...
-    #[doc(hidden)]
-    pub fn set_run(&mut self, run: bool) {
-        trace!("👟 {} Server", if run { "Enableing" } else { "Disableing" });
-
-        self.run = run;
-    }
-
     /// Set the panic handler response
     ///
     /// Default response is 500 "Internal Server Error :/"
@@ -315,7 +260,7 @@ where
     ///
     /// Make sure that this wont panic because then the thread will crash
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, Response};
     ///
@@ -330,7 +275,6 @@ where
     /// });
     ///
     /// // Start the server
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     #[cfg(feature = "panic_handler")]
@@ -345,7 +289,7 @@ where
 
     /// Create a new route for specified requests
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, Response, Header, Method};
     ///
@@ -362,7 +306,6 @@ where
     ///
     /// // Starts the server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn route<T>(
@@ -382,7 +325,7 @@ where
 
     /// Create a new stateful route
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, Response, Header, Method};
     ///
@@ -397,7 +340,6 @@ where
     ///
     /// // Starts the server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn stateful_route<T>(

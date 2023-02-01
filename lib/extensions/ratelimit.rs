@@ -58,7 +58,7 @@ impl RateLimiter {
     /// Set the request limit per timeout
     /// Attach the rate limiter to a server.
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
@@ -74,7 +74,6 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn limit(self, limit: u64) -> RateLimiter {
@@ -86,7 +85,7 @@ impl RateLimiter {
 
     /// Set the Ratelimit refresh peroid
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
@@ -102,7 +101,6 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn timeout(self, timeout: u64) -> RateLimiter {
@@ -114,7 +112,7 @@ impl RateLimiter {
 
     /// Define a Custom Handler for when a client has exceded the ratelimit
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, Response, extension::RateLimiter, Middleware};
     ///
@@ -130,7 +128,6 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn handler(self, handler: Handler) -> RateLimiter {

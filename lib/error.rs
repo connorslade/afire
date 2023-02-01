@@ -29,9 +29,13 @@ pub enum Error {
     None,
 }
 
+/// Errors that can occur while starting the server
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StartupError {
+    /// The IP address specified is invalid
     InvalidIp,
+
+    /// No state was specified, but a route requires it
     NoState,
 }
 

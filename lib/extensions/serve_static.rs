@@ -58,7 +58,7 @@ impl Middleware for ServeStatic {
 impl ServeStatic {
     /// Make a new Static File Server
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
@@ -68,7 +68,6 @@ impl ServeStatic {
     /// // Make a new static file server and attach it to the afire server
     /// ServeStatic::new("data/static").attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn new<T>(data_path: T) -> Self
@@ -96,7 +95,7 @@ impl ServeStatic {
     /// Disable serving a file
     /// Path is relative to the dir being served
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
@@ -110,7 +109,6 @@ impl ServeStatic {
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn disable<T>(self, file_path: T) -> Self
@@ -129,7 +127,7 @@ impl ServeStatic {
     /// Disable serving many files at once
     /// Path is relative to the dir being served
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
@@ -143,7 +141,6 @@ impl ServeStatic {
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn disable_vec<T>(self, file_paths: Vec<T>) -> Self
@@ -167,7 +164,7 @@ impl ServeStatic {
     ///
     /// The bool in the fn parms is if the file is blocked
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Response, Server, extension::ServeStatic, Middleware};
     ///
@@ -181,7 +178,6 @@ impl ServeStatic {
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn not_found(self, f: fn(&Request, bool) -> Response) -> Self {
@@ -200,7 +196,7 @@ impl ServeStatic {
     ///
     /// The value is the MIME type
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
@@ -214,7 +210,6 @@ impl ServeStatic {
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn mime_type<T, M>(self, key: T, value: M) -> Self
@@ -237,7 +232,7 @@ impl ServeStatic {
     ///
     /// Ex: ("html", "text/html")
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
@@ -251,7 +246,6 @@ impl ServeStatic {
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn mime_types<T, M>(self, new_types: Vec<(T, M)>) -> Self
@@ -274,7 +268,7 @@ impl ServeStatic {
     ///
     /// Default is '/' (root)
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Server, extension::ServeStatic, Middleware};
     ///
@@ -288,7 +282,6 @@ impl ServeStatic {
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn path<T>(self, path: T) -> Self

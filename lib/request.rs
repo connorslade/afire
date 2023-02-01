@@ -154,7 +154,7 @@ impl Request {
     /// Get a path_params value
     ///
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Library
     /// use afire::{Request, Response, Header, Method, Server};
     ///
@@ -175,7 +175,6 @@ impl Request {
     ///
     /// // Starts the server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn path_param<T>(&self, name: T) -> Option<String>

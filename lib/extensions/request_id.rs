@@ -17,7 +17,7 @@ pub struct RequestId {
 impl RequestId {
     /// Create a new RequestId Middleware
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, Middleware, extension::RequestId};
     ///
@@ -26,7 +26,6 @@ impl RequestId {
     /// RequestId::new("X-REQ-ID").attach(&mut server);
     ///
     /// // Start Server
-    /// # server.set_run(false);
     /// server.start().unwrap();
     ///```
     pub fn new<T: AsRef<str>>(header: T) -> Self {
