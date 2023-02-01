@@ -1,10 +1,7 @@
-use std::fmt;
+use std::fmt::{self, Debug};
 use std::sync::Arc;
 
-use super::method::Method;
-use super::request::Request;
-use super::response::Response;
-use crate::path::Path;
+use crate::{path::Path, Method, Request, Response};
 
 type StatelessRoute = Box<dyn Fn(&Request) -> Response + Send + Sync>;
 type StatefullRoute<State> = Box<dyn Fn(Arc<State>, &Request) -> Response + Send + Sync>;
@@ -18,6 +15,7 @@ pub enum RouteType<State> {
 ///
 /// You should not use this directly.
 /// It will be created automatically when using server.route
+#[derive(Debug)]
 pub struct Route<State> {
     /// Route Method (GET, POST, ANY, etc)
     pub method: Method,
@@ -47,21 +45,20 @@ impl<State> Route<State> {
             handler: RouteType::Statefull(handler),
         }
     }
+
+    pub fn is_stateful(&self) -> bool {
+        match self.handler {
+            RouteType::Stateless(_) => false,
+            RouteType::Statefull(_) => true,
+        }
+    }
 }
 
-// TODO: Show handler in debug
-impl<State> fmt::Debug for Route<State> {
+impl<State> Debug for RouteType<State> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Route")
-            .field("method", &self.method)
-            .field("path", &self.path)
-            .field(
-                "handler",
-                &match self.handler {
-                    RouteType::Stateless(_) => "stateless",
-                    RouteType::Statefull(_) => "statefull",
-                },
-            )
-            .finish()
+        match self {
+            RouteType::Stateless(_) => f.write_str("stateless"),
+            RouteType::Statefull(_) => f.write_str("statefull"),
+        }
     }
 }

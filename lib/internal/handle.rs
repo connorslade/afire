@@ -90,7 +90,9 @@ where
     }
 
     match res {
-        Error::Stream(_) => unreachable!(),
+        Error::Stream(_) | Error::Startup(_) => {
+            unreachable!("Stream and Startup errors should not be here")
+        }
         Error::Parse(e) => match e {
             ParseError::NoSeparator => Response::new().status(400).text("No separator"),
             ParseError::NoMethod => Response::new().status(400).text("No method"),

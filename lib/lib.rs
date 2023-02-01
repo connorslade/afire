@@ -4,8 +4,14 @@
 /// Current version of afire
 #[doc(hidden)]
 pub const VERSION: &str = "1.3.0*";
-/// The defualt buffer allocation
-const BUFF_SIZE: usize = 256;
+
+mod consts {
+    /// The defualt buffer allocation
+    pub const BUFF_SIZE: usize = 256;
+
+    /// Max chunk size
+    pub const CHUNK_SIZE: usize = 16 * 1024;
+}
 
 // Export Internal Functions
 #[macro_use]

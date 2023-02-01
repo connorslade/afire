@@ -5,14 +5,10 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
-// Feature Imports
-#[cfg(feature = "panic_handler")]
-use std::panic;
-
 // Import local files
 use crate::{
-    error::Result, handle::handle, thread_pool::ThreadPool, Header, Method, Middleware, Request,
-    Response, Route, VERSION,
+    error::Result, error::StartupError, handle::handle, internal::common, thread_pool::ThreadPool,
+    Header, Method, Middleware, Request, Response, Route, VERSION,
 };
 
 /// Defines a server.
@@ -74,24 +70,7 @@ where
     {
         trace!("🐍 Initializing Server v{}", VERSION);
 
-        let mut raw_ip = raw_ip.as_ref().to_owned();
-        let mut ip: [u8; 4] = [0; 4];
-
-        // If the ip is localhost, use the loop back ip
-        if raw_ip == "localhost" {
-            raw_ip = String::from("127.0.0.1");
-        }
-
-        // Parse the ip to an array
-        let split_ip = raw_ip.split('.').collect::<Vec<&str>>();
-
-        if split_ip.len() != 4 {
-            panic!("Invalid Server IP");
-        }
-        for i in 0..4 {
-            let octet = split_ip[i].parse::<u8>().expect("Invalid Server IP");
-            ip[i] = octet;
-        }
+        let ip = common::parse_ip(raw_ip.as_ref()).unwrap();
 
         Server {
             port,
@@ -146,6 +125,8 @@ where
             return Ok(());
         }
 
+        self.check()?;
+
         trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
 
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
@@ -189,6 +170,8 @@ where
         if !self.run {
             return Ok(());
         }
+
+        self.check()?;
 
         trace!(
             "✨ Starting Server [{}:{}] ({} threads)",
@@ -430,5 +413,13 @@ where
 
         self.routes
             .push(Route::new_stateful(method, path, Box::new(handler)));
+    }
+
+    fn check(&self) -> Result<()> {
+        if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
+            return Err(StartupError::NoState.into());
+        }
+
+        Ok(())
     }
 }

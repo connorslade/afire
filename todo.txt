@@ -7,6 +7,7 @@
 - Socket timeout system
 - Panic on state uninit at start
 - Replace Server::set_run with `no_run` in tests
+- See the perfermence of using a HashMap vs a Vec in Query and Params
  
 # In Progress
  

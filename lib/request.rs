@@ -5,9 +5,10 @@ use std::{
 };
 
 use crate::{
+    consts::BUFF_SIZE,
     error::{Result, StreamError},
     internal::http::parse_request_line,
-    Cookie, Header, Method, Query, BUFF_SIZE,
+    Cookie, Header, Method, Query,
 };
 
 /// Http Request
@@ -54,6 +55,7 @@ impl Request {
         let (method, path, query, version) = parse_request_line(&request_line)?;
 
         let mut headers = Vec::new();
+        let mut cookies = Vec::new();
         loop {
             let mut buff = Vec::with_capacity(BUFF_SIZE);
             reader
@@ -64,7 +66,18 @@ impl Request {
                 break;
             }
 
-            headers.push(Header::from_string(&line[..line.len() - 2])?);
+            let header = Header::from_string(&line[..line.len() - 2])?;
+            if header.name != "Cookie" {
+                headers.push(header);
+                continue;
+            }
+
+            if let Some(i) = Cookie::from_string(&header.value) {
+                cookies.extend(i);
+                continue;
+            }
+
+            headers.push(header);
         }
 
         let content_len = headers
@@ -80,7 +93,6 @@ impl Request {
                 .map_err(|_| StreamError::UnexpectedEof)?;
         }
 
-        // TODO parse cookies
         Ok(Self {
             method,
             path,
@@ -88,7 +100,7 @@ impl Request {
             path_params: Vec::new(),
             query,
             headers,
-            cookies: Vec::new(),
+            cookies,
             body: Arc::new(body),
             address: peer_addr,
         })

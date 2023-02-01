@@ -1,8 +1,9 @@
 use std::cell::RefCell;
-use std::fmt::{Debug, Display};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+use crate::consts;
 use crate::{
     common::{has_header, reason_phrase},
     error::Result,
@@ -12,6 +13,7 @@ use crate::{
 };
 
 /// Http Response
+#[derive(Debug)]
 pub struct Response {
     /// Response status code
     pub status: u16,
@@ -143,14 +145,14 @@ impl Response {
     /// // Import Library
     /// use afire::{Response, Method, Server};
     /// use std::fs::File;
-    /// 
+    ///
     /// let mut server = Server::<()>::new("localhost", 8080);
-    /// 
+    ///
     /// server.route(Method::GET, "/download-stream", |_| {
     ///     let stream = File::open(PATH).unwrap();
     ///     Response::new().stream(stream)
     /// });
-    /// 
+    ///
     /// server.start().unwrap();
     /// ```
     pub fn stream<T>(self, stream: T) -> Self
@@ -197,14 +199,9 @@ impl Response {
     /// let response = Response::new()
     ///   .headers(&[Header::new("Content-Type", "text/html")]);
     /// ```
-    pub fn headers(self, headers: &[Header]) -> Self {
-        let mut new_headers = self.headers;
-        new_headers.append(&mut headers.to_vec());
-
-        Self {
-            headers: new_headers,
-            ..self
-        }
+    pub fn headers(mut self, headers: &[Header]) -> Self {
+        self.headers.append(&mut headers.to_vec());
+        self
     }
 
     /// Close the connection without sendng a Response
@@ -236,11 +233,10 @@ impl Response {
     /// let response = Response::new()
     ///     .cookie(SetCookie::new("name", "value"));
     /// ```
-    pub fn cookie(self, cookie: SetCookie) -> Self {
-        let mut new = self;
-        new.headers
+    pub fn cookie(mut self, cookie: SetCookie) -> Self {
+        self.headers
             .push(Header::new("Set-Cookie", cookie.to_string()));
-        new
+        self
     }
 
     /// Add a vec of cookies to a response.
@@ -274,8 +270,7 @@ impl Response {
     ///     .content(Content::HTML);
     /// ```
     pub fn content(mut self, content_type: Content) -> Self {
-        self.headers
-            .push(Header::new("Content-Type", content_type.as_type()));
+        self.headers.push(content_type.into());
         self
     }
 
@@ -329,17 +324,6 @@ impl Response {
     }
 }
 
-impl Debug for Response {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Response")
-            .field("status", &self.status)
-            .field("headers", &self.headers)
-            .field("reason", &self.reason)
-            .field("close", &self.close)
-            .finish()
-    }
-}
-
 impl Default for Response {
     fn default() -> Response {
         Response::new()
@@ -365,7 +349,7 @@ impl ResponseBody {
             ResponseBody::Stream(mut data) => {
                 let data = data.get_mut();
                 loop {
-                    let mut chunk = vec![0; 16 * 1024];
+                    let mut chunk = vec![0; consts::CHUNK_SIZE];
                     let read = data.read(&mut chunk)?;
                     if read == 0 {
                         break;
@@ -395,5 +379,14 @@ impl From<Vec<u8>> for ResponseBody {
 impl From<Writeable> for ResponseBody {
     fn from(x: Writeable) -> Self {
         ResponseBody::Stream(x)
+    }
+}
+
+impl Debug for ResponseBody {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Static(arg) => f.debug_tuple("Static").field(arg).finish(),
+            Self::Stream(_arg) => f.debug_tuple("Stream").finish(),
+        }
     }
 }

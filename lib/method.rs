@@ -94,16 +94,16 @@ impl fmt::Display for Method {
     /// assert_eq!("GET", Method::GET.to_string());
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Method::GET => write!(f, "GET"),
-            Method::POST => write!(f, "POST"),
-            Method::PUT => write!(f, "PUT"),
-            Method::DELETE => write!(f, "DELETE"),
-            Method::OPTIONS => write!(f, "OPTIONS"),
-            Method::HEAD => write!(f, "HEAD"),
-            Method::PATCH => write!(f, "PATCH"),
-            Method::TRACE => write!(f, "TRACE"),
-            Method::ANY => write!(f, "ANY"),
-        }
+        f.write_str(match *self {
+            Method::GET => "GET",
+            Method::POST => "POST",
+            Method::PUT => "PUT",
+            Method::DELETE => "DELETE",
+            Method::OPTIONS => "OPTIONS",
+            Method::HEAD => "HEAD",
+            Method::PATCH => "PATCH",
+            Method::TRACE => "TRACE",
+            Method::ANY => "ANY",
+        })
     }
 }

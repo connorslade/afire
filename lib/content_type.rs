@@ -1,3 +1,5 @@
+use crate::Header;
+
 /// Common MIME types
 #[derive(Debug, PartialEq, Eq)]
 pub enum Content<'a> {
@@ -26,5 +28,11 @@ impl Content<'_> {
             Content::XML => "application/xml",
             Content::Custom(i) => i,
         }
+    }
+}
+
+impl From<Content<'_>> for Header {
+    fn from(x: Content<'_>) -> Self {
+        Header::new("Content-Type", x.as_type())
     }
 }

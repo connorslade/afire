@@ -10,6 +10,9 @@ pub type Result<T> = result::Result<T, Error>;
 /// Errors that can occur,,,
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
+    /// Error while starting the server
+    Startup(StartupError),
+
     /// Stream error
     Stream(StreamError),
 
@@ -24,6 +27,12 @@ pub enum Error {
 
     /// Response does not exist (probably because of an error with the request)
     None,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StartupError {
+    InvalidIp,
+    NoState,
 }
 
 /// Errors thet can arize while handling a request
@@ -69,6 +78,12 @@ pub enum ParseError {
 pub enum StreamError {
     /// The stream ended unexpectedly
     UnexpectedEof,
+}
+
+impl From<StartupError> for Error {
+    fn from(e: StartupError) -> Self {
+        Error::Startup(e)
+    }
 }
 
 impl From<StreamError> for Error {
