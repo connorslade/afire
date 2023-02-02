@@ -9,7 +9,7 @@ use std::{
 use crate::{
     error::{HandleError, ParseError, Result},
     internal::common::any_string,
-    prelude::MiddleResult,
+    middleware::MiddleResult,
     route::RouteType,
     trace, Content, Error, Method, Request, Response, Server,
 };
@@ -27,43 +27,14 @@ where
     );
     loop {
         let mut keep_alive = false;
-        let res = match Request::from_socket(stream).and_then(|mut req| {
+        let req = Request::from_socket(stream);
+
+        if let Ok(req) = &req {
             keep_alive = req.keep_alive();
             trace!(Level::Debug, "{} {} {}", req.method, req.path, keep_alive);
+        }
 
-            // Pre Middleware
-            for i in this.middleware.iter().rev() {
-                match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre(&mut req))) {
-                    Ok(MiddleResult::Abort(res)) => {}
-                    Ok(MiddleResult::Continue) => {}
-                    Err(e) => {
-                        return Err(
-                            HandleError::Panic(Box::new(Arc::new(req)), any_string(e)).into()
-                        )
-                    }
-                }
-            }
-
-            let req = Arc::new(req);
-            let mut res = handle_route(req.clone(), this);
-
-            // Post Middleware
-            if let Ok(ref mut res) = res {
-                for i in this.middleware.iter().rev() {
-                    if let Err(e) =
-                        panic::catch_unwind(panic::AssertUnwindSafe(|| i.post(&req, res)))
-                    {
-                        return Err(HandleError::Panic(Box::new(req), any_string(e)).into());
-                    }
-                }
-            }
-
-            res
-        }) {
-            Ok(req) => req,
-            Err(Error::Stream(_)) => break,
-            Err(e) => error_response(Error::None, e, this),
-        };
+        let (req, mut res) = get_response(req, this);
 
         let close = res.close;
         if let Err(e) = res.write(stream, &this.default_headers) {
@@ -71,11 +42,13 @@ where
         }
 
         // End Middleware
-        // for i in this.middleware.iter().rev() {
-        //     if let Err(e) = panic::catch_unwind(panic::AssertUnwindSafe(|| i.end(&todo!(), &res))) {
-        //         trace!(Level::Error, "Error running end middleware: {:?}", e);
-        //     }
-        // }
+        if let Some(req) = req {
+            for i in this.middleware.iter().rev() {
+                if let Err(e) = panic::catch_unwind(panic::AssertUnwindSafe(|| i.end(&req, &res))) {
+                    trace!(Level::Error, "Error running end middleware: {:?}", e);
+                }
+            }
+        }
 
         if !keep_alive || close {
             trace!(Level::Debug, "Closing socket");
@@ -87,17 +60,64 @@ where
     }
 }
 
-// fn get_response<State>(req: Result<Request>, server: &Server<State>) -> Response
-// where
-//     State: 'static + Send + Sync,
-// {
-//     let req = match req {
-//         Ok(req) => req,
-//         Err(e) => return error_response(Error::None, e, server),
-//     };
+fn get_response<State>(
+    req: Result<Request>,
+    server: &Server<State>,
+) -> (Option<Arc<Request>>, Response)
+where
+    State: 'static + Send + Sync,
+{
+    let mut req = match req {
+        Ok(req) => req,
+        Err(e) => return (None, error_response(Error::None, e, server)),
+    };
 
-//     match 
-// }
+    // Pre Middleware
+    // TODO: dont use an Arc here
+    for i in server.middleware.iter().rev() {
+        match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre(&mut req))) {
+            Ok(MiddleResult::Abort(res)) => return (Some(Arc::new(req)), res),
+            Ok(MiddleResult::Continue) => {}
+            Err(e) => {
+                let req = Arc::new(req);
+                return (
+                    Some(req.clone()),
+                    error_response(
+                        Error::None,
+                        HandleError::Panic(Box::new(req), any_string(e)).into(),
+                        server,
+                    ),
+                );
+            }
+        }
+    }
+
+    let req = Arc::new(req);
+    let mut res = match handle_route(req.clone(), server) {
+        Ok(res) => res,
+        Err(e) => return (Some(req), error_response(Error::None, e, server)),
+    };
+
+    // Post Middleware
+    for i in server.middleware.iter().rev() {
+        match panic::catch_unwind(panic::AssertUnwindSafe(|| i.post(&req, &mut res))) {
+            Ok(MiddleResult::Abort(res)) => return (Some(req), res),
+            Ok(MiddleResult::Continue) => {}
+            Err(e) => {
+                return (
+                    Some(req.clone()),
+                    error_response(
+                        Error::None,
+                        HandleError::Panic(Box::new(req), any_string(e)).into(),
+                        server,
+                    ),
+                )
+            }
+        }
+    }
+
+    (Some(req), res)
+}
 
 fn handle_route<State>(req: Arc<Request>, this: &Server<State>) -> Result<Response>
 where

@@ -8,8 +8,7 @@ use std::sync::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
-    error::Result,
-    middleware::{MiddleResponse, Middleware},
+    middleware::{MiddleResult, Middleware},
     Content, Request, Response,
 };
 
@@ -161,15 +160,14 @@ impl RateLimiter {
 }
 
 impl Middleware for RateLimiter {
-    fn pre(&self, req: &Request) -> MiddleResponse<&Request> {
+    fn pre(&self, req: &mut Request) -> MiddleResult {
         if self.is_over_limit(req.address.ip()) {
-            return match (self.handler)(req) {
-                Some(i) => MiddleResponse::Send(i),
-                None => MiddleResponse::Continue,
-            };
+            if let Some(i) = (self.handler)(req) {
+                return MiddleResult::Abort(i);
+            }
         }
 
-        MiddleResponse::Continue
+        MiddleResult::Continue
     }
 
     fn end(&self, req: &Request, _res: &Response) {

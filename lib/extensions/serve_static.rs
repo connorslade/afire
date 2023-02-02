@@ -3,9 +3,7 @@
 use std::{fs, path::Path};
 
 use crate::{
-    error::Result,
-    error::{Error, HandleError},
-    middleware::{MiddleResponse, Middleware},
+    middleware::{MiddleResult, Middleware},
     path::normalize_path,
     Request, Response,
 };
@@ -32,22 +30,22 @@ pub struct ServeStatic {
 }
 
 impl Middleware for ServeStatic {
-    fn post(&self, req: &Request, res: &Response) -> MiddleResponse<&Response> {
+    fn post(&self, req: &Request, _res: &mut Response) -> MiddleResult {
         let path = String::new();
         // let path = match res {
         //     Err(Error::Handle(e)) => match &**e {
         //         HandleError::NotFound(_, i) => i,
-        //         _ => return MiddleResponse::Continue,
+        //         _ => return MiddleResult::Continue,
         //     },
-        //     _ => return MiddleResponse::Continue,
+        //     _ => return MiddleResult::Continue,
         // };
 
         if !path.starts_with(&self.serve_path) {
-            return MiddleResponse::Continue;
+            return MiddleResult::Continue;
         }
 
         let res = process_req(req, self);
-        MiddleResponse::Add(&res.0)
+        MiddleResult::Abort(res.0)
     }
 }
 

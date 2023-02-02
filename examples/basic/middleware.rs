@@ -1,6 +1,5 @@
 use afire::{
-    error,
-    middleware::{MiddleRequest, Middleware},
+    middleware::{MiddleResult, Middleware},
     Method, Request, Response, Server,
 };
 
@@ -26,13 +25,7 @@ struct Log;
 impl Middleware for Log {
     // Redefine the `pre` function
     // (Runs before Routes)
-    fn pre(&self, req: &error::Result<Request>) -> MiddleRequest {
-        // In the case that the request is an error, continue
-        let req = match req {
-            Ok(i) => i,
-            Err(_) => return MiddleRequest::Continue,
-        };
-
+    fn pre(&self, req: &mut Request) -> MiddleResult {
         // Print some info
         println!("[{}] {} {}", req.address.ip(), req.method, req.path);
         // Note: req.address also has the client port
@@ -40,7 +33,7 @@ impl Middleware for Log {
         // Ex: 127.0.0.1:6264 => 127.0.0.1
 
         // Continue to forward the request to the next middleware or route
-        MiddleRequest::Continue
+        MiddleResult::Continue
     }
 }
 

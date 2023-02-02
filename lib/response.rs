@@ -275,7 +275,7 @@ impl Response {
     }
 
     pub(crate) fn write(
-        mut self,
+        &mut self,
         stream: &mut TcpStream,
         default_headers: &[Header],
     ) -> Result<()> {
@@ -314,7 +314,7 @@ impl Response {
             headers_to_string(&self.headers)
         );
 
-        stream.write_all(&response.as_bytes())?;
+        stream.write_all(response.as_bytes())?;
         self.data.write(stream)?;
 
         Ok(())
@@ -340,10 +340,10 @@ impl ResponseBody {
         Header::new("Content-Length", len.to_string())
     }
 
-    fn write(self, stream: &mut TcpStream) -> Result<()> {
+    fn write(&mut self, stream: &mut TcpStream) -> Result<()> {
         match self {
-            ResponseBody::Static(data) => stream.write_all(&data)?,
-            ResponseBody::Stream(mut data) => {
+            ResponseBody::Static(data) => stream.write_all(data)?,
+            ResponseBody::Stream(data) => {
                 let data = data.get_mut();
                 loop {
                     let mut chunk = vec![0; consts::CHUNK_SIZE];

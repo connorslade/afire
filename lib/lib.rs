@@ -70,13 +70,13 @@ pub mod extension {
     //! - Logger
     //! - Response Cache
     //! - Request Id
-    // pub use crate::extensions::{
-    //     // cache::{self, Cache},
-    //     logger::{self, Logger},
-    //     ratelimit::RateLimiter,
-    //     request_id::RequestId,
-    //     serve_static::{self, ServeStatic},
-    // };
+    pub use crate::extensions::{
+        // cache::{self, Cache},
+        logger::{self, Logger},
+        ratelimit::RateLimiter,
+        request_id::RequestId,
+        serve_static::{self, ServeStatic},
+    };
 }
 
 // Unit Tests

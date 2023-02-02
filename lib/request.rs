@@ -101,7 +101,7 @@ impl Request {
             query,
             headers,
             cookies,
-            body: body,
+            body,
             address: peer_addr,
         })
     }
@@ -119,6 +119,7 @@ impl Request {
     /// ```rust
     /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     /// use std::sync::Arc;
+    /// use std::cell::RefCell;
     ///
     /// // Import Library
     /// use afire::{Request, Header, Method, Query};
@@ -128,11 +129,11 @@ impl Request {
     ///     method: Method::GET,
     ///     path: "/".to_owned(),
     ///     version: "HTTP/1.1".to_owned(),
-    ///     path_params: Vec::new(),
+    ///     path_params: RefCell::new(Vec::new()),
     ///     query: Query::new_empty(),
     ///     headers: vec![Header::new("hello", "world")],
     ///     cookies: Vec::new(),
-    ///     body: Arc::new(Vec::new()),
+    ///     body: Vec::new(),
     ///     address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5261),
     /// };
     ///

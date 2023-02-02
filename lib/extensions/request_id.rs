@@ -1,8 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::{
-    error::Result,
-    middleware::{MiddleResponse, Middleware},
+    middleware::{MiddleResult, Middleware},
     Header, Request,
 };
 
@@ -37,7 +36,7 @@ impl RequestId {
 }
 
 impl Middleware for RequestId {
-    fn pre(&self, mut req: &Request) -> MiddleResponse<&Request> {
+    fn pre(&self, req: &mut Request) -> MiddleResult {
         req.headers.insert(
             0,
             Header::new(
@@ -46,6 +45,6 @@ impl Middleware for RequestId {
             ),
         );
 
-        MiddleResponse::Add(req)
+        MiddleResult::Continue
     }
 }

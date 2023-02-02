@@ -75,16 +75,14 @@ fn match_path(path: &[Tokens], inp: &str) -> Option<Vec<(String, String)>> {
                 out.push((x.to_owned(), inp[inp_index..inp_index + end].to_owned()));
                 inp_index += end;
             }
-            Tokens::AnyAfter => {
-                loop {
-                    let end = inp[inp_index..].find('/').unwrap_or(inp.len() - inp_index);
-                    if end == 0 {
-                        return None;
-                    }
-                    inp_index += end;
-                    if inp_index == inp.len() {
-                        return Some(out);
-                    }
+            Tokens::AnyAfter => loop {
+                let end = inp[inp_index..].find('/').unwrap_or(inp.len() - inp_index);
+                if end == 0 {
+                    return None;
+                }
+                inp_index += end;
+                if inp_index == inp.len() {
+                    return Some(out);
                 }
             },
             Tokens::Any => {}

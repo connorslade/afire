@@ -5,13 +5,18 @@ use std::any::type_name;
 
 use crate::{Request, Response, Server};
 
+/// A response from a middleware handler
 pub enum MiddleResult {
+    /// Continue to the next middleware
     Continue,
+    /// Return a response and stop the middleware chain
     Abort(Response),
 }
 
 /// Middleware
 pub trait Middleware {
+    /// Middleware to run before the raw request bytes are parsed
+    //TODO: this
     fn pre_raw(&self, _req: &mut Vec<u8>) -> MiddleResult {
         MiddleResult::Continue
     }
