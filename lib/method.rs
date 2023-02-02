@@ -1,7 +1,7 @@
 use std::{fmt, str::FromStr};
 
 /// Methods for a request
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Method {
     /// GET Method
     ///

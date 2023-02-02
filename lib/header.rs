@@ -82,7 +82,6 @@ impl fmt::Display for Header {
     /// use afire::Header;
     ///
     /// let header1 = Header::new("Content-Type", "text/html");
-    ///
     /// assert_eq!(header1.to_string(), "Content-Type: text/html");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -95,7 +94,11 @@ impl fmt::Display for Header {
 /// Each header is in the format `name: value`
 ///
 /// Every header is separated by a newline (`\r\n`)
-pub(crate) fn headers_to_string(headers: Vec<Header>) -> String {
-    let headers_string = headers.iter().map(Header::to_string).collect::<Vec<_>>();
-    headers_string.join("\r\n")
+pub(crate) fn headers_to_string(headers: &[Header]) -> String {
+    let out = headers
+        .iter()
+        .map(Header::to_string)
+        .fold(String::new(), |acc, i| acc + &i + "\r\n");
+
+    out[..out.len() - 2].to_owned()
 }

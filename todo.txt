@@ -5,8 +5,6 @@
 - Access app in socket handler
 - Clean up error handler
 - Socket timeout system
-- Panic on state uninit at start
-- Replace Server::set_run with `no_run` in tests
 - See the perfermence of using a HashMap vs a Vec in Query and Params
  
 # In Progress
@@ -15,6 +13,8 @@
 
 # Done
 
+- Panic on state uninit at start
+- Replace Server::set_run with `no_run` in tests
 - Streaming response support
 - Chunked encoding
 - Response::bytes take in &[u8] not a Vec<u8>

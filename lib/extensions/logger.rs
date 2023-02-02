@@ -198,10 +198,8 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn end(&self, req: &Result<Request>, _res: &Response) {
-        if let Ok(req) = req {
-            self.log(req);
-        }
+    fn end(&self, req: &Request, _res: &Response) {
+        self.log(req);
     }
 }
 

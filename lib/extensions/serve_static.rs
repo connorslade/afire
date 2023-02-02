@@ -32,26 +32,22 @@ pub struct ServeStatic {
 }
 
 impl Middleware for ServeStatic {
-    fn post(&self, req: &Result<Request>, res: &Result<Response>) -> MiddleResponse {
-        let req = match req {
-            Ok(req) => req,
-            Err(_) => return MiddleResponse::Continue,
-        };
-
-        let path = match res {
-            Err(Error::Handle(e)) => match &**e {
-                HandleError::NotFound(_, i) => i,
-                _ => return MiddleResponse::Continue,
-            },
-            _ => return MiddleResponse::Continue,
-        };
+    fn post(&self, req: &Request, res: &Response) -> MiddleResponse<&Response> {
+        let path = String::new();
+        // let path = match res {
+        //     Err(Error::Handle(e)) => match &**e {
+        //         HandleError::NotFound(_, i) => i,
+        //         _ => return MiddleResponse::Continue,
+        //     },
+        //     _ => return MiddleResponse::Continue,
+        // };
 
         if !path.starts_with(&self.serve_path) {
             return MiddleResponse::Continue;
         }
 
         let res = process_req(req, self);
-        MiddleResponse::Add(res.0)
+        MiddleResponse::Add(&res.0)
     }
 }
 
@@ -137,13 +133,13 @@ impl ServeStatic {
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
     ///     // Disable a vec of files from being served
-    ///     .disable_vec(vec!["index.scss", "index.css.map"])
+    ///     .disable_vec(&["index.scss", "index.css.map"])
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn disable_vec<T>(self, file_paths: Vec<T>) -> Self
+    pub fn disable_vec<T>(self, file_paths: &[T]) -> Self
     where
         T: AsRef<str>,
     {
@@ -242,13 +238,13 @@ impl ServeStatic {
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
     ///     // Add a new MIME type
-    ///     .mime_types(vec![(".3gp", "video/3gpp")])
+    ///     .mime_types(&[("3gp", "video/3gpp")])
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn mime_types<T, M>(self, new_types: Vec<(T, M)>) -> Self
+    pub fn mime_types<T, M>(self, new_types: &[(T, M)]) -> Self
     where
         T: AsRef<str>,
         M: AsRef<str>,

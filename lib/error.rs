@@ -1,6 +1,6 @@
 //! Errors that can occur in the process of connectioning to clients, parseing HTTP and handling requests.
 
-use std::result;
+use std::{result, sync::Arc};
 
 use crate::{Method, Request};
 
@@ -8,7 +8,7 @@ use crate::{Method, Request};
 pub type Result<T> = result::Result<T, Error>;
 
 /// Errors that can occur,,,
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Error {
     /// Error while starting the server
     Startup(StartupError),
@@ -30,7 +30,7 @@ pub enum Error {
 }
 
 /// Errors that can occur while starting the server
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum StartupError {
     /// The IP address specified is invalid
     InvalidIp,
@@ -40,17 +40,17 @@ pub enum StartupError {
 }
 
 /// Errors thet can arize while handling a request
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum HandleError {
     /// Route matching request path not found
     NotFound(Method, String),
 
     /// A route or middleware paniced while running
-    Panic(Box<Result<Request>>, String),
+    Panic(Box<Arc<Request>>, String),
 }
 
 /// Error that can occur while parsing the HTTP of a request
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ParseError {
     /// No `\r\n\r\n` found in request to separate metadata from body
     NoSeparator,
@@ -78,7 +78,7 @@ pub enum ParseError {
 }
 
 /// Error that can occur while reading or writing to a stream
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum StreamError {
     /// The stream ended unexpectedly
     UnexpectedEof,

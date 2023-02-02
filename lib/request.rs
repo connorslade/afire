@@ -1,7 +1,8 @@
 use std::{
+    cell::RefCell,
+    fmt::Debug,
     io::{BufRead, BufReader, Read},
     net::{SocketAddr, TcpStream},
-    sync::Arc,
 };
 
 use crate::{
@@ -12,7 +13,6 @@ use crate::{
 };
 
 /// Http Request
-#[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Request {
     /// Request method
     pub method: Method,
@@ -24,7 +24,7 @@ pub struct Request {
     pub version: String,
 
     /// Path Params
-    pub path_params: Vec<(String, String)>,
+    pub path_params: RefCell<Vec<(String, String)>>,
 
     /// Request Query
     pub query: Query,
@@ -36,7 +36,7 @@ pub struct Request {
     pub cookies: Vec<Cookie>,
 
     /// Request body
-    pub body: Arc<Vec<u8>>,
+    pub body: Vec<u8>,
 
     /// Client address
     pub address: SocketAddr,
@@ -97,11 +97,11 @@ impl Request {
             method,
             path,
             version,
-            path_params: Vec::new(),
+            path_params: RefCell::new(Vec::new()),
             query,
             headers,
             cookies,
-            body: Arc::new(body),
+            body: body,
             address: peer_addr,
         })
     }
@@ -183,8 +183,25 @@ impl Request {
     {
         let name = name.as_ref().to_owned();
         self.path_params
+            .borrow()
             .iter()
             .find(|x| x.0 == name)
             .map(|i| i.1.to_owned())
+    }
+}
+
+impl Debug for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Request")
+            .field("method", &self.method)
+            .field("path", &self.path)
+            .field("version", &self.version)
+            .field("path_params", &self.path_params.borrow())
+            .field("query", &self.query)
+            .field("headers", &self.headers)
+            .field("cookies", &self.cookies)
+            .field("body", &self.body)
+            .field("address", &self.address)
+            .finish()
     }
 }

@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
     error::Result,
-    middleware::{MiddleRequest, Middleware},
+    middleware::{MiddleResponse, Middleware},
     Content, Request, Response,
 };
 
@@ -161,28 +161,18 @@ impl RateLimiter {
 }
 
 impl Middleware for RateLimiter {
-    fn pre(&self, req: &Result<Request>) -> MiddleRequest {
-        let req = match req {
-            Ok(i) => i,
-            Err(_) => return MiddleRequest::Continue,
-        };
-
+    fn pre(&self, req: &Request) -> MiddleResponse<&Request> {
         if self.is_over_limit(req.address.ip()) {
             return match (self.handler)(req) {
-                Some(i) => MiddleRequest::Send(i),
-                None => MiddleRequest::Continue,
+                Some(i) => MiddleResponse::Send(i),
+                None => MiddleResponse::Continue,
             };
         }
 
-        MiddleRequest::Continue
+        MiddleResponse::Continue
     }
 
-    fn end(&self, req: &Result<Request>, _res: &Response) {
-        let req = match req {
-            Ok(i) => i,
-            Err(_) => return,
-        };
-
+    fn end(&self, req: &Request, _res: &Response) {
         self.check_reset();
         self.add_request(req.address.ip());
     }

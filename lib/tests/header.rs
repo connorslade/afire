@@ -55,7 +55,7 @@ fn headers_to_string() {
     let headers = vec![Header::new("Hello", "World"), Header::new("Name", "Value")];
 
     assert_eq!(
-        header::headers_to_string(headers),
+        header::headers_to_string(&headers),
         "Hello: World\r\nName: Value".to_owned()
     );
 }

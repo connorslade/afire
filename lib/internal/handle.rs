@@ -3,11 +3,13 @@ use std::{
     io::Read,
     net::{Shutdown, TcpStream},
     panic,
+    sync::Arc,
 };
 
 use crate::{
     error::{HandleError, ParseError, Result},
     internal::common::any_string,
+    prelude::MiddleResult,
     route::RouteType,
     trace, Content, Error, Method, Request, Response, Server,
 };
@@ -25,10 +27,38 @@ where
     );
     loop {
         let mut keep_alive = false;
-        let res = match Request::from_socket(stream).and_then(|req| {
+        let res = match Request::from_socket(stream).and_then(|mut req| {
             keep_alive = req.keep_alive();
             trace!(Level::Debug, "{} {} {}", req.method, req.path, keep_alive);
-            handle_route(req, this)
+
+            // Pre Middleware
+            for i in this.middleware.iter().rev() {
+                match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre(&mut req))) {
+                    Ok(MiddleResult::Abort(res)) => {}
+                    Ok(MiddleResult::Continue) => {}
+                    Err(e) => {
+                        return Err(
+                            HandleError::Panic(Box::new(Arc::new(req)), any_string(e)).into()
+                        )
+                    }
+                }
+            }
+
+            let req = Arc::new(req);
+            let mut res = handle_route(req.clone(), this);
+
+            // Post Middleware
+            if let Ok(ref mut res) = res {
+                for i in this.middleware.iter().rev() {
+                    if let Err(e) =
+                        panic::catch_unwind(panic::AssertUnwindSafe(|| i.post(&req, res)))
+                    {
+                        return Err(HandleError::Panic(Box::new(req), any_string(e)).into());
+                    }
+                }
+            }
+
+            res
         }) {
             Ok(req) => req,
             Err(Error::Stream(_)) => break,
@@ -40,6 +70,13 @@ where
             trace!(Level::Error, "Error writing to socket: {:?}", e);
         }
 
+        // End Middleware
+        // for i in this.middleware.iter().rev() {
+        //     if let Err(e) = panic::catch_unwind(panic::AssertUnwindSafe(|| i.end(&todo!(), &res))) {
+        //         trace!(Level::Error, "Error running end middleware: {:?}", e);
+        //     }
+        // }
+
         if !keep_alive || close {
             trace!(Level::Debug, "Closing socket");
             if let Err(e) = stream.shutdown(Shutdown::Both) {
@@ -50,14 +87,28 @@ where
     }
 }
 
-fn handle_route<State>(mut req: Request, this: &Server<State>) -> Result<Response>
+// fn get_response<State>(req: Result<Request>, server: &Server<State>) -> Response
+// where
+//     State: 'static + Send + Sync,
+// {
+//     let req = match req {
+//         Ok(req) => req,
+//         Err(e) => return error_response(Error::None, e, server),
+//     };
+
+//     match 
+// }
+
+fn handle_route<State>(req: Arc<Request>, this: &Server<State>) -> Result<Response>
 where
     State: 'static + Send + Sync,
 {
+    // Handle Route
+    let path = req.path.to_owned();
     for route in this.routes.iter().rev() {
         let path_match = route.path.match_path(req.path.clone());
         if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
-            req.path_params = path_match.unwrap_or_default();
+            *req.path_params.borrow_mut() = path_match.unwrap_or_default();
 
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
                 RouteType::Stateless(i) => (i)(&req),
@@ -72,14 +123,14 @@ where
             };
 
             return Err(Error::Handle(Box::new(HandleError::Panic(
-                Box::new(Ok(req)),
+                Box::new(req),
                 err,
             ))));
         }
     }
 
     Err(Error::Handle(Box::new(HandleError::NotFound(
-        req.method, req.path,
+        req.method, path,
     ))))
 }
 

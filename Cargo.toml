@@ -20,14 +20,13 @@ path = "lib/lib.rs"
 
 [features]
 # Default
-default = ["panic_handler"]
+default = ["panic_handler", "tracing"]
 panic_handler = []
 
 # Other
 extensions = []
-trace = []
-debug = []
+tracing = []
 
 [dev-dependencies]
 # Enable rate_limit and logging features for examples
-afire = {path = ".", features = ["extensions", "trace", "debug"]}
+afire = {path = ".", features = ["extensions"]}

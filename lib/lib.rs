@@ -52,7 +52,7 @@ pub use self::{
 pub mod prelude {
     pub use crate::{
         error::{self, Error},
-        middleware::{MiddleRequest, MiddleResponse, Middleware},
+        middleware::{MiddleResult, Middleware},
         Content, Header, Method, Request, Response, Server,
     };
     pub use crate::{Cookie, SetCookie};
@@ -70,13 +70,13 @@ pub mod extension {
     //! - Logger
     //! - Response Cache
     //! - Request Id
-    pub use crate::extensions::{
-        // cache::{self, Cache},
-        logger::{self, Logger},
-        ratelimit::RateLimiter,
-        request_id::RequestId,
-        serve_static::{self, ServeStatic},
-    };
+    // pub use crate::extensions::{
+    //     // cache::{self, Cache},
+    //     logger::{self, Logger},
+    //     ratelimit::RateLimiter,
+    //     request_id::RequestId,
+    //     serve_static::{self, ServeStatic},
+    // };
 }
 
 // Unit Tests

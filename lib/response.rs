@@ -311,13 +311,10 @@ impl Response {
             self.reason
                 .to_owned()
                 .unwrap_or_else(|| reason_phrase(self.status)),
-            headers_to_string(self.headers)
-        )
-        .as_bytes()
-        .to_vec();
+            headers_to_string(&self.headers)
+        );
 
-        stream.write_all(&response)?;
-
+        stream.write_all(&response.as_bytes())?;
         self.data.write(stream)?;
 
         Ok(())

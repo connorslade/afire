@@ -41,9 +41,11 @@ pub fn _trace(level: Level, str: String) {
 #[macro_export]
 macro_rules! trace {
     (Level::$level: ident, $($arg: tt) *) => {
+        #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::$level, format!($($arg)+));
     };
     ($($arg : tt) +) => {
+        #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::Trace, format!($($arg)+));
     };
 }
