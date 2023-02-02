@@ -5,7 +5,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-use crate::{ Middleware, Request, Response};
+use crate::{Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]

@@ -46,7 +46,7 @@ pub enum HandleError {
     NotFound(Method, String),
 
     /// A route or middleware paniced while running
-    Panic(Box<Arc<Request>>, String),
+    Panic(Box<Result<Arc<Request>>>, String),
 }
 
 /// Error that can occur while parsing the HTTP of a request

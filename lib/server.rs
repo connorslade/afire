@@ -34,7 +34,7 @@ where
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    pub error_handler: Box<dyn Fn(Arc<Request>, String) -> Response + Send + Sync>,
+    pub error_handler: Box<dyn Fn(Result<Arc<Request>>, String) -> Response + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
@@ -280,7 +280,7 @@ where
     #[cfg(feature = "panic_handler")]
     pub fn error_handler(
         &mut self,
-        res: impl Fn(Arc<Request>, String) -> Response + Send + Sync + 'static,
+        res: impl Fn(Result<Arc<Request>>, String) -> Response + Send + Sync + 'static,
     ) {
         trace!("✌ Setting Error Handler");
 
