@@ -3,16 +3,17 @@
 - Options handler middleware
 - Lazy body loading
 - Access app in socket handler
-- Clean up error handler
 - Socket timeout system
-- See the perfermence of using a HashMap vs a Vec in Query and Params
+- Error handler trait (like middleware)
+- Connection condition
  
 # In Progress
  
-- Rewrite socket handler
 
 # Done
 
+- Clean up error handler
+- Rewrite socket handler
 - Panic on state uninit at start
 - Replace Server::set_run with `no_run` in tests
 - Streaming response support

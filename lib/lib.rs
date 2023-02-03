@@ -68,10 +68,8 @@ pub mod extension {
     //! - Serve Static
     //! - RateLimit
     //! - Logger
-    //! - Response Cache
     //! - Request Id
     pub use crate::extensions::{
-        // cache::{self, Cache},
         logger::{self, Logger},
         ratelimit::RateLimiter,
         request_id::RequestId,

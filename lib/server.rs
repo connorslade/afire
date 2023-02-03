@@ -67,7 +67,6 @@ where
         T: AsRef<str>,
     {
         trace!("🐍 Initializing Server v{}", VERSION);
-
         let ip = common::parse_ip(raw_ip.as_ref()).unwrap();
 
         Server {
@@ -316,7 +315,8 @@ where
         method: Method,
         path: T,
         handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
-    ) where
+    ) -> &mut Self
+    where
         T: AsRef<str>,
     {
         let path = path.as_ref().to_owned();
@@ -324,6 +324,7 @@ where
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
+        self
     }
 
     /// Create a new stateful route
@@ -350,7 +351,8 @@ where
         method: Method,
         path: T,
         handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
-    ) where
+    ) -> &mut Self
+    where
         T: AsRef<str>,
     {
         let path = path.as_ref().to_owned();
@@ -358,6 +360,7 @@ where
 
         self.routes
             .push(Route::new_stateful(method, path, Box::new(handler)));
+        self
     }
 
     fn check(&self) -> Result<()> {
