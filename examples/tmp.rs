@@ -27,5 +27,33 @@ fn main() {
         Response::new().stream(stream)
     });
 
+    Test.attach(&mut server);
     server.start_threaded(5).unwrap();
+}
+
+struct Test;
+
+impl Middleware for Test {
+    fn pre(&self, req: &mut Request) -> MiddleResult {
+        if req.path.contains("hello") {
+            println!("Pre: {}", req.path);
+            return MiddleResult::Abort(Response::new().text("Intercepted"));
+        }
+
+        MiddleResult::Continue
+    }
+
+    fn post(&self, req: &Request, _res: &mut Response) -> MiddleResult {
+        if req.path.contains("hello") {
+            println!("Post: {}", req.path);
+        }
+
+        MiddleResult::Continue
+    }
+
+    fn end(&self, req: &Request, _res: &Response) {
+        if req.path.contains("hello") {
+            println!("End: {}", req.path);
+        }
+    }
 }

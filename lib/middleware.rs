@@ -1,7 +1,7 @@
 //! Middleware is code that runs before and after the routes.
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
 
-use std::{any::type_name, sync::Arc};
+use std::{any::type_name, rc::Rc};
 
 use crate::{error::Result, Request, Response, Server};
 
@@ -24,7 +24,7 @@ pub trait Middleware {
     /// Middleware to run before routes.
     /// Because this is the `raw` version of [`pre`], it is passed a [`Result`].
     /// The default implementation calls [`pre`] if the [`Result`] is [`Ok`].
-    fn pre_raw(&self, req: Result<&mut Request>) -> MiddleResult {
+    fn pre_raw(&self, req: &mut Result<Request>) -> MiddleResult {
         if let Ok(req) = req {
             return self.pre(req);
         }
@@ -39,9 +39,9 @@ pub trait Middleware {
     /// Middleware to run after routes.
     /// Because this is the `raw` version of [`post`], it is passed a [`Result`].
     /// The default implementation calls [`post`] if the [`Result`] is [`Ok`].
-    fn post_raw(&self, req: Result<Arc<Request>>, res: Result<&mut Response>) -> MiddleResult {
+    fn post_raw(&self, req: Result<Rc<Request>>, res: &mut Result<Response>) -> MiddleResult {
         if let (Ok(req), Ok(res)) = (req, res) {
-            return self.post(&*req, res);
+            return self.post(&req, res);
         }
         MiddleResult::Continue
     }
@@ -54,7 +54,7 @@ pub trait Middleware {
     /// Middleware to run after the response has been handled.
     /// Because this is the `raw` version of [`end`], it is passed a [`Result`].
     /// The default implementation calls [`end`] if the [`Result`] is [`Ok`].
-    fn end_raw(&self, req: Result<&Request>, res: Result<&Response>) {
+    fn end_raw(&self, req: &Result<Request>, res: &Result<Response>) {
         if let (Ok(req), Ok(res)) = (req, res) {
             self.end(req, res);
         }

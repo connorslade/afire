@@ -2,8 +2,9 @@ use std::{
     cell::RefCell,
     io::Read,
     net::{Shutdown, TcpStream},
+    ops::Deref,
     panic,
-    sync::Arc,
+    rc::Rc,
 };
 
 use crate::{
@@ -60,84 +61,65 @@ where
     }
 }
 
-// TODO: please redo this
-// i was tired when i wrote this
-// - sincerely, past me
 fn get_response<State>(
     mut req: Result<Request>,
     server: &Server<State>,
-) -> (Option<Arc<Request>>, Response)
+) -> (Option<Rc<Request>>, Response)
 where
     State: 'static + Send + Sync,
 {
-    let mut req = match &mut req {
-        Ok(req) => Ok(req),
-        Err(e) => Err(e),
-    }.map_err(|x| *x);
+    let mut res = Err(Error::None);
+    let handle_error = |error, req: Result<_>, server| {
+        let err = HandleError::Panic(Box::new(req.clone()), any_string(error)).into();
+        (req.ok(), error_response(&err, server))
+    };
 
     // Pre Middleware
-    // TODO: dont use an Arc here
     for i in server.middleware.iter().rev() {
-        match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre_raw(req))) {
-            Ok(MiddleResult::Abort(res)) => return (req.map(|x| Arc::new(*x)).ok(), res),
-            Ok(MiddleResult::Continue) => {}
-            Err(e) => {
-                let req = match req {
-                    Ok(req) => Ok(Arc::new(*req)),
-                    Err(e) => Err(e),
-                };
-                return (
-                    req.ok(),
-                    error_response(
-                        Error::None,
-                        HandleError::Panic(Box::new(req), any_string(e)).into(),
-                        server,
-                    ),
-                );
+        match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre_raw(&mut req))) {
+            Ok(MiddleResult::Abort(this_res)) => {
+                res = Ok(this_res);
+                break;
             }
+            Ok(MiddleResult::Continue) => {}
+            Err(e) => return handle_error(e, req.map(Rc::new), server),
         }
     }
 
-    let req = match req {
-        Ok(req) => Ok(Arc::new(*req)),
-        Err(e) => Err(e),
-    };
-
-    let res = if let Ok(req) = req {
-        match handle_route(req.clone(), server) {
-            Ok(res) => Ok(&mut res),
-            Err(e) => Err(e),
+    let req = req.map(Rc::new);
+    if res.is_err() {
+        if let Ok(req) = req.clone() {
+            res = handle_route(req, server);
         }
-    } else {
-        Err(Error::None)
-    };
+    }
 
     // Post Middleware
     for i in server.middleware.iter().rev() {
-        match panic::catch_unwind(panic::AssertUnwindSafe(|| i.post_raw(req, res))) {
+        match panic::catch_unwind(panic::AssertUnwindSafe(|| {
+            i.post_raw(req.clone(), &mut res)
+        })) {
             Ok(MiddleResult::Abort(res)) => return (req.ok(), res),
             Ok(MiddleResult::Continue) => {}
-            Err(e) => {
-                return (
-                    req.clone().ok(),
-                    error_response(
-                        Error::None,
-                        HandleError::Panic(Box::new(req), any_string(e)).into(),
-                        server,
-                    ),
-                )
-            }
+            Err(e) => return handle_error(e, req, server),
         }
     }
 
     let res = match res {
         Ok(res) => res,
-        Err(e) => return (req.ok(), error_response(e, e.into(), server)),
+        Err(e) => {
+            let error = match req {
+                Err(ref err) => err,
+                Ok(_) => &e,
+            };
+
+            return (None, error_response(error, server));
+        }
     };
-    (req.ok(), *res)
+
+    (req.ok(), res)
 }
 
-fn handle_route<State>(req: Arc<Request>, this: &Server<State>) -> Result<Response>
+fn handle_route<State>(req: Rc<Request>, this: &Server<State>) -> Result<Response>
 where
     State: 'static + Send + Sync,
 {
@@ -172,15 +154,11 @@ where
     ))))
 }
 
-pub fn error_response<State>(req: Error, mut res: Error, server: &Server<State>) -> Response
+pub fn error_response<State>(err: &Error, server: &Server<State>) -> Response
 where
     State: 'static + Send + Sync,
 {
-    if matches!(res, Error::None) {
-        res = req;
-    }
-
-    match res {
+    match err {
         Error::Stream(_) | Error::Startup(_) => {
             unreachable!("Stream and Startup errors should not be here")
         }
@@ -194,13 +172,13 @@ where
             ParseError::InvalidHeader => Response::new().status(400).text("Invalid header"),
             ParseError::InvalidMethod => Response::new().status(400).text("Invalid method"),
         },
-        Error::Handle(e) => match *e {
+        Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()
                 .status(404)
                 .text(format!("Cannot {} {}", method, path))
                 .content(Content::TXT),
             #[cfg(feature = "panic_handler")]
-            HandleError::Panic(r, e) => (server.error_handler)(*r, e),
+            HandleError::Panic(r, e) => (server.error_handler)(r, e.to_owned()),
             #[cfg(not(feature = "panic_handler"))]
             HandleError::Panic(_, _) => unreachable!(),
         },

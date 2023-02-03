@@ -1,8 +1,13 @@
 //! Basic built-in logging system
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+
+static LEVEL: AtomicU8 = AtomicU8::new(1);
+static COLOR: AtomicBool = AtomicBool::new(true);
 
 /// Log levels
+#[repr(u8)]
+#[derive(Debug, Copy, Clone)]
 pub enum Level {
     /// Disables all logging
     Off = 0,
@@ -15,24 +20,49 @@ pub enum Level {
     Debug = 3,
 }
 
-static LEVEL: AtomicUsize = AtomicUsize::new(1);
+impl Level {
+    /// Returns the log level as a string
+    fn as_str(&self) -> &'static str {
+        match self {
+            Level::Off => "OFF",
+            Level::Error => "ERROR",
+            Level::Trace => "TRACE",
+            Level::Debug => "DEBUG",
+        }
+    }
+
+    fn get_color(&self) -> &'static str {
+        match self {
+            Level::Trace | Level::Off => "\x1b[0m",
+            Level::Error => "\x1b[31m",
+            Level::Debug => "\x1b[36m",
+        }
+    }
+}
 
 /// Sets the global afire log level
 ///
 /// Setting to [`Level::Off`] will disable all logging
 pub fn set_log_level(level: Level) {
-    LEVEL.store(level as usize, Ordering::Relaxed);
+    LEVEL.store(level as u8, Ordering::Relaxed);
 }
 
 #[doc(hidden)]
 pub fn _trace(level: Level, str: String) {
     let log_level = LEVEL.load(Ordering::Relaxed);
-    match level {
-        Level::Error if log_level >= 1 => println!("[ERROR] {}", str),
-        Level::Trace if log_level >= 2 => println!("[TRACE] {}", str),
-        Level::Debug if log_level >= 3 => println!("[DEBUG] {}", str),
-        _ => {}
+    let color = COLOR.load(Ordering::Relaxed);
+
+    if level as u8 > log_level {
+        return;
     }
+
+    println!(
+        "[{}] {}{}{}",
+        level.as_str(),
+        if color { level.get_color() } else { "" },
+        str,
+        if color { "\x1b[0m" } else { "" }
+    );
 }
 
 /// Internal Debug Printing

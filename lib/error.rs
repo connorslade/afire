@@ -1,6 +1,6 @@
 //! Errors that can occur in the process of connectioning to clients, parseing HTTP and handling requests.
 
-use std::{result, sync::Arc};
+use std::{rc::Rc, result};
 
 use crate::{Method, Request};
 
@@ -46,7 +46,7 @@ pub enum HandleError {
     NotFound(Method, String),
 
     /// A route or middleware paniced while running
-    Panic(Box<Result<Arc<Request>>>, String),
+    Panic(Box<Result<Rc<Request>>>, String),
 }
 
 /// Error that can occur while parsing the HTTP of a request

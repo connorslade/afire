@@ -1,6 +1,7 @@
 // Import STD libraries
 use std::any::type_name;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
+use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
 use std::time::Duration;
@@ -10,6 +11,8 @@ use crate::{
     error::Result, error::StartupError, handle::handle, internal::common, thread_pool::ThreadPool,
     Header, Method, Middleware, Request, Response, Route, VERSION,
 };
+
+type ErrorHandler = Box<dyn Fn(&Box<Result<Rc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
 pub struct Server<State = ()>
@@ -34,7 +37,7 @@ where
 
     /// Default response for internal server errors
     #[cfg(feature = "panic_handler")]
-    pub error_handler: Box<dyn Fn(Result<Arc<Request>>, String) -> Response + Send + Sync>,
+    pub error_handler: ErrorHandler,
 
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
@@ -280,7 +283,7 @@ where
     #[cfg(feature = "panic_handler")]
     pub fn error_handler(
         &mut self,
-        res: impl Fn(Result<Arc<Request>>, String) -> Response + Send + Sync + 'static,
+        res: impl Fn(&Box<Result<Rc<Request>>>, String) -> Response + Send + Sync + 'static,
     ) {
         trace!("✌ Setting Error Handler");
 
