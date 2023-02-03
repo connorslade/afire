@@ -1,5 +1,7 @@
 //! Some little functions used here and thare
 
+use std::borrow::Cow;
+
 use crate::{
     error::{Result, StartupError},
     Header,
@@ -14,7 +16,7 @@ use crate::{
 /// - 400-417
 /// - 500-505
 ///
-/// From <https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1>\
+/// From <https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1>
 pub fn reason_phrase(status: u16) -> String {
     match status {
         100 => "Continue",
@@ -67,13 +69,18 @@ pub fn reason_phrase(status: u16) -> String {
 }
 
 /// Decode a url encoded string
-pub fn decode_url(url: String) -> String {
+pub fn decode_url(url: &str) -> String {
     // Convert input to Char array
     let url = url.chars().collect::<Vec<char>>();
 
     let mut res = String::new();
     let mut i = 0;
     while i < url.len() {
+        if url[i] == '+' {
+            res.push(' ');
+            i += 1;
+            continue;
+        }
         if url[i] == '%' {
             let mut hex = String::new();
             try_push(&mut hex, url.get(i + 1));
@@ -123,14 +130,14 @@ pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
     headers.iter().any(|x| x.name == name)
 }
 
-pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> String {
+pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str> {
     if let Some(i) = any.downcast_ref::<String>() {
-        return i.to_owned();
+        return Cow::Owned(i.to_owned());
     }
 
     if let Some(i) = any.downcast_ref::<&str>() {
-        return i.to_owned().to_owned();
+        return Cow::Borrowed(i);
     }
 
-    "".to_owned()
+    Cow::Borrowed("")
 }

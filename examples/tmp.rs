@@ -27,6 +27,8 @@ fn main() {
         Response::new().stream(stream)
     });
 
+    server.route(Method::ANY, "/panic", |_| panic!("panic!"));
+
     Test.attach(&mut server);
     server.start_threaded(5).unwrap();
 }

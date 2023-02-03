@@ -4,12 +4,14 @@
 // For a full pastebin front end and back end check out https://github.com/Basicprogrammer10/plaster-box
 // Or try it out at https://paste.connorcode.com
 
-use std::sync::{Arc, Mutex};
+use std::str::FromStr;
 use std::time::Instant;
+use std::{borrow::Borrow, sync::RwLock};
 
-use afire::{Content, Method, Response, Server};
+use afire::internal::common::decode_url;
+use afire::{Content, Method, Query, Response, Server};
 
-const DATA_LIMIT: usize = 1000;
+const DATA_LIMIT: usize = 10_000;
 
 const TIME_UNITS: &[(&str, u16)] = &[
     ("second", 60),
@@ -27,12 +29,26 @@ struct Paste {
 }
 
 fn main() {
-    let mut server = Server::<()>::new("localhost", 8080);
-    let pub_pastes = Arc::new(Mutex::new(Vec::new()));
+    // Create Server
+    let mut server = Server::new("localhost", 8080).state(RwLock::new(Vec::new()));
 
-    // New paste Handler
-    let pastes = pub_pastes.clone();
-    server.route(Method::POST, "/new", move |req| {
+    // New paste interface
+    server.route(Method::GET, "/", |_req| {
+        Response::new().content(Content::HTML).text(
+            r#"
+        <form action="/new-form" method="post">
+        <input type="text" name="name" id="name" placeholder="Title">
+        
+        <br />
+        <textarea id="body" name="body" rows="5" cols="33"></textarea>
+        <input type="submit" value="Submit" />
+    </form>
+    "#,
+        )
+    });
+
+    // New paste API handler
+    server.stateful_route(Method::POST, "/new", move |app, req| {
         // Make sure paste data isent too long
         if req.body.len() > DATA_LIMIT {
             return Response::new().status(400).text("Data too big!");
@@ -51,7 +67,37 @@ fn main() {
         };
 
         // Push this paste to the pastes vector
-        let mut pastes = pastes.lock().unwrap();
+        let mut pastes = app.write().unwrap();
+        let id = pastes.len();
+        pastes.push(paste);
+
+        // Send Redirect response
+        Response::new()
+            .status(301)
+            .text("Ok")
+            .header("Location", format!("/p/{}", id))
+    });
+
+    // New paste form handler
+    server.stateful_route(Method::POST, "/new-form", |app, req| {
+        // Get data from response
+        let query = Query::from_str(String::from_utf8_lossy(&req.body).borrow()).unwrap();
+        let name = decode_url(query.get("name").unwrap_or("Untitled"));
+        let body = decode_url(query.get("body").expect("No body supplied"));
+
+        // Make sure paste data isent too long
+        if body.len() > DATA_LIMIT {
+            return Response::new().status(400).text("Data too big!");
+        }
+
+        let paste = Paste {
+            name,
+            body,
+            time: Instant::now(),
+        };
+
+        // Push this paste to the pastes vector
+        let mut pastes = app.write().unwrap();
         let id = pastes.len();
         pastes.push(paste);
 
@@ -63,28 +109,26 @@ fn main() {
     });
 
     // Get pate handler
-    let pastes = pub_pastes.clone();
-    server.route(Method::GET, "/p/{id}", move |req| {
+    server.stateful_route(Method::GET, "/p/{id}", move |app, req| {
         // Get is from path param
         let id = req.path_param("id").unwrap().parse::<usize>().unwrap();
 
         // Get the paste by id
-        let paste = &pastes.lock().unwrap()[id];
+        let paste = &app.read().unwrap()[id];
 
         // Send paste
         Response::new().text(&paste.body)
     });
 
     // View all pastes
-    let pastes = pub_pastes.clone();
-    server.route(Method::GET, "/pastes", move |_req| {
+    server.stateful_route(Method::GET, "/pastes", move |app, _req| {
         // Starter HTML
         let mut out = String::from(
-            "<meta charset=\"UTF-8\"><table><tr><th>Name</th><th>Date</th><th>Link</th></tr>",
+            r#"<a href="/">New Paste</a><meta charset="UTF-8"><table><tr><th>Name</th><th>Date</th><th>Link</th></tr>"#,
         );
 
         // Add a table row for each paste
-        for (i, e) in pastes.lock().unwrap().iter().enumerate() {
+        for (i, e) in app.read().unwrap().iter().enumerate() {
             out.push_str(&format!(
                 "<tr><td>{}</td><td>{}</td><td><a href=\"/p/{}\">🔗</a></td></tr>",
                 e.name,

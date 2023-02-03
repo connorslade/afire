@@ -61,7 +61,7 @@ impl Path {
                         return None;
                     }
                 }
-                PathPart::Param(x) => out.push((x.to_owned(), common::decode_url(j.to_owned()))),
+                PathPart::Param(x) => out.push((x.to_owned(), common::decode_url(j))),
                 PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}
             }

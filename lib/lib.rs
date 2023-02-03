@@ -3,7 +3,7 @@
 
 /// Current version of afire
 #[doc(hidden)]
-pub const VERSION: &str = "1.3.0*";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 mod consts {
     /// The default buffer allocation

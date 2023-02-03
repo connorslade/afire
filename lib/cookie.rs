@@ -78,10 +78,7 @@ impl Cookie {
                 }
                 .trim_end_matches(';');
 
-                final_cookies.push(Cookie::new(
-                    decode_url(name.to_owned()),
-                    decode_url(value.to_owned()),
-                ));
+                final_cookies.push(Cookie::new(decode_url(name), decode_url(value)));
             }
             return Some(final_cookies);
         }

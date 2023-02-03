@@ -47,13 +47,16 @@ impl ThreadPool {
 
 impl Worker {
     fn new(id: usize, rx: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
-        let handle = thread::spawn(move || loop {
-            let job = rx.lock().unwrap().recv().unwrap();
-            match job {
-                Message::Job(job) => job(),
-                Message::Kill => break,
-            }
-        });
+        let handle = thread::Builder::new()
+            .name(format!("Worker {}", id))
+            .spawn(move || loop {
+                let job = rx.lock().unwrap().recv().unwrap();
+                match job {
+                    Message::Job(job) => job(),
+                    Message::Kill => break,
+                }
+            })
+            .expect("Error creating worker thread");
 
         Self {
             _id: id,

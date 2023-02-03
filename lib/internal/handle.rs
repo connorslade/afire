@@ -70,7 +70,7 @@ where
 {
     let mut res = Err(Error::None);
     let handle_error = |error, req: Result<_>, server| {
-        let err = HandleError::Panic(Box::new(req.clone()), any_string(error)).into();
+        let err = HandleError::Panic(Box::new(req.clone()), any_string(error).into_owned()).into();
         (req.ok(), error_response(&err, server))
     };
 
@@ -144,7 +144,7 @@ where
 
             return Err(Error::Handle(Box::new(HandleError::Panic(
                 Box::new(Ok(req)),
-                err,
+                err.into_owned(),
             ))));
         }
     }

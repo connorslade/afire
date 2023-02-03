@@ -6,7 +6,8 @@
 - Socket timeout system
 - Error handler trait (like middleware)
 - Connection condition
- 
+- Readable text for errors
+
 # In Progress
  
 
