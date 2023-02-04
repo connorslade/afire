@@ -1,29 +1,18 @@
 use std::{fmt, str::FromStr};
 
-/// Struct for holding query data
-#[derive(Hash, PartialEq, Eq, Clone)]
+/// Struct for holding query data, from request paths and form posts.
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Query(pub Vec<[String; 2]>);
 
 /// Implementation for Query
 impl Query {
-    /// Create a new blank query
+    /// Get a value from a key.
+    /// This will return None if the key does not exist.
     /// # Example
     /// ```
-    /// use afire::Query;
-    /// let query = Query::new_empty();
-    /// ```
-    pub fn new_empty() -> Self {
-        Query(Vec::new())
-    }
-
-    /// Get a value from a key
-    /// # Example
-    /// ```
-    /// use afire::Query;
-    /// use std::str::FromStr;
-    ///
+    /// # use afire::Query;
+    /// # use std::str::FromStr;
     /// let query = Query::from_str("foo=bar&nose=dog").unwrap();
-    ///
     /// assert_eq!(query.get("foo"), Some("bar"));
     /// ```
     pub fn get<T>(&self, key: T) -> Option<&str>
@@ -47,9 +36,8 @@ impl FromStr for Query {
     /// Create a new Query from a Form POST body
     /// # Example
     /// ```
-    /// use afire::Query;
-    /// use std::str::FromStr;
-    ///
+    /// # use afire::Query;
+    /// # use std::str::FromStr;
     /// let query = Query::from_str("foo=bar&nose=dog");
     /// ```
     fn from_str(body: &str) -> Result<Self, Self::Err> {
@@ -85,12 +73,5 @@ impl fmt::Display for Query {
         }
         output.pop();
         write!(f, "{}", output)
-    }
-}
-
-/// Implement the fmt::Display trait for Query
-impl fmt::Debug for Query {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Query").field("data", &self.0).finish()
     }
 }

@@ -4,5 +4,4 @@ mod cookie;
 mod header;
 mod internal;
 mod response;
-mod route;
 mod server;

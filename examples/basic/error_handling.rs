@@ -33,7 +33,7 @@ impl Example for ErrorHandling {
         // This can be defined anywhere in the server and will take affect for all routes
         // Its like a normal route, but it will only be called if the route panics
         let errors = AtomicUsize::new(1);
-        server.error_handler(move |_req, err| {
+        server.error_handler(move |_state, _req, err| {
             Response::new()
                 .status(500)
                 .text(format!(

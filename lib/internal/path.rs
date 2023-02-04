@@ -31,7 +31,7 @@ pub enum PathPart {
 }
 
 impl Path {
-    /// Make a new path
+    /// Tokenize a new path
     pub fn new(path: String) -> Path {
         let path = normalize_path(path);
         let mut out = Vec::new();
@@ -47,7 +47,7 @@ impl Path {
         }
     }
 
-    /// Match Path
+    /// Match Path, returns None if it doesn't match and the path params if it does
     pub fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
         let path = normalize_path(path);
         let mut out = Vec::new();

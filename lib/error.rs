@@ -7,7 +7,7 @@ use crate::{Method, Request};
 /// Easy way to use a Result<T, Error>
 pub type Result<T> = result::Result<T, Error>;
 
-/// Errors that can occur,,,
+/// Errors that can occur at startup or in the process of connectioning to clients, parseing HTTP and handling requests.
 #[derive(Debug, Clone)]
 pub enum Error {
     /// Error while starting the server

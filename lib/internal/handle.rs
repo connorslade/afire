@@ -12,11 +12,16 @@ use crate::{
     internal::common::any_string,
     middleware::MiddleResult,
     route::RouteType,
-    trace, Content, Error, Method, Request, Response, Server,
+    trace, Content, Error, Request, Response, Server,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
+/// - Manages keep-alive sockets
+/// - Lets Request::from_socket read the request
+/// - Lets Response::write write the response to the socket
+/// - Runs End Middleware
+/// - Optionally closes the socket
 pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
 where
     State: 'static + Send + Sync,
@@ -61,6 +66,8 @@ where
     }
 }
 
+/// Gets the response from a request.
+/// Will call middleware, route handlers and error handlers if needed.
 fn get_response<State>(
     mut req: Result<Request>,
     server: &Server<State>,
@@ -119,6 +126,9 @@ where
     (req.ok(), res)
 }
 
+/// Tries to find a route that matches the request.
+/// If it finds one, it will call the handler and return the result (assumming it dosent panic).
+/// If it dosent find one, it will return an Error of HandleError::NotFound.
 fn handle_route<State>(req: Rc<Request>, this: &Server<State>) -> Result<Response>
 where
     State: 'static + Send + Sync,
@@ -126,10 +136,8 @@ where
     // Handle Route
     let path = req.path.to_owned();
     for route in this.routes.iter().rev() {
-        let path_match = route.path.match_path(req.path.clone());
-        if (req.method == route.method || route.method == Method::ANY) && path_match.is_some() {
-            *req.path_params.borrow_mut() = path_match.unwrap_or_default();
-
+        if let Some(params) = route.matches(req.clone()) {
+            *req.path_params.borrow_mut() = params;
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
                 RouteType::Stateless(i) => (i)(&req),
                 RouteType::Statefull(i) => {
@@ -154,6 +162,8 @@ where
     ))))
 }
 
+/// Gets a response of thair is an error.
+/// Can handle Parse, Handle and IO errors.
 pub fn error_response<State>(err: &Error, server: &Server<State>) -> Response
 where
     State: 'static + Send + Sync,
@@ -178,7 +188,9 @@ where
                 .text(format!("Cannot {} {}", method, path))
                 .content(Content::TXT),
             #[cfg(feature = "panic_handler")]
-            HandleError::Panic(r, e) => (server.error_handler)(r, e.to_owned()),
+            HandleError::Panic(r, e) => {
+                (server.error_handler)(server.state.clone(), r, e.to_owned())
+            }
             #[cfg(not(feature = "panic_handler"))]
             HandleError::Panic(_, _) => unreachable!(),
         },

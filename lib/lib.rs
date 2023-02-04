@@ -5,6 +5,8 @@
 #[doc(hidden)]
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Contains all the constants used in afire.
+/// These may be in the future moved into the [`Server`] struct.
 mod consts {
     /// The default buffer allocation
     pub const BUFF_SIZE: usize = 256;
@@ -47,15 +49,14 @@ pub use self::{
     server::Server,
 };
 
-/// The Prelude is a collection of very commenly used *things* in afire
-/// Unless you are using extentions or internial lower level stuff
+/// The Prelude is a collection of very commenly used *things* in afire.
+/// Unless you are using middleware, extentions or internial lower level stuff this should be all you need!
 pub mod prelude {
     pub use crate::{
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
-        Content, Header, Method, Request, Response, Server,
+        Content, Cookie, Header, Method, Request, Response, Server, SetCookie,
     };
-    pub use crate::{Cookie, SetCookie};
 }
 
 // Extra Features

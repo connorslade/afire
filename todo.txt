@@ -7,9 +7,14 @@
 - Error handler trait (like middleware)
 - Connection condition
 - Readable text for errors
+- Cors - https://expressjs.com/en/resources/middleware/cors.html
+- Show how access app in middleware
+- Only run format! macro if log level allows
+- Move tests into the lib
 
 # In Progress
- 
+
+- Docs 
 
 # Done
 

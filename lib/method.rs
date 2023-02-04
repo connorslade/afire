@@ -1,6 +1,7 @@
 use std::{fmt, str::FromStr};
 
-/// Methods for a request
+/// HTTP Methods.
+/// Also contains a special method (ANY) for routes that run on all methods, which will never be the method of a request.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Method {
     /// GET Method
@@ -53,13 +54,11 @@ impl FromStr for Method {
     type Err = ();
 
     /// Convert a string to a method.
-    ///
-    /// If the string is not a valid method, `Method::CUSTOM(s)` is returned.
+    /// If the string is not a valid method or is ANY, an error will be returned.
     /// ## Examples
     /// ```rust
-    /// use std::str::FromStr;
-    /// use afire::{Method};
-    ///
+    /// # use std::str::FromStr;
+    /// # use afire::{Method};
     /// assert!(Method::from_str("GET").unwrap() == Method::GET);
     /// assert!(Method::from_str("POST").unwrap() == Method::POST);
     /// assert!(Method::from_str("PUT").unwrap() == Method::PUT);
@@ -68,20 +67,21 @@ impl FromStr for Method {
     /// assert!(Method::from_str("HEAD").unwrap() == Method::HEAD);
     /// assert!(Method::from_str("PATCH").unwrap() == Method::PATCH);
     /// assert!(Method::from_str("TRACE").unwrap() == Method::TRACE);
+    /// assert!(Method::from_str("ANY") == Err(()));
     /// assert!(Method::from_str("foo") == Err(()));
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_uppercase().as_str() {
-            "GET" => Ok(Method::GET),
-            "POST" => Ok(Method::POST),
-            "PUT" => Ok(Method::PUT),
-            "DELETE" => Ok(Method::DELETE),
-            "OPTIONS" => Ok(Method::OPTIONS),
-            "HEAD" => Ok(Method::HEAD),
-            "PATCH" => Ok(Method::PATCH),
-            "TRACE" => Ok(Method::TRACE),
-            _ => Err(()),
-        }
+        Ok(match s.to_uppercase().as_str() {
+            "GET" => Method::GET,
+            "POST" => Method::POST,
+            "PUT" => Method::PUT,
+            "DELETE" => Method::DELETE,
+            "OPTIONS" => Method::OPTIONS,
+            "HEAD" => Method::HEAD,
+            "PATCH" => Method::PATCH,
+            "TRACE" => Method::TRACE,
+            _ => return Err(()),
+        })
     }
 }
 
@@ -89,8 +89,7 @@ impl fmt::Display for Method {
     /// Returns the string representation of the method.
     ///
     /// ```rust
-    /// use afire::{Method};
-    ///
+    /// # use afire::{Method};
     /// assert_eq!("GET", Method::GET.to_string());
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

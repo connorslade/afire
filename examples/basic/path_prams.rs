@@ -20,7 +20,7 @@ impl Example for PathParam {
         // This includes "/greet/bob", "/greet/fin"
         server.route(Method::GET, "/greet/{name}", |req| {
             // Get name path param
-            let name = req.path_param("name").unwrap();
+            let name = req.param("name").unwrap();
 
             // Make a nice Message to send
             let message = format!("Hello, {}", name);

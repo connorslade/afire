@@ -67,7 +67,7 @@ impl Example for Data {
         server.route(Method::GET, "/greet/{name}", |req| {
             // As this route would ever run without all the path params being filled
             // It is safe to unwrap if the name is in the path
-            let data = format!("<h1>Hello, {}</h1>", req.path_param("name").unwrap());
+            let data = format!("<h1>Hello, {}</h1>", req.param("name").unwrap());
 
             Response::new()
                 .text(data)

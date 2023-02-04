@@ -38,7 +38,7 @@ let mut server = Server::<()>::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/greet/{name}", |req| {
-  let name = req.path_param("name").unwrap();
+  let name = req.param("name").unwrap();
 
   Response::new()
     .text(format!("Hello, {}", name))

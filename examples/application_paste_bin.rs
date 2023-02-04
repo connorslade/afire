@@ -111,7 +111,7 @@ fn main() {
     // Get pate handler
     server.stateful_route(Method::GET, "/p/{id}", move |app, req| {
         // Get is from path param
-        let id = req.path_param("id").unwrap().parse::<usize>().unwrap();
+        let id = req.param("id").unwrap().parse::<usize>().unwrap();
 
         // Get the paste by id
         let paste = &app.read().unwrap()[id];

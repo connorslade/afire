@@ -1,5 +1,5 @@
-//! Cookies!
 //!
+//! Cookies!
 //! This module provides a simple interface for setting and receiving cookies.
 
 use std::fmt;
@@ -7,7 +7,7 @@ use std::fmt;
 use crate::common::decode_url;
 
 /// Represents a Cookie
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Cookie {
     /// Cookie Key
     pub name: String,
@@ -16,17 +16,14 @@ pub struct Cookie {
     pub value: String,
 }
 
-/// Represents a Client's Cookie
-///
-/// Has more information than a normal Cookie
-/// (e.g. max-age, domain, path, secure)
-#[derive(Hash, PartialEq, Eq)]
+/// Represents a Set-Cookie header.
+/// Has more information than a normal Cookie (e.g. max-age, domain, path, secure).
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SetCookie {
     /// Base Cookie
     pub cookie: Cookie,
 
-    /// Cookie Max-Age
-    ///
+    /// Cookie Max-Age.
     /// Number of seconds until the cookie expires. A zero or negative number will expire the cookie immediately.
     pub max_age: Option<u64>,
 
@@ -41,27 +38,24 @@ pub struct SetCookie {
 }
 
 impl Cookie {
-    /// Make a new Cookie
+    /// Make a new Cookie from a name and a value.
     /// ## Example
     /// ```
-    /// use afire::Cookie;
+    /// # use afire::Cookie;
     /// let cookie = Cookie::new("name", "value");
     /// ```
-    pub fn new<T, M>(name: T, value: M) -> Cookie
-    where
-        T: AsRef<str>,
-        M: AsRef<str>,
-    {
+    pub fn new(name: impl AsRef<str>, value: impl AsRef<str>) -> Cookie {
         Cookie {
             name: name.as_ref().to_owned(),
             value: value.as_ref().to_owned(),
         }
     }
 
-    /// Make a Vec of Cookies from a String
-    ///
-    /// Intended for making Cookie Vec from HTTP Headers
-    pub fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
+    /// Make a Vec of Cookies from a String.
+    /// Intended for making Cookie Vec from HTTP Headers.
+    /// Will only return None of the cookie string does not start with "Cookie:".
+    /// If thare are any invalid cookies, they will be ignored.
+    pub(crate) fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
         if let Some(cookie_string) = cookie_string.strip_prefix("Cookie:") {
             let cookies = cookie_string.trim().split("; ").collect::<Vec<&str>>();
             let mut final_cookies = Vec::new();
@@ -96,16 +90,6 @@ impl fmt::Debug for Cookie {
     }
 }
 
-// Impl Clone
-impl Clone for Cookie {
-    fn clone(&self) -> Cookie {
-        Cookie {
-            name: self.name.clone(),
-            value: self.value.clone(),
-        }
-    }
-}
-
 // Impl ToString for Cookie
 impl fmt::Display for Cookie {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -114,17 +98,13 @@ impl fmt::Display for Cookie {
 }
 
 impl SetCookie {
-    /// Make a new simple SetCookie
+    /// Make a new SetCookie from a name and a value.
     /// ## Example
     /// ```
     /// use afire::SetCookie;
     /// let cookie = SetCookie::new("name", "value");
     /// ```
-    pub fn new<T, M>(name: T, value: M) -> SetCookie
-    where
-        T: AsRef<str>,
-        M: AsRef<str>,
-    {
+    pub fn new(name: impl AsRef<str>, value: impl AsRef<str>) -> SetCookie {
         SetCookie {
             cookie: Cookie::new(name, value),
             max_age: None,
@@ -134,12 +114,11 @@ impl SetCookie {
         }
     }
 
-    /// Set the Max-Age field of a SetCookie
-    ///
+    /// Set the Max-Age field of a SetCookie.
     /// This is the number of seconds the cookie should be valid for.
     /// ## Example
     /// ```
-    /// use afire::SetCookie;
+    /// # use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
     ///     .max_age(10 * 60);
     ///
@@ -152,10 +131,10 @@ impl SetCookie {
         }
     }
 
-    /// Set the Domain field of a SetCookie
+    /// Set the Domain field of a SetCookie.
     /// ## Example
     /// ```
-    /// use afire::SetCookie;
+    /// # use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
     ///     .domain("domain");
     ///
@@ -171,10 +150,10 @@ impl SetCookie {
         }
     }
 
-    /// Set the Path field of a SetCookie
+    /// Set the Path field of a SetCookie.
     /// ## Example
     /// ```
-    /// use afire::SetCookie;
+    /// # use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
     ///     .path("path");
     ///
@@ -190,10 +169,10 @@ impl SetCookie {
         }
     }
 
-    /// Set the Secure field of a SetCookie
+    /// Set the Secure field of a SetCookie.
     /// ## Example
     /// ```
-    /// use afire::SetCookie;
+    /// # use afire::SetCookie;
     /// let mut cookie = SetCookie::new("name", "value")
     ///     .secure(true);
     ///
@@ -206,21 +185,7 @@ impl SetCookie {
     }
 }
 
-// Impl Debug for SetCookie
-impl fmt::Debug for SetCookie {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Cookie")
-            .field("name", &self.cookie.name)
-            .field("value", &self.cookie.value)
-            .field("max_age", &self.max_age)
-            .field("domain", &self.domain)
-            .field("path", &self.path)
-            .field("secure", &self.secure)
-            .finish()
-    }
-}
-
-// Impl ToString for SetCookie
+// Impl Display for SetCookie
 impl fmt::Display for SetCookie {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut cookie_string = format!("{}={}; ", self.cookie.name, self.cookie.value);

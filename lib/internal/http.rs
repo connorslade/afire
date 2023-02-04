@@ -7,6 +7,7 @@ use crate::{
     Error, Method, Query,
 };
 
+/// Parse a request line into a method, path, query, and version
 pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query, String)> {
     let request_line = String::from_utf8_lossy(bytes);
     let mut parts = request_line.split_whitespace();

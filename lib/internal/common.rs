@@ -7,7 +7,7 @@ use crate::{
     Header,
 };
 
-/// Get Reason Phrase for a status code
+/// Get the _Reason Phrase_ for a status code
 ///
 /// Supports Status:
 /// - 100-101
@@ -68,8 +68,16 @@ pub fn reason_phrase(status: u16) -> String {
     .to_string()
 }
 
-/// Decode a url encoded string
+/// Decode a url encoded string.
+/// Supports `+` and `%` encoding
 pub fn decode_url(url: &str) -> String {
+    #[inline]
+    fn try_push(vec: &mut String, c: Option<&char>) {
+        if let Some(c) = c {
+            vec.push(*c);
+        }
+    }
+
     // Convert input to Char array
     let url = url.chars().collect::<Vec<char>>();
 
@@ -95,7 +103,8 @@ pub fn decode_url(url: &str) -> String {
     res
 }
 
-/// Parse a string to an IP address
+/// Parse a string to an IP address.
+/// Will return a [`StartupError::InvalidIp`] if the IP has an invalid format.
 pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     if raw == "localhost" {
         return Ok([127, 0, 0, 1]);
@@ -118,18 +127,15 @@ pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     Ok(ip)
 }
 
-#[inline]
-fn try_push(vec: &mut String, c: Option<&char>) {
-    if let Some(c) = c {
-        vec.push(*c);
-    }
-}
-
+/// Checks if a slice of headers contains a header with the given name.
+/// Is case sensitive.
 #[inline]
 pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
     headers.iter().any(|x| x.name == name)
 }
 
+/// Attempt to downcast a `Box<dyn Any>` to a `String` or `&str`.
+/// Will return an empty string if the downcast fails.
 pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str> {
     if let Some(i) = any.downcast_ref::<String>() {
         return Cow::Owned(i.to_owned());

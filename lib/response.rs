@@ -18,19 +18,24 @@ pub struct Response {
     /// Response status code
     pub status: u16,
 
-    /// Response Data as Bytes
+    /// Response Data.
+    /// Can be either a Static Vec<u8> or a Stream (impl [`Read`])
     data: ResponseBody,
 
-    /// Response Headers
+    /// List of response headers.
+    /// This does not contain the default headers.
     pub headers: Vec<Header>,
 
-    /// Response Reason
+    /// Response reason phrase.
+    /// If this is None, the reason phrase will be automatically generated based on the status code.
     pub reason: Option<String>,
 
-    /// Force Close Connection
+    /// Force Close Connection.
+    /// Will set the Connection header to close and will close the connection after the response is sent.
     pub close: bool,
 }
 
+/// Response Data
 enum ResponseBody {
     Static(Vec<u8>),
     Stream(Writeable),
@@ -41,16 +46,12 @@ impl Response {
     ///
     /// Default data is as follows
     /// - Status: 200
-    ///
     /// - Data: OK
-    ///
     /// - Headers: Vec::new()
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::{Response, Header};
-    /// // Create Response
-    /// let response = Response::new();
+    /// # use afire::{Response, Header};
+    /// Response::new();
     /// ```
     pub fn new() -> Self {
         Self {
@@ -62,12 +63,10 @@ impl Response {
         }
     }
 
-    /// Add a status to a Response
+    /// Add a status code to a Response.
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::{Response, Header};
-    ///
+    /// # use afire::{Response, Header};
     /// // Create Response
     /// let response = Response::new()
     ///    .status(200); // <- Here it is
@@ -79,13 +78,12 @@ impl Response {
         }
     }
 
-    /// Manually set the Reason Phrase
+    /// Manually set the Reason Phrase.
     /// ```rust
-    /// // Import Library
-    /// use afire::{Response, Header};
-    ///
+    /// # use afire::{Response, Header};
     /// // Create Response
     /// let response = Response::new()
+    ///     .status(200)
     ///    .reason("OK");
     /// ```
     pub fn reason<T>(self, reason: T) -> Self
@@ -98,17 +96,15 @@ impl Response {
         }
     }
 
-    /// Add text as data to a Response
-    ///
-    /// Will accept any type that implements Display
+    /// Add text as data to a Response.
+    /// Will accept any type that implements Display, such as [`String`], [`str`], [`i32`], serde_json::Value, etc.
+    /// This response type is considered static and will be sent in one go, not chunked.
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::Response;
-    ///
+    /// # use afire::Response;
     /// // Create Response
     /// let response = Response::new()
-    ///    .text("Hi :P");
+    ///    .text("Hello from afire!");
     /// ```
     pub fn text<T>(self, text: T) -> Self
     where
@@ -120,15 +116,14 @@ impl Response {
         }
     }
 
-    /// Add raw bytes as data to a Response
+    /// Add raw bytes as data to a Response.
+    /// This response type is considered static and will be sent in one go, not chunked.
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::Response;
-    ///
+    /// # use afire::Response;
     /// // Create Response
     /// let response = Response::new()
-    ///   .bytes(&[79, 75]);
+    ///   .bytes(&[79, 75]); // Bytes for "OK"
     /// ```
     pub fn bytes(self, bytes: &[u8]) -> Self {
         Self {
@@ -137,23 +132,19 @@ impl Response {
         }
     }
 
-    /// Add a stream as data to a Response
-    /// It will be streamed to the client in chunks using `Transfer-Encoding: chunked`.
+    /// Add a stream as data to a Response.
+    /// This response type is considered dynamic and will be streamed to the client in chunks using `Transfer-Encoding: chunked`.
     /// ## Example
     /// ```rust,no_run
-    /// # const PATH: &str = "path/to/file.txt";
-    /// // Import Library
-    /// use afire::{Response, Method, Server};
-    /// use std::fs::File;
-    ///
+    /// # use afire::{Response, Method, Server};
+    /// # use std::fs::File;
+    /// const PATH: &str = "path/to/file.txt";
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
     /// server.route(Method::GET, "/download-stream", |_| {
     ///     let stream = File::open(PATH).unwrap();
     ///     Response::new().stream(stream)
     /// });
-    ///
-    /// server.start().unwrap();
     /// ```
     pub fn stream<T>(self, stream: T) -> Self
     where
@@ -165,15 +156,14 @@ impl Response {
         }
     }
 
-    /// Add a Header to a Response
+    /// Add a Header to a Response.
+    /// Will accept any type that implements AsRef<str>, so [`String`], [`str`], [`&str`], etc.
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::{Response, Header};
-    ///
+    /// # use afire::{Response, Header};
     /// // Create Response
     /// let response = Response::new()
-    ///    .header("Content-Type", "text/html");
+    ///    .header("Test-Header", "Test-Value");
     /// ```
     pub fn header<T, K>(self, key: T, value: K) -> Self
     where
@@ -189,31 +179,31 @@ impl Response {
         }
     }
 
-    /// Add a Vec of Headers to a Response
+    /// Add a list of Headers to a Response.
+    /// Only accepts a slice of [`Header`]s.
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::{Response, Header};
-    ///
+    /// # use afire::{Response, Header};
     /// // Create Response
     /// let response = Response::new()
-    ///   .headers(&[Header::new("Content-Type", "text/html")]);
+    ///     .headers(&[
+    ///         Header::new("Content-Type", "text/html"),
+    ///         Header::new("Test-Header", "Test-Value")
+    ///     ]);
     /// ```
     pub fn headers(mut self, headers: &[Header]) -> Self {
         self.headers.append(&mut headers.to_vec());
         self
     }
 
-    /// Close the connection without sendng a Response
-    ///
-    /// Will ignore any other options defined on the Response
+    /// Will set the `Connection: close` header on the Response.
+    /// Then it will close the connection after the Response has been sent.
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::{Response};
-    ///
+    /// # use afire::{Response};
     /// // Create Response
     /// let response = Response::new()
+    ///   .text("goodbye!")
     ///   .close();
     /// ```
     pub fn close(self) -> Self {
@@ -224,14 +214,14 @@ impl Response {
     }
 
     /// Add a cookie to a response.
+    /// The [`SetCookie`] will be converted to a [`Header`] and added to the Response.
     /// ## Example
     /// ```
-    /// // Import Library
-    /// use afire::{Response, SetCookie};
-    ///
+    /// # use afire::{Response, SetCookie};
     /// // Create Response and add cookie
     /// let response = Response::new()
-    ///     .cookie(SetCookie::new("name", "value"));
+    ///     .cookie(SetCookie::new("name", "value"))
+    ///     .cookie(SetCookie::new("name2", "value2"));
     /// ```
     pub fn cookie(mut self, cookie: SetCookie) -> Self {
         self.headers
@@ -239,15 +229,16 @@ impl Response {
         self
     }
 
-    /// Add a vec of cookies to a response.
+    /// Add a list of cookies to a response.
     /// ## Example
     /// ```
-    /// // Import Library
-    /// use afire::{Response, SetCookie};
-    ///
+    /// # use afire::{Response, SetCookie};
     /// // Create Response and add cookie
     /// let response = Response::new()
-    ///     .cookies(&[SetCookie::new("name", "value")]);
+    ///     .cookies(&[
+    ///         SetCookie::new("name", "value"),
+    ///         SetCookie::new("name2", "value2")
+    ///     ]);
     /// ```
     pub fn cookies(self, cookie: &[SetCookie]) -> Self {
         let mut new = Vec::new();
@@ -259,12 +250,11 @@ impl Response {
         self.headers(&new)
     }
 
-    /// Set a Content Type on a Response
+    /// Set a Content Type on a Response with a [`Content`] enum.
+    /// This will add a `Content-Type` header to the Response.
     /// ## Example
     /// ```
-    /// // Import Library
-    /// use afire::{Response, Content};
-    ///
+    /// # use afire::{Response, Content};
     /// // Create Response and type
     /// let response = Response::new()
     ///     .content(Content::HTML);
@@ -274,6 +264,15 @@ impl Response {
         self
     }
 
+    // TODO: example
+    /// Lets you modify the Response with a function before it is sent to the client.
+    /// This can be used to have middleware that modifies the Response on specific routes.
+    pub fn modifier(self, modifier: impl Fn(Response) -> Response) -> Self {
+        modifier(self)
+    }
+
+    /// Writes a Response to a TcpStream.
+    /// Will take care of adding default headers and closing the connection if needed.
     pub(crate) fn write(
         &mut self,
         stream: &mut TcpStream,
@@ -328,10 +327,13 @@ impl Default for Response {
 }
 
 impl ResponseBody {
+    /// Checks if the ResponseBody is static.
     fn is_static(&self) -> bool {
         matches!(self, ResponseBody::Static(_))
     }
 
+    /// Gets the content length header of a static ResponseBody.
+    /// If the ResponseBody is not static it will panic.
     fn content_len(&self) -> Header {
         let len = match self {
             ResponseBody::Static(data) => data.len(),
@@ -340,6 +342,8 @@ impl ResponseBody {
         Header::new("Content-Length", len.to_string())
     }
 
+    /// Writes a ResponseBody to a TcpStream.
+    /// Eaither in one go if it is static or in chunks if it is a stream.
     fn write(&mut self, stream: &mut TcpStream) -> Result<()> {
         match self {
             ResponseBody::Static(data) => stream.write_all(data)?,

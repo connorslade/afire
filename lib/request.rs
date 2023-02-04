@@ -14,35 +14,40 @@ use crate::{
 
 /// Http Request
 pub struct Request {
-    /// Request method
+    /// Request method.
     pub method: Method,
 
-    /// Request path
+    /// Request path (not tokenized).
+    /// The query string is not included, its in the `query` field.
     pub path: String,
 
-    /// HTTP version
+    /// HTTP version string.
+    /// Should usally be "HTTP/1.1".
     pub version: String,
 
-    /// Path Params
+    /// Path Params, filled by the router
     pub path_params: RefCell<Vec<(String, String)>>,
 
-    /// Request Query
+    /// Request Query.
     pub query: Query,
 
-    /// Request headers
+    /// Request headers.
+    /// Will not include cookies, which are in the `cookies` field.
     pub headers: Vec<Header>,
 
-    /// Request Cookies
+    /// Request Cookies.
     pub cookies: Vec<Cookie>,
 
-    /// Request body
+    /// Request body, as a static byte vec.
     pub body: Vec<u8>,
 
-    /// Client address
+    /// Client socket address.
+    /// If you are using a reverse proxy, this will be the address of the proxy (often localhost).
     pub address: SocketAddr,
 }
 
 impl Request {
+    /// Read a request from a TcpStream.
     pub(crate) fn from_socket(stream: &mut TcpStream) -> Result<Self> {
         trace!(Level::Debug, "Reading header");
         let peer_addr = stream.peer_addr()?;
@@ -112,29 +117,28 @@ impl Request {
             .unwrap_or(false)
     }
 
-    /// Get a request header by its name
-    ///
-    /// This is not case sensitive
+    /// Get a request header by its name.
+    /// This is not case sensitive.
     /// ## Example
     /// ```rust
-    /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-    /// use std::sync::Arc;
-    /// use std::cell::RefCell;
-    ///
-    /// // Import Library
-    /// use afire::{Request, Header, Method, Query};
-    ///
+    /// # use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    /// # use std::sync::Arc;
+    /// # use std::cell::RefCell;
+    /// # use std::str::FromStr;
+    /// # use afire::{Request, Header, Method, Query};
     /// // Create Request
     /// let request = Request {
-    ///     method: Method::GET,
-    ///     path: "/".to_owned(),
-    ///     version: "HTTP/1.1".to_owned(),
-    ///     path_params: RefCell::new(Vec::new()),
-    ///     query: Query::new_empty(),
-    ///     headers: vec![Header::new("hello", "world")],
-    ///     cookies: Vec::new(),
-    ///     body: Vec::new(),
-    ///     address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5261),
+    ///     /* SNIP */
+    /// #   method: Method::GET,
+    /// #   path: "/".to_owned(),
+    /// #   version: "HTTP/1.1".to_owned(),
+    /// #   path_params: RefCell::new(Vec::new()),
+    /// #   query: Query::from_str("").unwrap(),
+    ///     headers: vec![Header::new("Hello", "world")],
+    /// #   cookies: Vec::new(),
+    /// #   body: Vec::new(),
+    /// #   address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5261),
+    ///     /* SNIP */
     /// };
     ///
     /// assert_eq!(request.header("hello").unwrap(), "world");
@@ -152,33 +156,27 @@ impl Request {
         None
     }
 
-    /// Get a path_params value
+    /// Get a path paramater by its name.
     ///
     /// ## Example
-    /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Request, Response, Header, Method, Server};
-    ///
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
+    /// ```rust
+    /// # use afire::{Request, Response, Header, Method, Server, Content};
+    /// # let mut server = Server::<()>::new("localhost", 8080);
     /// server.route(Method::GET, "/greet/{name}", |req| {
     ///     // Get name Path param
-    ///     let name = req.path_param("name").unwrap();
+    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
+    ///     let name = req.param("name").unwrap();
     ///
-    ///     // Make a nice Messgae
+    ///     // Format a nice Messgae
     ///     let message = format!("Hello, {}", name);
     ///
     ///     // Send Response
     ///     Response::new()
     ///         .text(message)
-    ///         .header("Content-Type", "text/plain")
+    ///         .content(Content::TXT)
     /// });
-    ///
-    /// // Starts the server
-    /// // This is blocking
-    /// server.start().unwrap();
     /// ```
-    pub fn path_param<T>(&self, name: T) -> Option<String>
+    pub fn param<T>(&self, name: T) -> Option<String>
     where
         T: AsRef<str>,
     {

@@ -1,4 +1,5 @@
 use std::fmt::{self, Debug};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::{path::Path, Method, Request, Response};
@@ -14,22 +15,22 @@ pub enum RouteType<State> {
 /// Defines a route.
 ///
 /// You should not use this directly.
-/// It will be created automatically when using server.route
+/// It will be created automatically when using [`crate::Server::route`] or [`crate::Server::stateful_route`].
 #[derive(Debug)]
 pub struct Route<State> {
-    /// Route Method (GET, POST, ANY, etc)
-    pub method: Method,
+    /// Route Method (GET, POST, ANY, etc.)
+    method: Method,
 
-    /// Route Path
-    pub path: Path,
+    /// Route path, in its tokenized form.
+    path: Path,
 
-    /// Route Handler
-    pub handler: RouteType<State>,
+    /// Route Handler, either stateless or statefull.
+    pub(crate) handler: RouteType<State>,
 }
 
 impl<State> Route<State> {
     /// Creates a new route.
-    pub fn new(method: Method, path: String, handler: StatelessRoute) -> Self {
+    pub(crate) fn new(method: Method, path: String, handler: StatelessRoute) -> Self {
         Self {
             method,
             path: Path::new(path),
@@ -38,7 +39,11 @@ impl<State> Route<State> {
     }
 
     /// Create a new stateful route
-    pub fn new_stateful(method: Method, path: String, handler: StatefullRoute<State>) -> Self {
+    pub(crate) fn new_stateful(
+        method: Method,
+        path: String,
+        handler: StatefullRoute<State>,
+    ) -> Self {
         Self {
             method,
             path: Path::new(path),
@@ -46,11 +51,18 @@ impl<State> Route<State> {
         }
     }
 
+    /// Checks if the route is stateful.
     pub(crate) fn is_stateful(&self) -> bool {
-        match self.handler {
-            RouteType::Stateless(_) => false,
-            RouteType::Statefull(_) => true,
+        matches!(self.handler, RouteType::Statefull(_))
+    }
+
+    /// Checks if a Request matches the route.
+    /// Returns the path parameters if it does.
+    pub(crate) fn matches(&self, req: Rc<Request>) -> Option<Vec<(String, String)>> {
+        if self.method != Method::ANY && self.method != req.method {
+            return None;
         }
+        self.path.match_path(req.path.clone())
     }
 }
 

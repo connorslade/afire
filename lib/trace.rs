@@ -2,21 +2,25 @@
 
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
+/// afire's global log level.
 static LEVEL: AtomicU8 = AtomicU8::new(1);
+/// Whether or not to colorize the log output.
 static COLOR: AtomicBool = AtomicBool::new(true);
 
-/// Log levels
+/// Log levels.
+/// Used to control the verbosity of afire's internial logging.
+/// The default log level is [`Level::Error`].
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
 pub enum Level {
-    /// Disables all logging
+    /// Disables all logging.
     Off = 0,
-    /// Only shows socket errors
+    /// Only shows errors.
     Error = 1,
-    /// Shows [`Error`] and route ordering
+    /// Shows [`Level::Error`] and some helpful information during startup.
     Trace = 2,
-    /// Shows [`Error`], [`Trace`] and raw socket stuff.
-    /// You probably don't need this, its intended for afire development.
+    /// Shows [`Level::Error`], [`Level::Trace`] and raw socket stuff.
+    /// You probably don't need this, its really only intended for afire development.
     Debug = 3,
 }
 
@@ -31,6 +35,8 @@ impl Level {
         }
     }
 
+    /// Gets a color code for the log level.
+    /// This is used to colorize the log output if [`COLOR`] is enabled.
     fn get_color(&self) -> &'static str {
         match self {
             Level::Trace | Level::Off => "\x1b[0m",
@@ -40,13 +46,14 @@ impl Level {
     }
 }
 
-/// Sets the global afire log level
-///
-/// Setting to [`Level::Off`] will disable all logging
+/// Sets the global afire log level.
+/// Setting to [`Level::Off`] will disable all logging.
 pub fn set_log_level(level: Level) {
     LEVEL.store(level as u8, Ordering::Relaxed);
 }
 
+/// Logs a message at the specified log level.
+/// Hidden from the docs, as it is only intended for internal use through the [`trace!`] macro.
 #[doc(hidden)]
 pub fn _trace(level: Level, str: String) {
     let log_level = LEVEL.load(Ordering::Relaxed);

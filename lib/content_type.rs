@@ -1,6 +1,6 @@
 use crate::Header;
 
-/// Common MIME types
+/// Common MIME types.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Content<'a> {
     /// HTML - `text/html`
@@ -32,6 +32,7 @@ impl Content<'_> {
 }
 
 impl From<Content<'_>> for Header {
+    // Convert Content to a Content-Type Header
     fn from(x: Content<'_>) -> Self {
         Header::new("Content-Type", x.as_type())
     }

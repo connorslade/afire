@@ -2,8 +2,7 @@ use std::fmt;
 
 use crate::error::{ParseError, Result};
 
-/// Http header
-///
+/// Http header.
 /// Has a name and a value.
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Header {
@@ -15,43 +14,31 @@ pub struct Header {
 }
 
 impl Header {
-    /// Make a new header
+    /// Make a new header from a name and a value, which bolth mut implement AsRef<str>.
     /// ## Example
     /// ```rust
-    /// // Import Modules
-    /// use afire::Header;
-    ///
+    /// # use afire::Header;
     /// let header1 = Header::new("Content-Type", "text/html");
     /// let header2 = Header::new("Access-Control-Allow-Origin", "*");
     /// ```
-    pub fn new<T, M>(name: T, value: M) -> Header
-    where
-        T: AsRef<str>,
-        M: AsRef<str>,
-    {
+    pub fn new(name: impl AsRef<str>, value: impl AsRef<str>) -> Header {
         Header {
             name: name.as_ref().to_owned(),
             value: value.as_ref().to_owned(),
         }
     }
 
-    /// Convert a string to a header
-    ///
-    /// String must be in the format `name: value`
+    /// Convert a string to a header.
+    /// String must be in the format `name: value`, or an error will be returned.
     /// ## Example
     /// ```rust
-    /// // Import Modules
-    /// use afire::Header;
-    ///
+    /// # use afire::Header;
     /// let header1 = Header::new("Content-Type", "text/html");
     /// let header2 = Header::from_string("Content-Type: text/html").unwrap();
     ///
     /// assert!(header2 == header1);
     /// ```
-    pub fn from_string<T>(header: T) -> Result<Header>
-    where
-        T: AsRef<str>,
-    {
+    pub fn from_string(header: impl AsRef<str>) -> Result<Header> {
         let header = header.as_ref();
         let mut split_header = header.splitn(2, ':');
         if split_header.clone().count() != 2 {
@@ -74,13 +61,10 @@ impl Header {
 
 impl fmt::Display for Header {
     /// Convert a header to a string
-    ///
-    /// Im format: `name: value`
+    /// In format: `name: value`.
     /// ## Example
     /// ```rust
-    /// // Import Modules
-    /// use afire::Header;
-    ///
+    /// # use afire::Header;
     /// let header1 = Header::new("Content-Type", "text/html");
     /// assert_eq!(header1.to_string(), "Content-Type: text/html");
     /// ```
@@ -89,11 +73,8 @@ impl fmt::Display for Header {
     }
 }
 
-/// Stringify a Vec of headers
-///
-/// Each header is in the format `name: value`
-///
-/// Every header is separated by a newline (`\r\n`)
+/// Stringify a Vec of headers.
+/// Each header is in the format `name: value` amd separated by a carrage return and newline (`\r\n`).
 pub(crate) fn headers_to_string(headers: &[Header]) -> String {
     let out = headers
         .iter()
