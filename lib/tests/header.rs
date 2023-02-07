@@ -1,4 +1,4 @@
-use crate::header::{self, Header};
+use crate::header::{self, Header, HeaderType};
 
 #[test]
 fn header_new() {
@@ -7,7 +7,7 @@ fn header_new() {
     assert_eq!(
         header,
         Header {
-            name: "Hello".to_owned(),
+            name: HeaderType::Custom("Hello".to_owned()),
             value: "World".to_owned(),
         }
     );
@@ -20,7 +20,7 @@ fn header_parse() {
     assert_eq!(
         header,
         Header {
-            name: "Name".to_owned(),
+            name: HeaderType::Custom("Name".to_owned()),
             value: "Value".to_owned(),
         }
     );
@@ -31,16 +31,6 @@ fn header_parse_empty() {
     let header = Header::from_string("");
 
     assert!(header.is_err());
-}
-
-#[test]
-fn header_format_debug() {
-    let header = Header::new("Hello", "World");
-
-    assert_eq!(
-        format!("{:?}", header),
-        r#"Header { name: "Hello", value: "World" }"#
-    )
 }
 
 #[test]

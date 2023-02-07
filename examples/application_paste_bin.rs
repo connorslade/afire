@@ -58,7 +58,7 @@ fn main() {
         let body_str = String::from_utf8_lossy(&req.body).to_string();
 
         // Get the name from the Name header
-        let name = req.header("Name").unwrap_or("Untitled");
+        let name = req.headers.get("Name").unwrap_or("Untitled");
 
         let paste = Paste {
             name: name.to_owned(),

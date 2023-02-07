@@ -124,7 +124,7 @@ impl Logger {
             Level::Debug => {
                 // Format headers as strings
                 let mut headers = "".to_string();
-                for i in &req.headers {
+                for i in &*req.headers {
                     headers += &format!("{}: {}, ", i.name, i.value);
                 }
                 if headers.len() >= 2 {

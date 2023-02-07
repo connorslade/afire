@@ -27,7 +27,7 @@ pub mod trace;
 mod content_type;
 mod cookie;
 pub mod error;
-mod header;
+pub mod header;
 mod method;
 pub mod middleware;
 mod query;
@@ -39,7 +39,7 @@ pub use self::{
     content_type::Content,
     cookie::{Cookie, SetCookie},
     error::Error,
-    header::Header,
+    header::{Header, HeaderType},
     method::Method,
     middleware::Middleware,
     query::Query,
@@ -55,7 +55,7 @@ pub mod prelude {
     pub use crate::{
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
-        Content, Cookie, Header, Method, Request, Response, Server, SetCookie,
+        Content, Cookie, Header, HeaderType, Method, Request, Response, Server, SetCookie,
     };
 }
 

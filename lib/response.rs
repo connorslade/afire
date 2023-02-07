@@ -4,11 +4,9 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 
 use crate::consts;
+use crate::header::{HeaderType, Headers};
 use crate::{
-    common::{has_header, reason_phrase},
-    error::Result,
-    header::headers_to_string,
-    internal::handle::Writeable,
+    common::reason_phrase, error::Result, header::headers_to_string, internal::handle::Writeable,
     Content, Header, SetCookie,
 };
 
@@ -24,7 +22,7 @@ pub struct Response {
 
     /// List of response headers.
     /// This does not contain the default headers.
-    pub headers: Vec<Header>,
+    pub headers: Headers,
 
     /// Response reason phrase.
     /// If this is None, the reason phrase will be automatically generated based on the status code.
@@ -57,7 +55,7 @@ impl Response {
         Self {
             status: 200,
             data: vec![79, 75].into(),
-            headers: Vec::new(),
+            headers: Default::default(),
             reason: None,
             close: false,
         }
@@ -165,18 +163,13 @@ impl Response {
     /// let response = Response::new()
     ///    .header("Test-Header", "Test-Value");
     /// ```
-    pub fn header<T, K>(self, key: T, value: K) -> Self
+    pub fn header<T, K>(mut self, key: T, value: K) -> Self
     where
         T: AsRef<str>,
         K: AsRef<str>,
     {
-        let mut new_headers = self.headers;
-        new_headers.push(Header::new(key, value));
-
-        Self {
-            headers: new_headers,
-            ..self
-        }
+        self.headers.push(Header::new(key, value));
+        self
     }
 
     /// Add a list of Headers to a Response.
@@ -281,7 +274,7 @@ impl Response {
         // Add default headers to response
         // Only the ones that arent already in the response
         for i in default_headers {
-            if !has_header(&self.headers, &i.name) {
+            if !self.headers.has(&i.name) {
                 self.headers.push(i.clone());
             }
         }
@@ -289,16 +282,16 @@ impl Response {
         let static_body = self.data.is_static();
 
         // Add content-length header to response if we are sending a static body
-        if static_body && !has_header(&self.headers, "Content-Length") {
+        if static_body && !self.headers.has(HeaderType::ContentLength) {
             self.headers.push(self.data.content_len());
         }
 
         // Add Connection: close if response is set to close
-        if self.close && !has_header(&self.headers, "Connection") {
+        if self.close && !self.headers.has(HeaderType::Connection) {
             self.headers.push(Header::new("Connection", "close"));
         }
 
-        if !static_body && !has_header(&self.headers, "Transfer-Encoding") {
+        if !static_body && !self.headers.has(HeaderType::TransferEncoding) {
             self.headers
                 .push(Header::new("Transfer-Encoding", "chunked"));
         }

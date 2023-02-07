@@ -2,10 +2,7 @@
 
 use std::borrow::Cow;
 
-use crate::{
-    error::{Result, StartupError},
-    Header,
-};
+use crate::error::{Result, StartupError};
 
 /// Get the _Reason Phrase_ for a status code
 ///
@@ -125,13 +122,6 @@ pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     }
 
     Ok(ip)
-}
-
-/// Checks if a slice of headers contains a header with the given name.
-/// Is case sensitive.
-#[inline]
-pub(crate) fn has_header(headers: &[Header], name: &str) -> bool {
-    headers.iter().any(|x| x.name == name)
 }
 
 /// Attempt to downcast a `Box<dyn Any>` to a `String` or `&str`.

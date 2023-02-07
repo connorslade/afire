@@ -11,6 +11,7 @@
 - Show how access app in middleware
 - Only run format! macro if log level allows
 - Move tests into the lib
+- Allow returning None in a route to go to the next route
 
 # In Progress
 

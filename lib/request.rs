@@ -8,6 +8,7 @@ use std::{
 use crate::{
     consts::BUFF_SIZE,
     error::{Result, StreamError},
+    header::{HeaderType, Headers},
     internal::http::parse_request_line,
     Cookie, Header, Method, Query,
 };
@@ -33,7 +34,7 @@ pub struct Request {
 
     /// Request headers.
     /// Will not include cookies, which are in the `cookies` field.
-    pub headers: Vec<Header>,
+    pub headers: Headers,
 
     /// Request Cookies.
     pub cookies: Vec<Cookie>,
@@ -72,7 +73,7 @@ impl Request {
             }
 
             let header = Header::from_string(&line[..line.len() - 2])?;
-            if header.name != "Cookie" {
+            if header.name != HeaderType::Cookie {
                 headers.push(header);
                 continue;
             }
@@ -87,7 +88,7 @@ impl Request {
 
         let content_len = headers
             .iter()
-            .find(|i| i.name.to_lowercase() == "content-length")
+            .find(|i| i.name == HeaderType::ContentLength)
             .map(|i| i.value.parse::<usize>().unwrap_or(0))
             .unwrap_or(0);
         let mut body = vec![0; content_len];
@@ -104,7 +105,7 @@ impl Request {
             version,
             path_params: RefCell::new(Vec::new()),
             query,
-            headers,
+            headers: Headers(headers),
             cookies,
             body,
             address: peer_addr,
@@ -112,48 +113,10 @@ impl Request {
     }
 
     pub(crate) fn keep_alive(&self) -> bool {
-        self.header("Connection")
+        self.headers
+            .get(HeaderType::Connection)
             .map(|i| i.to_lowercase() == "keep-alive")
             .unwrap_or(false)
-    }
-
-    /// Get a request header by its name.
-    /// This is not case sensitive.
-    /// ## Example
-    /// ```rust
-    /// # use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-    /// # use std::sync::Arc;
-    /// # use std::cell::RefCell;
-    /// # use std::str::FromStr;
-    /// # use afire::{Request, Header, Method, Query};
-    /// // Create Request
-    /// let request = Request {
-    ///     /* SNIP */
-    /// #   method: Method::GET,
-    /// #   path: "/".to_owned(),
-    /// #   version: "HTTP/1.1".to_owned(),
-    /// #   path_params: RefCell::new(Vec::new()),
-    /// #   query: Query::from_str("").unwrap(),
-    ///     headers: vec![Header::new("Hello", "world")],
-    /// #   cookies: Vec::new(),
-    /// #   body: Vec::new(),
-    /// #   address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 5261),
-    ///     /* SNIP */
-    /// };
-    ///
-    /// assert_eq!(request.header("hello").unwrap(), "world");
-    /// ```
-    pub fn header<T>(&self, name: T) -> Option<&str>
-    where
-        T: AsRef<str>,
-    {
-        let name = name.as_ref().to_lowercase();
-        for i in &self.headers {
-            if name == i.name.to_lowercase() {
-                return Some(&i.value);
-            }
-        }
-        None
     }
 
     /// Get a path paramater by its name.
