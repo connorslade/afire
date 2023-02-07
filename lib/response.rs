@@ -5,16 +5,17 @@ use std::net::TcpStream;
 
 use crate::consts;
 use crate::header::{HeaderType, Headers};
+use crate::http::status::Status;
 use crate::{
-    common::reason_phrase, error::Result, header::headers_to_string, internal::handle::Writeable,
-    Content, Header, SetCookie,
+    error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
+    SetCookie,
 };
 
 /// Http Response
 #[derive(Debug)]
 pub struct Response {
     /// Response status code
-    pub status: u16,
+    pub status: Status,
 
     /// Response Data.
     /// Can be either a Static Vec<u8> or a Stream (impl [`Read`])
@@ -53,7 +54,7 @@ impl Response {
     /// ```
     pub fn new() -> Self {
         Self {
-            status: 200,
+            status: Status::Ok,
             data: vec![79, 75].into(),
             headers: Default::default(),
             reason: None,
@@ -62,27 +63,29 @@ impl Response {
     }
 
     /// Add a status code to a Response.
+    /// This accapts [`Status`] as well as a [`u16`].
     /// ## Example
     /// ```rust
-    /// # use afire::{Response, Header};
+    /// # use afire::{Response, Header, Status};
     /// // Create Response
-    /// let response = Response::new()
-    ///    .status(200); // <- Here it is
+    /// Response::new().status(Status::Ok);
     /// ```
-    pub fn status(self, code: u16) -> Self {
+    pub fn status(self, code: impl Into<Status>) -> Self {
         Self {
-            status: code,
+            status: code.into(),
             ..self
         }
     }
 
     /// Manually set the Reason Phrase.
+    /// If this is not set, it will be inferred from the status code.
+    /// Non standard status codes will have a reason phrase of "OK".
     /// ```rust
-    /// # use afire::{Response, Header};
+    /// # use afire::{Response, Header, Status};
     /// // Create Response
     /// let response = Response::new()
-    ///     .status(200)
-    ///    .reason("OK");
+    ///     .status(Status::Ok)
+    ///     .reason("Hello");
     /// ```
     pub fn reason(self, reason: impl AsRef<str>) -> Self {
         Self {
@@ -286,10 +289,10 @@ impl Response {
         // Convert the response to a string
         let response = format!(
             "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
-            self.status,
+            self.status.code(),
             self.reason
                 .to_owned()
-                .unwrap_or_else(|| reason_phrase(self.status)),
+                .unwrap_or_else(|| self.status.reason_phrase().to_owned()),
             headers_to_string(&self.headers)
         );
 

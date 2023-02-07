@@ -12,7 +12,7 @@ use crate::{
     internal::common::any_string,
     middleware::MiddleResult,
     route::RouteType,
-    trace, Content, Error, Request, Response, Server,
+    trace, Content, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
@@ -184,7 +184,7 @@ where
         },
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()
-                .status(404)
+                .status(Status::NotFound)
                 .text(format!("Cannot {} {}", method, path))
                 .content(Content::TXT),
             #[cfg(feature = "panic_handler")]

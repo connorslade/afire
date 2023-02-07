@@ -5,7 +5,7 @@ use std::fs;
 use crate::{
     middleware::{MiddleResult, Middleware},
     path::normalize_path,
-    HeaderType, Request, Response,
+    HeaderType, Request, Response, Status,
 };
 
 /// Serve Static Content
@@ -71,7 +71,7 @@ impl ServeStatic {
             disabled_files: Vec::new(),
             not_found: |req, _| {
                 Response::new()
-                    .status(404)
+                    .status(Status::NotFound)
                     .text(format!("The page `{}` was not found...", req.path))
                     .header(HeaderType::ContentType, "text/plain")
             },
@@ -151,7 +151,7 @@ impl ServeStatic {
     /// ## Example
     /// ```rust,no_run
     /// // Import Library
-    /// use afire::{Response, Server, extension::ServeStatic, Middleware};
+    /// use afire::{Response, Server, extension::ServeStatic, Middleware, Status};
     ///
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
@@ -159,7 +159,7 @@ impl ServeStatic {
     /// // Make a new static sevrer
     /// ServeStatic::new("data/static")
     ///     // Set a new file not found page
-    ///     .not_found(|_req, _dis| Response::new().status(404).text("Page Not Found!"))
+    ///     .not_found(|_req, _dis| Response::new().status(Status::NotFound).text("Page Not Found!"))
     ///     // Attatch it to the afire server
     ///     .attach(&mut server);
     ///

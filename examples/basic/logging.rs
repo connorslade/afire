@@ -20,7 +20,6 @@ impl Example for Logging {
         // Define a handler for GET "/"
         server.route(Method::GET, "/", |_req| {
             Response::new()
-                .status(200)
                 .text("Hello World!\nThis request has been logged!")
                 .content(Content::TXT)
         });

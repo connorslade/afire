@@ -1,4 +1,4 @@
-use afire::{Content, Method, Response, Server};
+use afire::{Content, Method, Response, Server, Status};
 use std::fs;
 
 use crate::Example;
@@ -23,14 +23,11 @@ impl Example for ServeFile {
                 // If its found send it as response
                 // This used `new_raw` to send the file as raw bytes not a string
                 // This may not be useful for html files but if you want to to serve an image file this will be useful
-                Ok(content) => Response::new()
-                    .status(200)
-                    .bytes(&content)
-                    .content(Content::TXT),
+                Ok(content) => Response::new().bytes(&content).content(Content::TXT),
 
                 // If not send a 404 error
                 Err(_) => Response::new()
-                    .status(404)
+                    .status(Status::NotFound)
                     .text("Not Found :/")
                     .content(Content::TXT),
             }

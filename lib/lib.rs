@@ -8,10 +8,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Contains all the constants used in afire.
 /// These may be in the future moved into the [`Server`] struct.
 mod consts {
-    /// The default buffer allocation
+    /// The innitial buffer allocation for the request.
     pub const BUFF_SIZE: usize = 256;
 
-    /// Max chunk size
+    /// Max chunk size for chunked transfer encoding.
     pub const CHUNK_SIZE: usize = 16 * 1024;
 }
 
@@ -43,6 +43,7 @@ pub use self::{
     response::Response,
     route::Route,
     server::Server,
+    status::Status,
 };
 pub use http::header;
 use http::*;
@@ -54,6 +55,7 @@ pub mod prelude {
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
         Content, Cookie, Header, HeaderType, Method, Request, Response, Server, SetCookie,
+        Status,
     };
 }
 

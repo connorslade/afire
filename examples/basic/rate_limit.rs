@@ -1,4 +1,4 @@
-use afire::{extension::RateLimiter, Content, Method, Middleware, Response, Server};
+use afire::{extension::RateLimiter, Content, Method, Middleware, Response, Server, Status};
 
 use crate::Example;
 
@@ -17,7 +17,6 @@ impl Example for RateLimit {
         // Define a handler for GET "/"
         server.route(Method::GET, "/", |_req| {
             Response::new()
-                .status(200)
                 .text("Hello World!")
                 .content(Content::TXT)
         });
@@ -36,7 +35,7 @@ impl Example for RateLimit {
             .handler(Box::new(|_req| {
                 Some(
                     Response::new()
-                        .status(429)
+                        .status(Status::TooManyRequests)
                         .text("AHHHH!!! Too Many Requests")
                         .content(Content::TXT),
                 )

@@ -9,7 +9,7 @@ use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
 use afire::internal::common::decode_url;
-use afire::{Content, HeaderType, Method, Query, Response, Server};
+use afire::{Content, HeaderType, Method, Query, Response, Server, Status};
 
 const DATA_LIMIT: usize = 10_000;
 
@@ -51,7 +51,9 @@ fn main() {
     server.stateful_route(Method::POST, "/new", move |app, req| {
         // Make sure paste data isent too long
         if req.body.len() > DATA_LIMIT {
-            return Response::new().status(400).text("Data too big!");
+            return Response::new()
+                .status(Status::NotFound)
+                .text("Data too big!");
         }
 
         // Get the data as string
@@ -73,7 +75,7 @@ fn main() {
 
         // Send Redirect response
         Response::new()
-            .status(301)
+            .status(Status::MovedPermanently)
             .text("Ok")
             .header(HeaderType::Location, format!("/p/{}", id))
     });
@@ -87,7 +89,9 @@ fn main() {
 
         // Make sure paste data isent too long
         if body.len() > DATA_LIMIT {
-            return Response::new().status(400).text("Data too big!");
+            return Response::new()
+                .status(Status::NotFound)
+                .text("Data too big!");
         }
 
         let paste = Paste {
@@ -103,7 +107,7 @@ fn main() {
 
         // Send Redirect response
         Response::new()
-            .status(301)
+            .status(Status::MovedPermanently)
             .text("Ok")
             .header(HeaderType::Location, format!("/p/{}", id))
     });

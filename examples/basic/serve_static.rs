@@ -1,4 +1,4 @@
-use afire::{extension, Middleware, Response, Server};
+use afire::{extension, Middleware, Response, Server, Status};
 
 use crate::Example;
 
@@ -39,7 +39,11 @@ impl Example for ServeStatic {
             // })
             // Function that runs when no file is found to serve
             // This will run before middleware
-            .not_found(|_req, _dis| Response::new().status(404).text("Page Not Found!"))
+            .not_found(|_req, _dis| {
+                Response::new()
+                    .status(Status::NotFound)
+                    .text("Page Not Found!")
+            })
             // Add an extra mime type to the server
             // It has alot already
             .mime_type("key", "value")

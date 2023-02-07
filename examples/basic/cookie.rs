@@ -31,10 +31,7 @@ impl Example for Cookie {
             }
             html.push_str("</table>");
 
-            Response::new()
-                .status(200)
-                .text(html)
-                .content(Content::HTML)
+            Response::new().text(html).content(Content::HTML)
         });
 
         // Set a cookie defined in the Query
@@ -55,7 +52,6 @@ impl Example for Cookie {
 
             // Set the cookie
             Response::new()
-                .status(200)
                 .text(body)
                 .content(Content::HTML)
                 .cookie(cookie)

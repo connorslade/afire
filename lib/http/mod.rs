@@ -3,3 +3,4 @@ pub mod cookie;
 pub mod header;
 pub mod method;
 pub mod query;
+pub mod status;

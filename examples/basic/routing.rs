@@ -1,4 +1,4 @@
-use afire::{Content, Method, Response, Server};
+use afire::{Content, Method, Response, Server, Status};
 
 use crate::Example;
 
@@ -28,7 +28,7 @@ impl Example for Routing {
         /* PRIO 0 */
         server.route(Method::ANY, "*", |_req| {
             Response::new()
-                .status(404)
+                .status(Status::NotFound)
                 .text("The page you are looking for does not exist :/")
                 .content(Content::TXT)
         });
@@ -37,10 +37,7 @@ impl Example for Routing {
         // As this is defined last, it will take a higher priority
         /* PRIO 1 */
         server.route(Method::GET, "/", |_req| {
-            Response::new()
-                .status(200)
-                .text("Hello World!")
-                .content(Content::TXT)
+            Response::new().text("Hello World!").content(Content::TXT)
         });
 
         // Now goto http://localhost:8080/ and you should see "Hello World"

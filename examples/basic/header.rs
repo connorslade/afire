@@ -1,4 +1,4 @@
-use afire::{Content, Method, Response, Server};
+use afire::{Content, Method, Response, Server, Status};
 
 use crate::Example;
 
@@ -43,7 +43,10 @@ impl Example for Header {
             // 303 -> See Other
             // 307 -> Temporary Redirect
             // 308 -> Permanent Redirect
-            Response::new().status(308).text(text).headers(&headers)
+            Response::new()
+                .status(Status::PermanentRedirect)
+                .text(text)
+                .headers(&headers)
         });
 
         // Now to define a route to handle client headers
@@ -56,10 +59,7 @@ impl Example for Header {
                 .fold(String::new(), |old, new| old + &format!("{:?}<br />", new));
 
             // Create a response with the headers
-            Response::new()
-                .status(200)
-                .text(body)
-                .content(Content::HTML)
+            Response::new().text(body).content(Content::HTML)
         });
 
         // You can now goto http://localhost:8080 you should see a redirect to https://connorcode.com

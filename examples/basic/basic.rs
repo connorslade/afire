@@ -1,4 +1,4 @@
-use afire::{HeaderType, Method, Response, Server};
+use afire::{HeaderType, Method, Response, Server, Status};
 
 use crate::Example;
 
@@ -20,7 +20,7 @@ impl Example for Basic {
             Response::new()
                 // By default the status is 200
                 // You can also define it yourself with the status method
-                .status(200)
+                .status(Status::Ok)
                 // By default the reason phrase is derived from the status
                 .reason("OK!")
                 // Although is is named `text` it takes any type that impls Display

@@ -1,5 +1,6 @@
 # To Do
  
+- Fix socket errors
 - Options handler middleware
 - Lazy body loading
 - Access app in socket handler
@@ -9,14 +10,13 @@
 - Readable text for errors
 - Cors - https://expressjs.com/en/resources/middleware/cors.html
 - Show how access app in middleware
-- Move tests into the lib
 - Allow returning None in a route to go to the next route implement AsResponse for Response and Option<Response>
-- IntoPath for server.(stateful_)?route
+- IntoPath for server.(stateful_)?route (maybe)
     - Function for dirctory(module) based routing
-- Enum for status codes (simaler to HeaderType)
 
 # In Progress
 
+- Move tests into the lib
 
 # Done
 
@@ -32,3 +32,4 @@
 - Docs 
 - Only run format! macro if log level allows
 - IntoIp
+- Enum for status codes (simaler to HeaderType)

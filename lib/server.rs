@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::internal::common::ToHostAddress;
-use crate::{Content, HeaderType};
+use crate::{Content, HeaderType, Status};
 // Import local files
 use crate::{
     error::Result, error::StartupError, handle::handle, thread_pool::ThreadPool, Header, Method,
@@ -69,7 +69,7 @@ impl<State: Send + Sync> Server<State> {
             #[cfg(feature = "panic_handler")]
             error_handler: Box::new(|_state, _req, err| {
                 Response::new()
-                    .status(500)
+                    .status(Status::InternalServerError)
                     .text(format!("Internal Server Error :/\nError: {}", err))
                     .content(Content::TXT)
             }),
@@ -230,12 +230,12 @@ impl<State: Send + Sync> Server<State> {
     /// Be sure that your panic handler wont panic, becasue that will just panic the whole application.
     /// ## Example
     /// ```rust
-    /// # use afire::{Server, Response};
+    /// # use afire::{Server, Response, Status};
     /// # let mut server = Server::<()>::new("localhost", 8080);
     /// // Set the panic handler response
     /// server.error_handler(|_state, _req, err| {
     ///     Response::new()
-    ///         .status(500)
+    ///         .status(Status::InternalServerError)
     ///         .text(format!("Internal Server Error: {}", err))
     /// });
     /// ```

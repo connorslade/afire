@@ -27,7 +27,7 @@ pub struct Request {
     pub version: String,
 
     /// Path Params, filled by the router
-    pub path_params: RefCell<Vec<(String, String)>>,
+    pub(crate) path_params: RefCell<Vec<(String, String)>>,
 
     /// Request Query.
     pub query: Query,

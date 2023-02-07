@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use afire::{Content, Method, Response, Server};
+use afire::{Content, Method, Response, Server, Status};
 
 use crate::Example;
 
@@ -24,7 +24,6 @@ impl Example for ErrorHandling {
         // Give the server a main page
         server.route(Method::GET, "/", |_req| {
             Response::new()
-                .status(200)
                 .text(r#"<a href="/panic">PANIC</a>"#)
                 .content(Content::HTML)
         });
@@ -35,7 +34,7 @@ impl Example for ErrorHandling {
         let errors = AtomicUsize::new(1);
         server.error_handler(move |_state, _req, err| {
             Response::new()
-                .status(500)
+                .status(Status::InternalServerError)
                 .text(format!(
                     "<h1>Internal Server Error #{}</h1><br>Panicked at '{}'",
                     errors.fetch_add(1, Ordering::Relaxed),

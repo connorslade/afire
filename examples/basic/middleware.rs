@@ -50,7 +50,6 @@ impl Example for MiddlewareExample {
         // Define a basic route
         server.route(Method::GET, "/", |_req| {
             Response::new()
-                .status(200)
                 .text("Hello World!")
                 .content(Content::TXT)
         });

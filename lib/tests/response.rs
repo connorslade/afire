@@ -1,10 +1,10 @@
-use crate::Response;
+use crate::{Response, Status};
 
 #[test]
 fn response_status() {
-    let response = Response::new().status(100);
+    let response = Response::new().status(200);
 
-    assert_eq!(response.status, 100);
+    assert_eq!(response.status, Status::Ok);
 }
 
 #[test]

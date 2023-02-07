@@ -7,6 +7,7 @@ use std::sync::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::Status;
 use crate::{
     middleware::{MiddleResult, Middleware},
     Content, Request, Response,
@@ -46,7 +47,7 @@ impl RateLimiter {
             handler: Box::new(|_| {
                 Some(
                     Response::new()
-                        .status(429)
+                        .status(Status::TooManyRequests)
                         .text("Too Many Requests")
                         .content(Content::TXT),
                 )
