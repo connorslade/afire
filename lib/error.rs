@@ -8,7 +8,7 @@ use crate::{Method, Request};
 pub type Result<T> = result::Result<T, Error>;
 
 /// Errors that can occur at startup or in the process of connectioning to clients, parseing HTTP and handling requests.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// Error while starting the server
     Startup(StartupError),
@@ -30,7 +30,7 @@ pub enum Error {
 }
 
 /// Errors that can occur while starting the server
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StartupError {
     /// The IP address specified is invalid
     InvalidIp,
@@ -50,7 +50,7 @@ pub enum HandleError {
 }
 
 /// Error that can occur while parsing the HTTP of a request
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseError {
     /// No `\r\n\r\n` found in request to separate metadata from body
     NoSeparator,
@@ -78,7 +78,7 @@ pub enum ParseError {
 }
 
 /// Error that can occur while reading or writing to a stream
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StreamError {
     /// The stream ended unexpectedly
     UnexpectedEof,
@@ -111,5 +111,16 @@ impl From<HandleError> for Error {
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Error::Io(e.to_string())
+    }
+}
+
+impl Eq for HandleError {}
+impl PartialEq for HandleError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (HandleError::NotFound(m1, p1), HandleError::NotFound(m2, p2)) => m1 == m2 && p1 == p2,
+            (HandleError::Panic(_, s1), HandleError::Panic(_, s2)) => s1 == s2,
+            _ => false,
+        }
     }
 }

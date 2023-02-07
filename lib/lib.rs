@@ -54,8 +54,7 @@ pub mod prelude {
     pub use crate::{
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
-        Content, Cookie, Header, HeaderType, Method, Request, Response, Server, SetCookie,
-        Status,
+        Content, Cookie, Header, HeaderType, Method, Request, Response, Server, SetCookie, Status,
     };
 }
 
@@ -77,7 +76,3 @@ pub mod extension {
         serve_static::{self, ServeStatic},
     };
 }
-
-// Unit Tests
-#[cfg(test)]
-mod tests;

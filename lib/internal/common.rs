@@ -102,3 +102,30 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
 
     Cow::Borrowed("")
 }
+
+#[cfg(test)]
+mod test {
+    use crate::error::StartupError;
+
+    use super::{decode_url, parse_ip};
+
+    #[test]
+    fn test_url_decode() {
+        assert_eq!(decode_url("hello+world"), "hello world");
+        assert_eq!(decode_url("hello%20world"), "hello world");
+        assert_eq!(
+            decode_url("%3C%3E%22%23%25%7B%7D%7C%5C%5E%7E%5B%5D%60"),
+            "<>\"#%{}|\\^~[]`"
+        );
+    }
+
+    #[test]
+    fn test_parse_ip() {
+        assert_eq!(parse_ip("123.231.43.3").unwrap(), [123, 231, 43, 3]);
+        assert_eq!(parse_ip("123.231.43"), Err(StartupError::InvalidIp.into()));
+        assert_eq!(
+            parse_ip("256.231.43.3"),
+            Err(StartupError::InvalidIp.into())
+        );
+    }
+}

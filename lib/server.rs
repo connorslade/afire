@@ -6,12 +6,11 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::internal::common::ToHostAddress;
-use crate::{Content, HeaderType, Status};
 // Import local files
 use crate::{
-    error::Result, error::StartupError, handle::handle, thread_pool::ThreadPool, Header, Method,
-    Middleware, Request, Response, Route, VERSION,
+    error::Result, error::StartupError, handle::handle, internal::common::ToHostAddress,
+    thread_pool::ThreadPool, Content, Header, HeaderType, Method, Middleware, Request, Response,
+    Route, Status, VERSION,
 };
 
 type ErrorHandler<State> =
