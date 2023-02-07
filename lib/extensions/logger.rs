@@ -3,7 +3,7 @@
 // If file logging is enabled
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::{Middleware, Request, Response};
 
@@ -88,10 +88,7 @@ impl Logger {
     /// let logger = Logger::new()
     ///     .file("nose.txt");
     /// ```
-    pub fn file<T>(self, file: T) -> Logger
-    where
-        T: AsRef<Path>,
-    {
+    pub fn file(self, file: impl AsRef<str>) -> Logger {
         Logger {
             file: Some(PathBuf::from(file.as_ref())),
             ..self

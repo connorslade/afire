@@ -1,6 +1,6 @@
 //! extension to serve static files from disk
 
-use std::{fs, path::Path};
+use std::fs;
 
 use crate::{
     middleware::{MiddleResult, Middleware},
@@ -64,13 +64,10 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn new<T>(data_path: T) -> Self
-    where
-        T: AsRef<Path>,
-    {
+    pub fn new(data_path: impl AsRef<str>) -> Self {
         Self {
             serve_path: normalize_path("/".to_owned()),
-            data_dir: data_path.as_ref().to_string_lossy().to_string(),
+            data_dir: data_path.as_ref().to_string(),
             disabled_files: Vec::new(),
             not_found: |req, _| {
                 Response::new()
@@ -105,10 +102,7 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn disable<T>(self, file_path: T) -> Self
-    where
-        T: AsRef<str>,
-    {
+    pub fn disable(self, file_path: impl AsRef<str>) -> Self {
         let mut disabled = self.disabled_files;
         disabled.push(file_path.as_ref().to_owned());
 
@@ -137,10 +131,7 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn disable_vec<T>(self, file_paths: &[T]) -> Self
-    where
-        T: AsRef<str>,
-    {
+    pub fn disable_vec(self, file_paths: &[impl AsRef<str>]) -> Self {
         let mut disabled = self.disabled_files;
         for i in file_paths {
             disabled.push(i.as_ref().to_owned());
@@ -206,13 +197,8 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn mime_type<T, M>(self, key: T, value: M) -> Self
-    where
-        T: AsRef<str>,
-        M: AsRef<str>,
-    {
+    pub fn mime_type(self, key: impl AsRef<str>, value: impl AsRef<str>) -> Self {
         let mut types = self.types;
-
         types.push((key.as_ref().to_owned(), value.as_ref().to_owned()));
 
         Self { types, ..self }
@@ -242,11 +228,7 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn mime_types<T, M>(self, new_types: &[(T, M)]) -> Self
-    where
-        T: AsRef<str>,
-        M: AsRef<str>,
-    {
+    pub fn mime_types(self, new_types: &[(impl AsRef<str>, impl AsRef<str>)]) -> Self {
         let mut new_types = new_types
             .iter()
             .map(|x| (x.0.as_ref().to_owned(), x.1.as_ref().to_owned()))
@@ -278,10 +260,7 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn path<T>(self, path: T) -> Self
-    where
-        T: AsRef<str>,
-    {
+    pub fn path(self, path: impl AsRef<str>) -> Self {
         Self {
             serve_path: normalize_path(path.as_ref().to_owned()),
             ..self

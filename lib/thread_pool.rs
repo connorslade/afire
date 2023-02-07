@@ -51,10 +51,7 @@ impl ThreadPool {
     }
 
     /// Executes a job on the thread pool.
-    pub(crate) fn execute<F>(&self, f: F)
-    where
-        F: FnOnce() + 'static + Send,
-    {
+    pub(crate) fn execute(&self, f: impl FnOnce() + 'static + Send) {
         let job = Message::Job(Box::new(f));
         self.sender.send(job).unwrap();
     }

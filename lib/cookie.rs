@@ -140,10 +140,7 @@ impl SetCookie {
     ///
     /// assert_eq!(cookie.domain, Some("domain".to_string()));
     /// ```
-    pub fn domain<T>(self, domain: T) -> SetCookie
-    where
-        T: AsRef<str>,
-    {
+    pub fn domain(self, domain: impl AsRef<str>) -> SetCookie {
         SetCookie {
             domain: Some(domain.as_ref().to_owned()),
             ..self
@@ -159,10 +156,7 @@ impl SetCookie {
     ///
     /// assert_eq!(cookie.path, Some("path".to_string()));
     /// ```
-    pub fn path<T>(self, path: T) -> SetCookie
-    where
-        T: AsRef<str>,
-    {
+    pub fn path(self, path: impl AsRef<str>) -> SetCookie {
         SetCookie {
             path: Some(path.as_ref().to_owned()),
             ..self

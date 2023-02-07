@@ -139,10 +139,7 @@ impl Request {
     ///         .content(Content::TXT)
     /// });
     /// ```
-    pub fn param<T>(&self, name: T) -> Option<String>
-    where
-        T: AsRef<str>,
-    {
+    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
         let name = name.as_ref().to_owned();
         self.path_params
             .borrow()

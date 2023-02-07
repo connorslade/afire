@@ -15,10 +15,7 @@ impl Query {
     /// let query = Query::from_str("foo=bar&nose=dog").unwrap();
     /// assert_eq!(query.get("foo"), Some("bar"));
     /// ```
-    pub fn get<T>(&self, key: T) -> Option<&str>
-    where
-        T: AsRef<str>,
-    {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&str> {
         let key = key.as_ref().to_owned();
 
         for i in &self.0 {

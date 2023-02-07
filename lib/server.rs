@@ -17,10 +17,7 @@ type ErrorHandler<State> =
     Box<dyn Fn(Option<Arc<State>>, &Box<Result<Rc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
-pub struct Server<State = ()>
-where
-    State: 'static + Send + Sync,
-{
+pub struct Server<State: 'static + Send + Sync = ()> {
     /// Port to listen on.
     pub port: u16,
 
@@ -49,10 +46,7 @@ where
 }
 
 /// Implementations for Server
-impl<State> Server<State>
-where
-    State: Send + Sync,
-{
+impl<State: Send + Sync> Server<State> {
     /// Creates a new server on the specified address and port.
     /// `raw_ip` can be either an IP address or 'localhost', which expands to 127.0.0.1.
     ///
@@ -63,10 +57,7 @@ where
     /// // Note: The server has not been started yet
     /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
-    pub fn new<T>(raw_ip: T, port: u16) -> Self
-    where
-        T: AsRef<str>,
-    {
+    pub fn new(raw_ip: impl AsRef<str>, port: u16) -> Self {
         trace!("🐍 Initializing Server v{}", VERSION);
         let ip = common::parse_ip(raw_ip.as_ref()).unwrap();
 
@@ -278,15 +269,12 @@ where
     ///         .content(Content::TXT)
     /// });
     /// ```
-    pub fn route<T>(
+    pub fn route(
         &mut self,
         method: Method,
-        path: T,
+        path: impl AsRef<str>,
         handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
-    ) -> &mut Self
-    where
-        T: AsRef<str>,
-    {
+    ) -> &mut Self {
         let path = path.as_ref().to_owned();
         trace!("🚗 Adding Route {} {}", method, path);
 
@@ -310,15 +298,12 @@ where
     ///     Response::new().text(sta.to_string())
     /// });
     /// ```
-    pub fn stateful_route<T>(
+    pub fn stateful_route(
         &mut self,
         method: Method,
-        path: T,
+        path: impl AsRef<str>,
         handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
-    ) -> &mut Self
-    where
-        T: AsRef<str>,
-    {
+    ) -> &mut Self {
         let path = path.as_ref().to_owned();
         trace!("🚗 Adding Route {} {}", method, path);
 

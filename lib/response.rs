@@ -84,10 +84,7 @@ impl Response {
     ///     .status(200)
     ///    .reason("OK");
     /// ```
-    pub fn reason<T>(self, reason: T) -> Self
-    where
-        T: AsRef<str>,
-    {
+    pub fn reason(self, reason: impl AsRef<str>) -> Self {
         Self {
             reason: Some(reason.as_ref().to_owned()),
             ..self
@@ -104,10 +101,7 @@ impl Response {
     /// let response = Response::new()
     ///    .text("Hello from afire!");
     /// ```
-    pub fn text<T>(self, text: T) -> Self
-    where
-        T: Display,
-    {
+    pub fn text(self, text: impl Display) -> Self {
         Self {
             data: text.to_string().as_bytes().to_vec().into(),
             ..self
@@ -144,10 +138,7 @@ impl Response {
     ///     Response::new().stream(stream)
     /// });
     /// ```
-    pub fn stream<T>(self, stream: T) -> Self
-    where
-        T: Read + Send + 'static,
-    {
+    pub fn stream(self, stream: impl Read + Send + 'static) -> Self {
         Self {
             data: ResponseBody::Stream(Box::new(RefCell::new(stream))),
             ..self

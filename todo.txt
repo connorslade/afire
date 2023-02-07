@@ -9,13 +9,15 @@
 - Readable text for errors
 - Cors - https://expressjs.com/en/resources/middleware/cors.html
 - Show how access app in middleware
-- Only run format! macro if log level allows
 - Move tests into the lib
-- Allow returning None in a route to go to the next route
+- Allow returning None in a route to go to the next route implement AsResponse for Response and Option<Response>
+- IntoPath for server.(stateful_)?route
+    - Function for dirctory(module) based routing
+- Enum for status codes (simaler to HeaderType)
+- IntoIp
 
 # In Progress
 
-- Docs 
 
 # Done
 
@@ -28,3 +30,5 @@
 - Response::bytes take in &[u8] not a Vec<u8>
 - Remove CUSTOM method
 - Test keep_alive
+- Docs 
+- Only run format! macro if log level allows
