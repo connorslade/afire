@@ -163,11 +163,7 @@ impl Response {
     /// let response = Response::new()
     ///    .header("Test-Header", "Test-Value");
     /// ```
-    pub fn header<T, K>(mut self, key: T, value: K) -> Self
-    where
-        T: AsRef<str>,
-        K: AsRef<str>,
-    {
+    pub fn header(mut self, key: impl Into<HeaderType>, value: impl AsRef<str>) -> Self {
         self.headers.push(Header::new(key, value));
         self
     }

@@ -27,6 +27,11 @@ fn main() {
         Response::new().stream(stream)
     });
 
+    server.route(Method::GET, "/", |req| {
+        let user_agent = req.headers.get(HeaderType::UserAgent).unwrap();
+        Response::new().text(user_agent)
+    });
+
     server.route(Method::ANY, "/panic", |_| panic!("panic!"));
 
     Test.attach(&mut server);

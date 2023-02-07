@@ -9,7 +9,7 @@ use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
 use afire::internal::common::decode_url;
-use afire::{Content, Method, Query, Response, Server};
+use afire::{Content, HeaderType, Method, Query, Response, Server};
 
 const DATA_LIMIT: usize = 10_000;
 
@@ -75,7 +75,7 @@ fn main() {
         Response::new()
             .status(301)
             .text("Ok")
-            .header("Location", format!("/p/{}", id))
+            .header(HeaderType::Location, format!("/p/{}", id))
     });
 
     // New paste form handler
@@ -105,7 +105,7 @@ fn main() {
         Response::new()
             .status(301)
             .text("Ok")
-            .header("Location", format!("/p/{}", id))
+            .header(HeaderType::Location, format!("/p/{}", id))
     });
 
     // Get pate handler

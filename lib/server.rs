@@ -6,6 +6,7 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::{Content, HeaderType};
 // Import local files
 use crate::{
     error::Result, error::StartupError, handle::handle, internal::common, thread_pool::ThreadPool,
@@ -80,7 +81,7 @@ where
                 Response::new()
                     .status(500)
                     .text(format!("Internal Server Error :/\nError: {}", err))
-                    .header("Content-Type", "text/plain")
+                    .content(Content::TXT)
             }),
 
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
@@ -170,13 +171,9 @@ where
     ///     // Add a default header to the response
     ///     .default_header("X-Server", "afire");
     /// ```
-    pub fn default_header<T, K>(self, key: T, value: K) -> Self
-    where
-        T: AsRef<str>,
-        K: AsRef<str>,
-    {
+    pub fn default_header(self, key: impl Into<HeaderType>, value: impl AsRef<str>) -> Self {
         let mut headers = self.default_headers;
-        let header = Header::new(key.as_ref(), value.as_ref());
+        let header = Header::new(key, value);
         trace!("😀 Adding Server Header ({})", header);
         headers.push(header);
 

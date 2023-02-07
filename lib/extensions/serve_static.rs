@@ -5,7 +5,7 @@ use std::{fs, path::Path};
 use crate::{
     middleware::{MiddleResult, Middleware},
     path::normalize_path,
-    Request, Response,
+    HeaderType, Request, Response,
 };
 
 /// Serve Static Content
@@ -76,7 +76,7 @@ impl ServeStatic {
                 Response::new()
                     .status(404)
                     .text(format!("The page `{}` was not found...", req.path))
-                    .header("Content-Type", "text/plain")
+                    .header(HeaderType::ContentType, "text/plain")
             },
             types: TYPES
                 .to_vec()

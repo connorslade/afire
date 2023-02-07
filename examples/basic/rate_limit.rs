@@ -1,4 +1,4 @@
-use afire::{extension::RateLimiter, Method, Middleware, Response, Server};
+use afire::{extension::RateLimiter, Content, Method, Middleware, Response, Server};
 
 use crate::Example;
 
@@ -19,7 +19,7 @@ impl Example for RateLimit {
             Response::new()
                 .status(200)
                 .text("Hello World!")
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // For this example, we'll limit requests to 1 every 2 seconds
@@ -38,7 +38,7 @@ impl Example for RateLimit {
                     Response::new()
                         .status(429)
                         .text("AHHHH!!! Too Many Requests")
-                        .header("Content-Type", "text/plain"),
+                        .content(Content::TXT),
                 )
             }))
             // Attach to the server

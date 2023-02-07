@@ -1,6 +1,6 @@
 use afire::{
     extension::logger::{Level, Logger},
-    Method, Middleware, Response, Server,
+    Content, Method, Middleware, Response, Server,
 };
 
 use crate::Example;
@@ -22,7 +22,7 @@ impl Example for Logging {
             Response::new()
                 .status(200)
                 .text("Hello World!\nThis request has been logged!")
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // Make a logger and attach it to the server

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use afire::{Method, Query, Response, Server};
+use afire::{Content, HeaderType, Method, Query, Response, Server};
 
 use crate::Example;
 
@@ -26,9 +26,7 @@ impl Example for Data {
                 req.query.get("name").unwrap_or("Nobody")
             );
 
-            Response::new()
-                .text(text)
-                .header("Content-Type", "text/html")
+            Response::new().text(text).content(Content::HTML)
         });
 
         // Define another route
@@ -38,15 +36,21 @@ impl Example for Data {
             // Instead it is part of the req.body but as a string
             // We will need to parse it get it as a query
             // This is *super* easy to do with afire
-            let body_data =
-                Query::from_str(&String::from_utf8_lossy(&req.body).to_string()).unwrap();
+            let body_data = Query::from_str(&String::from_utf8_lossy(&req.body)).unwrap();
 
             let name = body_data.get("name").unwrap_or("Nobody");
             let text = format!("<h1>Hello, {}</h1>", name);
 
+            // Create a new response, with the folowwing default data
+            // - Status: 200
+            // - Data: OK
+            // - Headers: Vec::new()
             Response::new()
+                // Set the response body to be text
                 .text(text)
-                .header("Content-Type", "text/html")
+                // Set the `Content-Type` header to be `text/html`
+                // Note: This could also be set with the Response::content method
+                .header(HeaderType::ContentType, "text/html")
         });
 
         // Define webpage with form
@@ -58,9 +62,7 @@ impl Example for Data {
             <input type="submit" value="Submit">
       </form>"#;
 
-            Response::new()
-                .text(page)
-                .header("Content-Type", "text/html")
+            Response::new().text(page).content(Content::HTML)
         });
 
         // Define a page with path params
@@ -69,9 +71,7 @@ impl Example for Data {
             // It is safe to unwrap if the name is in the path
             let data = format!("<h1>Hello, {}</h1>", req.param("name").unwrap());
 
-            Response::new()
-                .text(data)
-                .header("Content-Type", "text/html")
+            Response::new().text(data).content(Content::HTML)
         });
 
         // You can now goto http://localhost:8080?name=John and should see "Hello, John"

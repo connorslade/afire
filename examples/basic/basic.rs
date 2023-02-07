@@ -1,4 +1,4 @@
-use afire::{Method, Response, Server};
+use afire::{HeaderType, Method, Response, Server};
 
 use crate::Example;
 
@@ -26,7 +26,8 @@ impl Example for Basic {
                 // Although is is named `text` it takes any type that impls Display
                 // So for example numbers work too
                 .text("Hi :P")
-                .header("Content-Type", "text/plain")
+                .header(HeaderType::Date, "today")
+                .content(afire::Content::TXT)
         });
 
         // Start the server

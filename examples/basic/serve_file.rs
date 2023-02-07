@@ -1,4 +1,4 @@
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 use std::fs;
 
 use crate::Example;
@@ -26,13 +26,13 @@ impl Example for ServeFile {
                 Ok(content) => Response::new()
                     .status(200)
                     .bytes(&content)
-                    .header("Content-Type", "text/html"),
+                    .content(Content::TXT),
 
                 // If not send a 404 error
                 Err(_) => Response::new()
                     .status(404)
                     .text("Not Found :/")
-                    .header("Content-Type", "text/html"),
+                    .content(Content::TXT),
             }
         });
 

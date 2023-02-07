@@ -42,11 +42,11 @@ impl Header {
     /// String must be in the format `name: value`, or an error will be returned.
     /// ## Example
     /// ```rust
-    /// # use afire::Header;
-    /// let header1 = Header::new("Content-Type", "text/html");
+    /// # use afire::{Header, HeaderType};
+    /// let header1 = Header::new(HeaderType::ContentType, "text/html");
     /// let header2 = Header::from_string("Content-Type: text/html").unwrap();
     ///
-    /// assert!(header2 == header1);
+    /// assert_eq!(header1, header2);
     /// ```
     pub fn from_string(header: impl AsRef<str>) -> Result<Header> {
         let header = header.as_ref();
@@ -142,8 +142,8 @@ impl fmt::Display for Header {
     /// In format: `name: value`.
     /// ## Example
     /// ```rust
-    /// # use afire::Header;
-    /// let header1 = Header::new("Content-Type", "text/html");
+    /// # use afire::{Header, HeaderType};
+    /// let header1 = Header::new(HeaderType::ContentType, "text/html");
     /// assert_eq!(header1.to_string(), "Content-Type: text/html");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -238,7 +238,7 @@ pub enum HeaderType {
 
 impl From<&HeaderType> for HeaderType {
     fn from(s: &HeaderType) -> Self {
-        s.clone()
+        s.to_owned()
     }
 }
 

@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
@@ -26,7 +26,7 @@ impl Example for ErrorHandling {
             Response::new()
                 .status(200)
                 .text(r#"<a href="/panic">PANIC</a>"#)
-                .header("Content-Type", "text/html")
+                .content(Content::HTML)
         });
 
         // You can optionally define a custom error handler
@@ -41,7 +41,7 @@ impl Example for ErrorHandling {
                     errors.fetch_add(1, Ordering::Relaxed),
                     err
                 ))
-                .header("Content-Type", "text/html")
+                .content(Content::HTML)
         });
 
         // You can now goto http://localhost:8080/panic

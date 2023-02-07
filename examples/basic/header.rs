@@ -1,4 +1,4 @@
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
@@ -59,7 +59,7 @@ impl Example for Header {
             Response::new()
                 .status(200)
                 .text(body)
-                .header("Content-Type", "text/html")
+                .content(Content::HTML)
         });
 
         // You can now goto http://localhost:8080 you should see a redirect to https://connorcode.com

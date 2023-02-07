@@ -1,4 +1,4 @@
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
@@ -26,9 +26,7 @@ impl Example for PathParam {
             let message = format!("Hello, {}", name);
 
             // Send Response
-            Response::new()
-                .text(message)
-                .header("Content-Type", "text/plain")
+            Response::new().text(message).content(Content::TXT)
         });
 
         // Define a greet route for Darren because he is very cool

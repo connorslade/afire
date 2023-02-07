@@ -1,4 +1,4 @@
-use afire::{Method, Response, Server, SetCookie};
+use afire::{Content, Method, Response, Server, SetCookie};
 
 use crate::Example;
 
@@ -34,7 +34,7 @@ impl Example for Cookie {
             Response::new()
                 .status(200)
                 .text(html)
-                .header("Content-Type", "text/html")
+                .content(Content::HTML)
         });
 
         // Set a cookie defined in the Query
@@ -57,7 +57,7 @@ impl Example for Cookie {
             Response::new()
                 .status(200)
                 .text(body)
-                .header("Content-Type", "text/html")
+                .content(Content::HTML)
                 .cookie(cookie)
         });
 

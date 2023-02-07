@@ -1,4 +1,4 @@
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
@@ -30,7 +30,7 @@ impl Example for Routing {
             Response::new()
                 .status(404)
                 .text("The page you are looking for does not exist :/")
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // Define a route
@@ -40,7 +40,7 @@ impl Example for Routing {
             Response::new()
                 .status(200)
                 .text("Hello World!")
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // Now goto http://localhost:8080/ and you should see "Hello World"

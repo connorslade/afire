@@ -1,7 +1,7 @@
 use std::num::NonZeroU64;
 use std::thread;
 
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
@@ -35,7 +35,7 @@ impl Example for Threading {
                     unsafe { std::mem::transmute::<_, NonZeroU64>(thread::current().id()) }.get()
                         - 1
                 ))
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // Start the server with 8 threads

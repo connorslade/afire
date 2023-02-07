@@ -1,6 +1,6 @@
 use afire::{
     middleware::{MiddleResult, Middleware},
-    Method, Request, Response, Server,
+    Content, Method, Request, Response, Server,
 };
 
 use crate::Example;
@@ -52,7 +52,7 @@ impl Example for MiddlewareExample {
             Response::new()
                 .status(200)
                 .text("Hello World!")
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // Here is where we will attach our Middleware to the Server
