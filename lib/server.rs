@@ -6,11 +6,12 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::internal::common::ToHostAddress;
 use crate::{Content, HeaderType};
 // Import local files
 use crate::{
-    error::Result, error::StartupError, handle::handle, internal::common, thread_pool::ThreadPool,
-    Header, Method, Middleware, Request, Response, Route, VERSION,
+    error::Result, error::StartupError, handle::handle, thread_pool::ThreadPool, Header, Method,
+    Middleware, Request, Response, Route, VERSION,
 };
 
 type ErrorHandler<State> =
@@ -57,13 +58,11 @@ impl<State: Send + Sync> Server<State> {
     /// // Note: The server has not been started yet
     /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
-    pub fn new(raw_ip: impl AsRef<str>, port: u16) -> Self {
+    pub fn new(raw_ip: impl ToHostAddress, port: u16) -> Self {
         trace!("🐍 Initializing Server v{}", VERSION);
-        let ip = common::parse_ip(raw_ip.as_ref()).unwrap();
-
         Server {
             port,
-            ip: Ipv4Addr::from(ip),
+            ip: raw_ip.to_address().unwrap(),
             routes: Vec::new(),
             middleware: Vec::new(),
 

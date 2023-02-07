@@ -14,7 +14,6 @@
 - IntoPath for server.(stateful_)?route
     - Function for dirctory(module) based routing
 - Enum for status codes (simaler to HeaderType)
-- IntoIp
 
 # In Progress
 
@@ -32,3 +31,4 @@
 - Test keep_alive
 - Docs 
 - Only run format! macro if log level allows
+- IntoIp

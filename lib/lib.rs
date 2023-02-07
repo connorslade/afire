@@ -24,13 +24,9 @@ use internal::{common, handle, path};
 
 #[macro_use]
 pub mod trace;
-mod content_type;
-mod cookie;
 pub mod error;
-pub mod header;
-mod method;
+mod http;
 pub mod middleware;
-mod query;
 mod request;
 mod response;
 mod route;
@@ -48,6 +44,8 @@ pub use self::{
     route::Route,
     server::Server,
 };
+pub use http::header;
+use http::*;
 
 /// The Prelude is a collection of very commenly used *things* in afire.
 /// Unless you are using middleware, extentions or internial lower level stuff this should be all you need!

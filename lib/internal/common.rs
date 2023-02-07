@@ -1,6 +1,7 @@
 //! Some little functions used here and thare
 
 use std::borrow::Cow;
+use std::net::Ipv4Addr;
 
 use crate::error::{Result, StartupError};
 
@@ -98,6 +99,31 @@ pub fn decode_url(url: &str) -> String {
         i += 1;
     }
     res
+}
+
+/// Trait used to accept multiple types for the address of a server.
+/// Default implementations are provided for `Ipv4Addr`, `String` and `&str`.
+pub trait ToHostAddress {
+    /// Convert the type to an `Ipv4Addr`.
+    fn to_address(&self) -> Result<Ipv4Addr>;
+}
+
+impl ToHostAddress for Ipv4Addr {
+    fn to_address(&self) -> Result<Ipv4Addr> {
+        Ok(*self)
+    }
+}
+
+impl ToHostAddress for String {
+    fn to_address(&self) -> Result<Ipv4Addr> {
+        Ok(Ipv4Addr::from(parse_ip(self)?))
+    }
+}
+
+impl ToHostAddress for &str {
+    fn to_address(&self) -> Result<Ipv4Addr> {
+        Ok(Ipv4Addr::from(parse_ip(self)?))
+    }
 }
 
 /// Parse a string to an IP address.

@@ -4,5 +4,4 @@
 
 pub mod common;
 pub(crate) mod handle;
-pub mod http;
 pub mod path;
