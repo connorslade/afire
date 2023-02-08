@@ -6,38 +6,47 @@ use std::net::Ipv4Addr;
 use crate::error::{Result, StartupError};
 
 /// Decode a url encoded string.
-/// Supports `+` and `%` encoding
-pub fn decode_url(url: &str) -> String {
-    #[inline]
-    fn try_push(vec: &mut String, c: Option<&char>) {
-        if let Some(c) = c {
-            vec.push(*c);
+/// Supports `+` and `%` encoding.
+/// If the decode fails for any reason, [`None`] is returned.
+pub fn decode_url(url: &str) -> Option<String> {
+    let mut chars = url.chars();
+    let mut out = String::with_capacity(url.len());
+
+    while let Some(i) = chars.next() {
+        match i {
+            '+' => out.push(' '),
+            '%' => {
+                let mut hex = String::new();
+                hex.push(chars.next()?);
+                hex.push(chars.next()?);
+                out.push(u8::from_str_radix(&hex, 16).ok()? as char);
+            }
+            _ => out.push(i),
         }
     }
 
-    // Convert input to Char array
-    let url = url.chars().collect::<Vec<char>>();
+    Some(out)
+}
 
-    let mut res = String::new();
-    let mut i = 0;
-    while i < url.len() {
-        if url[i] == '+' {
-            res.push(' ');
-            i += 1;
+/// Encodes a string with url encoding.
+/// Uses `%20` for spaces not `+`.
+/// Allowed characters are `A-Z`, `a-z`, `0-9`, `-`, `.`, `_` and `~`.
+pub fn encode_url(url: &str) -> String {
+    const ALLOWED_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                                   abcdefghijklmnopqrstuvwxyz\
+                                   0123456789-._~";
+
+    let mut out = String::with_capacity(url.len());
+
+    for i in url.chars() {
+        if i.is_ascii() && ALLOWED_CHARS.contains(&(i as u8)) {
+            out.push(i);
             continue;
         }
-        if url[i] == '%' {
-            let mut hex = String::new();
-            try_push(&mut hex, url.get(i + 1));
-            try_push(&mut hex, url.get(i + 2));
-            res.push(u8::from_str_radix(&hex, 16).unwrap_or_default() as char);
-            i += 3;
-            continue;
-        }
-        try_push(&mut res, url.get(i));
-        i += 1;
+        out.push_str(&format!("%{:02X}", i as u8));
     }
-    res
+
+    out
 }
 
 /// Trait used to accept multiple types for the address of a server.
@@ -107,15 +116,32 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
 mod test {
     use crate::error::StartupError;
 
-    use super::{decode_url, parse_ip};
+    use super::{decode_url, encode_url, parse_ip};
 
     #[test]
     fn test_url_decode() {
-        assert_eq!(decode_url("hello+world"), "hello world");
-        assert_eq!(decode_url("hello%20world"), "hello world");
+        assert_eq!(decode_url("hello+world").unwrap(), "hello world");
+        assert_eq!(decode_url("hello%20world").unwrap(), "hello world");
         assert_eq!(
-            decode_url("%3C%3E%22%23%25%7B%7D%7C%5C%5E%7E%5B%5D%60"),
+            decode_url("%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60").unwrap(),
             "<>\"#%{}|\\^~[]`"
+        );
+    }
+
+    #[test]
+    fn test_url_decode_fail() {
+        assert_eq!(decode_url("hello%20world%"), None);
+        assert_eq!(decode_url("hello%20world%2"), None);
+        assert_eq!(decode_url("hello%20world%2G"), None);
+    }
+
+    #[test]
+    fn test_url_encode() {
+        assert_eq!(encode_url("hello world"), "hello%20world");
+        assert_eq!(encode_url("hello%20world"), "hello%2520world");
+        assert_eq!(
+            encode_url("<>\"#%{}|\\^~[]`"),
+            "%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60"
         );
     }
 

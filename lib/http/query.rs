@@ -38,7 +38,7 @@ impl Query {
     /// ```
     pub fn has(&self, key: impl AsRef<str>) -> bool {
         let key = key.as_ref().to_owned();
-        self.iter().find(|i| *i[0] == key).is_some()
+        self.iter().any(|i| *i[0] == key)
     }
 
     /// Get a value from a key.

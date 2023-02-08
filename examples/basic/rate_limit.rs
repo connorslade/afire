@@ -16,9 +16,7 @@ impl Example for RateLimit {
 
         // Define a handler for GET "/"
         server.route(Method::GET, "/", |_req| {
-            Response::new()
-                .text("Hello World!")
-                .content(Content::TXT)
+            Response::new().text("Hello World!").content(Content::TXT)
         });
 
         // For this example, we'll limit requests to 1 every 2 seconds

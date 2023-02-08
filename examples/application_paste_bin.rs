@@ -84,8 +84,8 @@ fn main() {
     server.stateful_route(Method::POST, "/new-form", |app, req| {
         // Get data from response
         let query = Query::from_str(String::from_utf8_lossy(&req.body).borrow()).unwrap();
-        let name = decode_url(query.get("name").unwrap_or("Untitled"));
-        let body = decode_url(query.get("body").expect("No body supplied"));
+        let name = decode_url(query.get("name").unwrap_or("Untitled")).expect("Invalid name");
+        let body = decode_url(query.get("body").expect("No body supplied")).expect("Invalid body");
 
         // Make sure paste data isent too long
         if body.len() > DATA_LIMIT {

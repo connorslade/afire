@@ -49,9 +49,7 @@ impl Example for MiddlewareExample {
 
         // Define a basic route
         server.route(Method::GET, "/", |_req| {
-            Response::new()
-                .text("Hello World!")
-                .content(Content::TXT)
+            Response::new().text("Hello World!").content(Content::TXT)
         });
 
         // Here is where we will attach our Middleware to the Server

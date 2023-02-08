@@ -72,7 +72,9 @@ impl Cookie {
                 }
                 .trim_end_matches(';');
 
-                final_cookies.push(Cookie::new(decode_url(name), decode_url(value)));
+                let name = decode_url(name).unwrap_or_else(|| name.to_owned());
+                let value = decode_url(value).unwrap_or_else(|| value.to_owned());
+                final_cookies.push(Cookie::new(name, value));
             }
             return Some(final_cookies);
         }
