@@ -104,6 +104,15 @@ impl Headers {
 
     /// Gets the value of the specified header.
     /// If the header is not present, `None` is returned.
+    /// ## Example
+    /// ```rust
+    /// # use afire::header::{Headers, HeaderType, Header};
+    /// # fn test(headers: Headers) {
+    /// if let Some(user_agent) = headers.get(HeaderType::UserAgent) {
+    ///   println!("User-Agent: {}", user_agent);
+    /// }
+    /// # }
+    /// ```
     pub fn get(&self, name: impl Into<HeaderType>) -> Option<&str> {
         let name = name.into();
         self.iter()

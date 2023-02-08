@@ -1,11 +1,46 @@
-use std::{fmt, str::FromStr};
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+    str::FromStr,
+};
 
-/// Struct for holding query data, from request paths and form posts.
+/// Collection of query parameters.
+/// Can be made from the query string of a URL, or the body of a POST request.
+/// Similar to [`crate::headers::Headers`].
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct Query(pub Vec<[String; 2]>);
+pub struct Query(Vec<[String; 2]>);
 
-/// Implementation for Query
+impl Deref for Query {
+    type Target = Vec<[String; 2]>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Query {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl Query {
+    /// Checks if the specified key exists in the query.
+    /// # Example
+    /// ```rust
+    /// # use afire::Query;
+    /// # use std::str::FromStr;
+    /// # let query = Query::from_str("foo=bar&nose=dog").unwrap();
+    /// # assert!(query.has("foo"));
+    /// if query.has("foo") {
+    ///    println!("foo exists");
+    /// }
+    /// ```
+    pub fn has(&self, key: impl AsRef<str>) -> bool {
+        let key = key.as_ref().to_owned();
+        self.iter().find(|i| *i[0] == key).is_some()
+    }
+
     /// Get a value from a key.
     /// This will return None if the key does not exist.
     /// # Example
@@ -17,13 +52,25 @@ impl Query {
     /// ```
     pub fn get(&self, key: impl AsRef<str>) -> Option<&str> {
         let key = key.as_ref().to_owned();
+        self.iter()
+            .find(|i| *i[0] == key)
+            .map(|i| &i[1])
+            .map(|x| x.as_str())
+    }
 
-        for i in &self.0 {
-            if *i.first()? == key {
-                return Some(&i[1]);
-            }
-        }
-        None
+    /// Gets a value of the specified key as a mutable reference.
+    /// This will return None if the key does not exist.
+    /// See [`Query::get`] for the non-mutable version.
+    pub fn get_mut(&mut self, key: impl AsRef<str>) -> Option<&mut String> {
+        let key = key.as_ref().to_owned();
+        self.iter_mut().find(|i| *i[0] == key).map(|i| &mut i[1])
+    }
+
+    /// Get the key-value pair of the specified key as a mutable reference.
+    /// If the key does not exist, this will return None.
+    pub fn get_query_mut(&mut self, key: impl AsRef<str>) -> Option<&mut [String; 2]> {
+        let key = key.as_ref().to_owned();
+        self.iter_mut().find(|i| *i[0] == key)
     }
 }
 
@@ -70,5 +117,36 @@ impl fmt::Display for Query {
         }
         output.pop();
         write!(f, "{}", output)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
+
+    use super::Query;
+
+    #[test]
+    fn test_from_str() {
+        let query = Query::from_str("foo=bar&nose=dog").unwrap();
+        assert_eq!(query.get("foo"), Some("bar"));
+        assert_eq!(query.get("nose"), Some("dog"));
+        assert_eq!(query.get("bar"), None);
+    }
+
+    #[test]
+    fn test_get() {
+        let query = Query::from_str("foo=bar&nose=dog").unwrap();
+        assert_eq!(query.get("foo"), Some("bar"));
+        assert_eq!(query.get("nose"), Some("dog"));
+        assert_eq!(query.get("bar"), None);
+    }
+
+    #[test]
+    fn test_get_mut() {
+        let mut query = Query::from_str("foo=bar&nose=dog").unwrap();
+        assert_eq!(query.get_mut("bar"), None);
+        query.get_mut("foo").unwrap().push_str("bar");
+        assert_eq!(query.get("foo"), Some("barbar"));
     }
 }

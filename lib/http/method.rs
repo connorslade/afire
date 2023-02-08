@@ -2,44 +2,53 @@ use std::{fmt, str::FromStr};
 
 /// HTTP Methods.
 /// Also contains a special method (ANY) for routes that run on all methods, which will never be the method of a request.
+/// From <https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods>
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Method {
-    /// GET Method
+    /// HTTP GET Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET)
     ///
     /// Used for retrieving data
     GET,
 
-    /// POST Method
+    /// HTTP POST Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST)
     ///
     /// Used for submitting data
     POST,
 
-    /// PUT Method
+    /// HTTP PUT Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/PUT)
     ///
     /// Used for updating data
     PUT,
 
-    /// DELETE Method
+    /// HTTP DELETE Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/DELETE)
     ///
     /// Used for deleting data
     DELETE,
 
-    /// OPTIONS Method
+    /// HTTP OPTIONS Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/OPTIONS)
     ///
     /// Used for requesting information about the server
     OPTIONS,
 
-    /// HEAD Method
+    /// HTTP HEAD Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD)
     ///
     /// For getting the response from a GET request without the body
     HEAD,
 
-    /// PATCH Method
+    /// HTTP PATCH Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/PATCH)
     ///
     /// Used for applying a partial update to a resource
     PATCH,
 
-    /// TRACE Method
+    /// HTTP TRACE Method.
+    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/TRACE)
     ///
     /// Used for tracing the route of a request
     TRACE,

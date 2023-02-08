@@ -207,3 +207,39 @@ impl fmt::Display for SetCookie {
         f.write_str(cookie_string.trim_end())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::Cookie;
+
+    #[test]
+    fn test_cookie_parse() {
+        let cookie_string = "Cookie: name=value; name2=value2; name3=value3";
+        let cookies = Cookie::from_string(cookie_string).unwrap();
+        assert_eq!(cookies.len(), 3);
+        assert_eq!(cookies[0].name, "name");
+        assert_eq!(cookies[0].value, "value");
+        assert_eq!(cookies[1].name, "name2");
+        assert_eq!(cookies[1].value, "value2");
+        assert_eq!(cookies[2].name, "name3");
+        assert_eq!(cookies[2].value, "value3");
+    }
+
+    #[test]
+    fn test_ignore_cookie_parse() {
+        let cookie_string = "Cookie: name=value; name2 value2; name3=value3;";
+        let cookies = Cookie::from_string(cookie_string).unwrap();
+        assert_eq!(cookies.len(), 2);
+        assert_eq!(cookies[0].name, "name");
+        assert_eq!(cookies[0].value, "value");
+        assert_eq!(cookies[1].name, "name3");
+        assert_eq!(cookies[1].value, "value3");
+    }
+
+    #[test]
+    fn test_invalid_cookie_parse() {
+        let cookie_string = "Cookies: name=value; name2=value2; name3=value3";
+        let cookies = Cookie::from_string(cookie_string);
+        assert_eq!(cookies, None);
+    }
+}
