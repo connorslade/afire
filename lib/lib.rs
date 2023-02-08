@@ -20,7 +20,8 @@ pub mod internal;
 
 // Import Internal Functions
 mod thread_pool;
-use internal::{common, handle, path};
+use http::*;
+use internal::{encoding, handle, path};
 
 #[macro_use]
 pub mod trace;
@@ -36,6 +37,7 @@ pub use self::{
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},
+    http::header,
     method::Method,
     middleware::Middleware,
     query::Query,
@@ -45,8 +47,6 @@ pub use self::{
     server::Server,
     status::Status,
 };
-pub use http::header;
-use http::*;
 
 /// The Prelude is a collection of very commenly used *things* in afire.
 /// Unless you are using middleware, extentions or internial lower level stuff this should be all you need!
@@ -69,7 +69,9 @@ pub mod extension {
     //! - RateLimit
     //! - Logger
     //! - Request Id
+    //! - Date
     pub use crate::extensions::{
+        date::Date,
         logger::{self, Logger},
         ratelimit::RateLimiter,
         request_id::RequestId,

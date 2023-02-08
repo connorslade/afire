@@ -1,6 +1,6 @@
 //! HTTP Path stuff
 
-use crate::common;
+use super::encoding;
 
 /// Http Path
 #[derive(Debug, PartialEq, Eq)]
@@ -63,7 +63,7 @@ impl Path {
                 }
                 PathPart::Param(x) => out.push((
                     x.to_owned(),
-                    common::decode_url(j).unwrap_or_else(|| j.to_owned()),
+                    encoding::decode_url(j).unwrap_or_else(|| j.to_owned()),
                 )),
                 PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}

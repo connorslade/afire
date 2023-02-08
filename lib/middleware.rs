@@ -11,10 +11,26 @@ pub enum MiddleResult {
     /// Continue to the next middleware
     Continue,
     /// Return a response and stop the middleware chain
+    // todo: remoce the Response from this
+    // It dosent really work with the &mut Response being passe
     Abort(Response),
 }
 
-/// Middleware trait.
+/// Trait used to implement Middleware, which is code that runs before and after the routes - potentially modifying the request and response.
+/// You can use Middleware to Log Requests, Ratelimit Requests, add Analytics, etc.
+///
+/// Thare are two types of hooks: raw and non-raw.
+/// The raw hooks are passed a [`Result`], and thair default implementation calls the non-raw hooks if the Result is Ok.
+/// This allows you to handle errors (like page not found), while maintaining a clean API for middleware that doesn't need to handle errors.
+///
+/// ## Hooks
+/// - [`Middleware::pre_raw`]
+/// - [`Middleware::pre`]
+/// - [`Middleware::post_raw`]
+/// - [`Middleware::post`]
+/// - [`Middleware::end_raw`]
+/// - [`Middleware::end`]
+///
 pub trait Middleware {
     // /// Middleware to run before the raw request bytes are parsed
     //TODO: this

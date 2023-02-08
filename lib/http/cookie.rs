@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use crate::common::decode_url;
+use crate::encoding::decode_url;
 
 /// Represents a Cookie
 #[derive(Clone, Hash, PartialEq, Eq)]

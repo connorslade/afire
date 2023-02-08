@@ -8,7 +8,7 @@ use std::str::FromStr;
 use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
-use afire::internal::common::decode_url;
+use afire::internal::encoding::decode_url;
 use afire::{Content, HeaderType, Method, Query, Response, Server, Status};
 
 const DATA_LIMIT: usize = 10_000;

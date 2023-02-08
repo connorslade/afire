@@ -3,5 +3,6 @@
 //! These may be helpful but may not remain compatible between updates
 
 pub mod common;
+pub mod encoding;
 pub(crate) mod handle;
 pub mod path;

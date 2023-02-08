@@ -19,7 +19,7 @@ pub struct Response {
 
     /// Response Data.
     /// Can be either a Static Vec<u8> or a Stream (impl [`Read`])
-    data: ResponseBody,
+    pub data: ResponseBody,
 
     /// List of response headers.
     /// This does not contain the default headers.
@@ -34,8 +34,10 @@ pub struct Response {
     pub close: bool,
 }
 
-/// Response Data
-enum ResponseBody {
+/// Response Data.
+/// Can be either a Static Vec<u8> or a Stream (impl [`Read`]).
+/// Static responses are sent in one go, while streams are sent in chunks (chunked transfer encoding).
+pub enum ResponseBody {
     Static(Vec<u8>),
     Stream(Writeable),
 }

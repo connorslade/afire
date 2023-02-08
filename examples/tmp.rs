@@ -1,11 +1,9 @@
 use std::fs::{self, File};
 
-use afire::extension::Logger;
-use afire::prelude::*;
-use afire::trace::set_log_level;
-use afire::trace::Level;
+use afire::{extension::Date, extension::Logger, prelude::*, trace::set_log_level, trace::Level};
 
-const PATH: &str = r#"/home/connorslade/Downloads/"#;
+// File to download
+const PATH: &str = r#"..."#;
 
 fn main() {
     let mut server = Server::<()>::new("localhost", 8080);
@@ -29,12 +27,13 @@ fn main() {
 
     server.route(Method::GET, "/", |req| {
         let user_agent = req.headers.get(HeaderType::UserAgent).unwrap();
-        Response::new().text(user_agent)
+        Response::new().text(user_agent).content(Content::TXT)
     });
 
     server.route(Method::ANY, "/panic", |_| panic!("panic!"));
 
     Test.attach(&mut server);
+    Date.attach(&mut server);
     server.start_threaded(5).unwrap();
 }
 

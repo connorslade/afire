@@ -2,7 +2,7 @@ use std::{fmt, str::FromStr};
 
 /// HTTP Methods.
 /// Also contains a special method (ANY) for routes that run on all methods, which will never be the method of a request.
-/// From <https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods>
+/// From <https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods>.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Method {
     /// HTTP GET Method.

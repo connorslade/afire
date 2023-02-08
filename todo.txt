@@ -31,3 +31,4 @@
 - IntoIp
 - Enum for status codes (simaler to HeaderType)
 - Move tests into the lib
+- Date header
