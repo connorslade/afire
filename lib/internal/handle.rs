@@ -84,10 +84,11 @@ where
     // Pre Middleware
     for i in server.middleware.iter().rev() {
         match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre_raw(&mut req))) {
-            Ok(MiddleResult::Abort(this_res)) => {
+            Ok(MiddleResult::Send(this_res)) => {
                 res = Ok(this_res);
                 break;
             }
+            Ok(MiddleResult::Abort) => break,
             Ok(MiddleResult::Continue) => {}
             Err(e) => return handle_error(e, req.map(Rc::new), server),
         }
@@ -105,7 +106,8 @@ where
         match panic::catch_unwind(panic::AssertUnwindSafe(|| {
             i.post_raw(req.clone(), &mut res)
         })) {
-            Ok(MiddleResult::Abort(res)) => return (req.ok(), res),
+            Ok(MiddleResult::Send(res)) => return (req.ok(), res),
+            Ok(MiddleResult::Abort) => break,
             Ok(MiddleResult::Continue) => {}
             Err(e) => return handle_error(e, req, server),
         }

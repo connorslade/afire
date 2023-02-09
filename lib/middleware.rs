@@ -10,10 +10,10 @@ use crate::{error::Result, Request, Response, Server};
 pub enum MiddleResult {
     /// Continue to the next middleware
     Continue,
-    /// Return a response and stop the middleware chain
-    // todo: remoce the Response from this
-    // It dosent really work with the &mut Response being passe
-    Abort(Response),
+    /// Stop the middleware chain
+    Abort,
+    /// Stop the middleware chain and send this response
+    Send(Response),
 }
 
 /// Trait used to implement Middleware, which is code that runs before and after the routes - potentially modifying the request and response.

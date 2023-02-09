@@ -45,7 +45,7 @@ impl Middleware for ServeStatic {
         }
 
         let res = process_req(req, self);
-        MiddleResult::Abort(res.0)
+        MiddleResult::Send(res.0)
     }
 }
 

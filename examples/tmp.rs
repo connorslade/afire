@@ -43,7 +43,7 @@ impl Middleware for Test {
     fn pre(&self, req: &mut Request) -> MiddleResult {
         if req.path.contains("hello") {
             println!("Pre: {}", req.path);
-            return MiddleResult::Abort(Response::new().text("Intercepted"));
+            return MiddleResult::Send(Response::new().text("Intercepted"));
         }
 
         MiddleResult::Continue

@@ -164,7 +164,7 @@ impl Middleware for RateLimiter {
     fn pre(&self, req: &mut Request) -> MiddleResult {
         if self.is_over_limit(req.address.ip()) {
             if let Some(i) = (self.handler)(req) {
-                return MiddleResult::Abort(i);
+                return MiddleResult::Send(i);
             }
         }
 
