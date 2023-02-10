@@ -225,8 +225,8 @@ impl<State: Send + Sync> Server<State> {
 
     /// Set the panic handler, which is called if a route or middleware panics.
     /// This is only available if the `panic_handler` feature is enabled.
-    /// If you dont set it, the default response is 500 "Internal Server Error :/".
-    /// Be sure that your panic handler wont panic, becasue that will just panic the whole application.
+    /// If you don't set it, the default response is 500 "Internal Server Error :/".
+    /// Be sure that your panic handler wont panic, because that will just panic the whole application.
     /// ## Example
     /// ```rust
     /// # use afire::{Server, Response, Status};

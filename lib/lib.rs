@@ -8,7 +8,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Contains all the constants used in afire.
 /// These may be in the future moved into the [`Server`] struct.
 mod consts {
-    /// The innitial buffer allocation for the request.
+    /// The initial buffer allocation for the request.
     pub const BUFF_SIZE: usize = 256;
 
     /// Max chunk size for chunked transfer encoding.
@@ -48,8 +48,8 @@ pub use self::{
     status::Status,
 };
 
-/// The Prelude is a collection of very commenly used *things* in afire.
-/// Unless you are using middleware, extentions or internial lower level stuff this should be all you need!
+/// The Prelude is a collection of very commonly used *things* in afire.
+/// Unless you are using middleware, extensions or internal lower level stuff this should be all you need!
 pub mod prelude {
     pub use crate::{
         error::{self, Error},

@@ -23,7 +23,7 @@ impl Example for Basic {
                 .status(Status::Ok)
                 // By default the reason phrase is derived from the status
                 .reason("OK!")
-                // Although is is named `text` it takes any type that impls Display
+                // Although is is named `text` it takes any type that implements Display
                 // So for example numbers work too
                 .text("Hi :P")
                 .header(HeaderType::Date, "today")

@@ -67,9 +67,9 @@ impl RateLimiter {
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
-    ///     // Overide limit to 100 requests
+    ///     // Override limit to 100 requests
     ///     .limit(100)
-    ///     // Attatch it to the server
+    ///     // Attach it to the server
     ///     .attach(&mut server);
     ///
     /// // Start Server
@@ -83,7 +83,7 @@ impl RateLimiter {
         }
     }
 
-    /// Set the Ratelimit refresh peroid
+    /// Set the Ratelimit refresh period
     /// ## Example
     /// ```rust,no_run
     /// // Import Lib
@@ -94,9 +94,9 @@ impl RateLimiter {
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
-    ///     // Overide timeout to 60 seconds
+    ///     // Override timeout to 60 seconds
     ///     .timeout(60)
-    ///     // Attatch it to the server
+    ///     // Attach it to the server
     ///     .attach(&mut server);
     ///
     /// // Start Server
@@ -110,7 +110,7 @@ impl RateLimiter {
         }
     }
 
-    /// Define a Custom Handler for when a client has exceded the ratelimit
+    /// Define a Custom Handler for when a client has exceeded the ratelimit
     /// ## Example
     /// ```rust,no_run
     /// // Import Lib
@@ -121,9 +121,9 @@ impl RateLimiter {
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
-    ///     // Overide the handler for requests exceding the limit
+    ///     // Override the handler for requests exceeding the limit
     ///     .handler(Box::new(|_req| Some(Response::new().text("much request"))))
-    ///     // Attatch it to the server
+    ///     // Attach it to the server
     ///     .attach(&mut server);
     ///
     /// // Start Server

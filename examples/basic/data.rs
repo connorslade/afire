@@ -36,12 +36,12 @@ impl Example for Data {
             // Instead it is part of the req.body but as a string
             // We will need to parse it get it as a query
             // This is *super* easy to do with afire
-            let body_data = Query::from_str(&String::from_utf8_lossy(&req.body)).unwrap();
+            let body_data = Query::from_body(&String::from_utf8_lossy(&req.body));
 
             let name = body_data.get("name").unwrap_or("Nobody");
             let text = format!("<h1>Hello, {}</h1>", name);
 
-            // Create a new response, with the folowwing default data
+            // Create a new response, with the following default data
             // - Status: 200
             // - Data: OK
             // - Headers: Vec::new()

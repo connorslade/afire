@@ -11,7 +11,7 @@ fn main() {
     Logger::new().attach(&mut server);
 
     server.route(Method::POST, "/upload", |req| {
-        println!("Receved {} bytes", req.body.len());
+        println!("Received {} bytes", req.body.len());
         Response::new().bytes(&req.body)
     });
 

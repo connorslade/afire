@@ -93,11 +93,11 @@ impl ServeStatic {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// // Make a new static sevrer
+    /// // Make a new static server
     /// ServeStatic::new("data/static")
     ///     // Disable a file from being served
     ///     .disable("index.scss")
-    ///     // Attatch it to the afire server
+    ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
@@ -122,11 +122,11 @@ impl ServeStatic {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// // Make a new static sevrer
+    /// // Make a new static server
     /// ServeStatic::new("data/static")
     ///     // Disable a vec of files from being served
     ///     .disable_vec(&["index.scss", "index.css.map"])
-    ///     // Attatch it to the afire server
+    ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
@@ -143,11 +143,10 @@ impl ServeStatic {
         }
     }
 
-    /// Set the not found page
+    /// Set the not found page.
     ///
-    /// This will run if no file is found to serve or the file is disabled
-    ///
-    /// The bool in the fn parms is if the file is blocked
+    /// This will run if no file is found to serve or the file is disabled.
+    /// The bool in the fn parameters is if the file is blocked.
     /// ## Example
     /// ```rust,no_run
     /// // Import Library
@@ -156,11 +155,11 @@ impl ServeStatic {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// // Make a new static sevrer
+    /// // Make a new static server
     /// ServeStatic::new("data/static")
     ///     // Set a new file not found page
     ///     .not_found(|_req, _dis| Response::new().status(Status::NotFound).text("Page Not Found!"))
-    ///     // Attatch it to the afire server
+    ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
@@ -174,7 +173,7 @@ impl ServeStatic {
 
     /// Add a MIME type to the Static file Server
     ///
-    /// This extension comes with alot of builtin MIME types
+    /// This extension comes with a lot of builtin MIME types
     /// but if you need to add more thats what this is for
     ///
     /// The key is the file extension
@@ -188,11 +187,11 @@ impl ServeStatic {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// // Make a new static sevrer
+    /// // Make a new static server
     /// ServeStatic::new("data/static")
     ///     // Add a new MIME type
     ///     .mime_type(".3gp", "video/3gpp")
-    ///     // Attatch it to the afire server
+    ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
@@ -219,11 +218,11 @@ impl ServeStatic {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// // Make a new static sevrer
+    /// // Make a new static server
     /// ServeStatic::new("data/static")
     ///     // Add a new MIME type
     ///     .mime_types(&[("3gp", "video/3gpp")])
-    ///     // Attatch it to the afire server
+    ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
@@ -251,11 +250,11 @@ impl ServeStatic {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// // Make a new static sevrer
+    /// // Make a new static server
     /// ServeStatic::new("data/static")
     ///     // Set serve path
     ///     .path("/static")
-    ///     // Attatch it to the afire server
+    ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
     /// server.start().unwrap();
@@ -330,7 +329,7 @@ fn safe_path(mut path: String) -> String {
 
 /// Common MIME Types
 ///
-/// Used by Servestatic extensions
+/// Used by Serve-static extensions
 pub const TYPES: [(&str, &str); 56] = [
     ("html", "text/html"),
     ("css", "text/css"),

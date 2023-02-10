@@ -1,4 +1,4 @@
-//! Modules relateing to HTTP requests and responses.
+//! Modules relating to HTTP requests and responses.
 
 pub mod content_type;
 pub mod cookie;

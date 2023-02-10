@@ -27,7 +27,7 @@ The source code for each basic example can be found within the `basic` subdirect
 
 These are more complete examples, still not a full web app through.
 For more complete web apps you can reference the [Things Built with afire](https://connorcode.com/writing/afire#things-built-with-afire) section on my website.
-To run these application examples you can use this command `cargo r --example applcation_<EXAMPLE_NAME>`.
+To run these application examples you can use this command `cargo r --example application_<EXAMPLE_NAME>`.
 
 | Name      | Description                              |
 | --------- | ---------------------------------------- |

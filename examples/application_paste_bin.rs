@@ -1,10 +1,9 @@
 //! A simple in memory pastebin backend
-// If you want to make a real paste bin use a database for storage
+// If you want to make a real paste bin you will need some sort of database for persistent storage
 
 // For a full pastebin front end and back end check out https://github.com/Basicprogrammer10/plaster-box
 // Or try it out at https://paste.connorcode.com
 
-use std::str::FromStr;
 use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
@@ -49,7 +48,7 @@ fn main() {
 
     // New paste API handler
     server.stateful_route(Method::POST, "/new", move |app, req| {
-        // Make sure paste data isent too long
+        // Make sure paste data isn't too long
         if req.body.len() > DATA_LIMIT {
             return Response::new()
                 .status(Status::NotFound)
@@ -76,18 +75,18 @@ fn main() {
         // Send Redirect response
         Response::new()
             .status(Status::MovedPermanently)
-            .text("Ok")
-            .header(HeaderType::Location, format!("/p/{}", id))
+            .header(HeaderType::Location, format!("/p/{id}"))
+            .text(format!("Redirecting to /p/{id}."))
     });
 
     // New paste form handler
     server.stateful_route(Method::POST, "/new-form", |app, req| {
         // Get data from response
-        let query = Query::from_str(String::from_utf8_lossy(&req.body).borrow()).unwrap();
+        let query = Query::from_body(String::from_utf8_lossy(&req.body).borrow());
         let name = decode_url(query.get("name").unwrap_or("Untitled")).expect("Invalid name");
         let body = decode_url(query.get("body").expect("No body supplied")).expect("Invalid body");
 
-        // Make sure paste data isent too long
+        // Make sure paste data isn't too long
         if body.len() > DATA_LIMIT {
             return Response::new()
                 .status(Status::NotFound)
@@ -150,7 +149,7 @@ fn main() {
     server.start().unwrap();
 }
 
-// Turn seconds ago into a more readable relative time
+// Turn relative  into a more readable relative time
 // Ex 1 minute ago or 3 years ago
 pub fn best_time(secs: u64) -> String {
     let mut secs = secs as f64;

@@ -25,11 +25,11 @@ impl Example for RateLimit {
         // Default Limit is 10
         // Default Timeout is 60 sec
         RateLimiter::new()
-            // Overide the Limit to 1
+            // Override the Limit to 1
             .limit(1)
-            // Overide the timeout to 2
+            // Override the timeout to 2
             .timeout(2)
-            // Overide thge Handler
+            // Override the Handler
             .handler(Box::new(|_req| {
                 Some(
                     Response::new()

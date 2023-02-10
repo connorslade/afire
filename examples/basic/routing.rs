@@ -10,7 +10,7 @@ use crate::Example;
 
 // To explain this better I will label the routes with numbers to represent their priority.
 // Higher priority numbers will run first
-// Note: In the afire backend code thare is no priority number its just the order in which they are defined
+// Note: In the afire backend code there is no priority number its just the order in which they are defined
 pub struct Routing;
 
 impl Example for Routing {

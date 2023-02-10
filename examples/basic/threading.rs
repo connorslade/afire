@@ -27,7 +27,7 @@ impl Example for Threading {
         server.route(Method::GET, "/", |_req| {
             Response::new()
                 // hopefully the ThreadId.as_u64 method will become stable
-                // untill then im stuck with this mess for the example
+                // until then im stuck with this mess for the example
                 // It just gets the thread ID to show the user what thread is handling the request
                 .text(format!(
                     "Hello from thread number {:#?}!",

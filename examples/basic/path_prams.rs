@@ -30,7 +30,7 @@ impl Example for PathParam {
         });
 
         // Define a greet route for Darren because he is very cool
-        // This will take priority over the other route as it is defind after
+        // This will take priority over the other route as it is defined after
         server.route(Method::GET, "/greet/Darren/", |_req| {
             Response::new().text("Hello, Darren. You are very cool")
         });

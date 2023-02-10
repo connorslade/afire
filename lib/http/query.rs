@@ -1,7 +1,6 @@
 use std::{
     fmt,
     ops::{Deref, DerefMut},
-    str::FromStr,
 };
 
 /// Collection of query parameters.
@@ -30,7 +29,7 @@ impl Query {
     /// ```rust
     /// # use afire::Query;
     /// # use std::str::FromStr;
-    /// # let query = Query::from_str("foo=bar&nose=dog").unwrap();
+    /// # let query = Query::from_body("foo=bar&nose=dog");
     /// # assert!(query.has("foo"));
     /// if query.has("foo") {
     ///    println!("foo exists");
@@ -47,7 +46,7 @@ impl Query {
     /// ```
     /// # use afire::Query;
     /// # use std::str::FromStr;
-    /// let query = Query::from_str("foo=bar&nose=dog").unwrap();
+    /// let query = Query::from_body("foo=bar&nose=dog");
     /// assert_eq!(query.get("foo"), Some("bar"));
     /// ```
     pub fn get(&self, key: impl AsRef<str>) -> Option<&str> {
@@ -72,19 +71,14 @@ impl Query {
         let key = key.as_ref().to_owned();
         self.iter_mut().find(|i| *i[0] == key)
     }
-}
-
-impl FromStr for Query {
-    type Err = ();
 
     /// Create a new Query from a Form POST body
     /// # Example
     /// ```
     /// # use afire::Query;
-    /// # use std::str::FromStr;
-    /// let query = Query::from_str("foo=bar&nose=dog");
+    /// let query = Query::from_body("foo=bar&nose=dog");
     /// ```
-    fn from_str(body: &str) -> Result<Self, Self::Err> {
+    pub fn from_body(body: &str) -> Self {
         let mut data = Vec::new();
 
         let parts = body.split('&');
@@ -104,7 +98,7 @@ impl FromStr for Query {
             data.push([key, value])
         }
 
-        Ok(Query(data))
+        Query(data)
     }
 }
 
@@ -122,13 +116,11 @@ impl fmt::Display for Query {
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
-
     use super::Query;
 
     #[test]
     fn test_from_str() {
-        let query = Query::from_str("foo=bar&nose=dog").unwrap();
+        let query = Query::from_body("foo=bar&nose=dog");
         assert_eq!(query.get("foo"), Some("bar"));
         assert_eq!(query.get("nose"), Some("dog"));
         assert_eq!(query.get("bar"), None);
@@ -136,7 +128,7 @@ mod test {
 
     #[test]
     fn test_get() {
-        let query = Query::from_str("foo=bar&nose=dog").unwrap();
+        let query = Query::from_body("foo=bar&nose=dog");
         assert_eq!(query.get("foo"), Some("bar"));
         assert_eq!(query.get("nose"), Some("dog"));
         assert_eq!(query.get("bar"), None);
@@ -144,7 +136,7 @@ mod test {
 
     #[test]
     fn test_get_mut() {
-        let mut query = Query::from_str("foo=bar&nose=dog").unwrap();
+        let mut query = Query::from_body("foo=bar&nose=dog");
         assert_eq!(query.get_mut("bar"), None);
         query.get_mut("foo").unwrap().push_str("bar");
         assert_eq!(query.get("foo"), Some("barbar"));

@@ -5,7 +5,7 @@ use crate::{
     Header, Request,
 };
 
-/// Add an id to evey incomming Request
+/// Add an id to every incoming Request
 ///
 /// The is is just incremented on each request to not have to worry about collisions
 pub struct RequestId {

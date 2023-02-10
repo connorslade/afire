@@ -65,7 +65,7 @@ impl Response {
     }
 
     /// Add a status code to a Response.
-    /// This accapts [`Status`] as well as a [`u16`].
+    /// This accepts [`Status`] as well as a [`u16`].
     /// ## Example
     /// ```rust
     /// # use afire::{Response, Header, Status};
@@ -264,7 +264,7 @@ impl Response {
         default_headers: &[Header],
     ) -> Result<()> {
         // Add default headers to response
-        // Only the ones that arent already in the response
+        // Only the ones that aren't already in the response
         for i in default_headers {
             if !self.headers.has(&i.name) {
                 self.headers.push(i.clone());
@@ -328,7 +328,7 @@ impl ResponseBody {
     }
 
     /// Writes a ResponseBody to a TcpStream.
-    /// Eaither in one go if it is static or in chunks if it is a stream.
+    /// Either in one go if it is static or in chunks if it is a stream.
     fn write(&mut self, stream: &mut TcpStream) -> Result<()> {
         match self {
             ResponseBody::Static(data) => stream.write_all(data)?,

@@ -129,8 +129,8 @@ where
 }
 
 /// Tries to find a route that matches the request.
-/// If it finds one, it will call the handler and return the result (assumming it dosent panic).
-/// If it dosent find one, it will return an Error of HandleError::NotFound.
+/// If it finds one, it will call the handler and return the result (assuming it doesn't panic).
+/// If it doesn't find one, it will return an Error of HandleError::NotFound.
 fn handle_route<State>(req: Rc<Request>, this: &Server<State>) -> Result<Response>
 where
     State: 'static + Send + Sync,
@@ -142,7 +142,7 @@ where
             *req.path_params.borrow_mut() = params;
             let result = panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
                 RouteType::Stateless(i) => (i)(&req),
-                RouteType::Statefull(i) => {
+                RouteType::Stateful(i) => {
                     (i)(this.state.clone().expect("State not initialized"), &req)
                 }
             }));
@@ -164,7 +164,7 @@ where
     ))))
 }
 
-/// Gets a response of thair is an error.
+/// Gets a response if there is an error.
 /// Can handle Parse, Handle and IO errors.
 pub fn error_response<State>(err: &Error, server: &Server<State>) -> Response
 where

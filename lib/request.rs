@@ -23,7 +23,7 @@ pub struct Request {
     pub path: String,
 
     /// HTTP version string.
-    /// Should usally be "HTTP/1.1".
+    /// Should usually be "HTTP/1.1".
     pub version: String,
 
     /// Path Params, filled by the router
@@ -119,7 +119,7 @@ impl Request {
             .unwrap_or(false)
     }
 
-    /// Get a path paramater by its name.
+    /// Get a path parameter by its name.
     ///
     /// ## Example
     /// ```rust
@@ -130,7 +130,7 @@ impl Request {
     ///     // This is safe to unwrap because the router will only call this handler if the path param exists
     ///     let name = req.param("name").unwrap();
     ///
-    ///     // Format a nice Messgae
+    ///     // Format a nice message
     ///     let message = format!("Hello, {}", name);
     ///
     ///     // Send Response
@@ -205,11 +205,7 @@ pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query,
         }
     }
 
-    let query = match Query::from_str(&final_query) {
-        Ok(i) => i,
-        Err(_) => return Err(Error::Parse(ParseError::InvalidQuery)),
-    };
-
+    let query = Query::from_body(&final_query);
     let version = match parts.next() {
         Some(i) => i.to_owned(),
         None => return Err(Error::Parse(ParseError::NoVersion)),

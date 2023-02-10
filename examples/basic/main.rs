@@ -66,7 +66,7 @@ fn main() {
     };
 
     if run_index >= examples.len() {
-        return println!("[*] Invaild Id");
+        return println!("[*] Invalid Id");
     }
 
     println!("[*] Starting `{}`\n", examples[run_index].name());

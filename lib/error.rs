@@ -1,4 +1,4 @@
-//! Errors that can occur in the process of connectioning to clients, parseing HTTP and handling requests.
+//! Errors that can occur in the process of connecting to clients, parsing HTTP and handling requests.
 
 use std::{rc::Rc, result};
 
@@ -7,7 +7,7 @@ use crate::{Method, Request};
 /// Easy way to use a Result<T, Error>
 pub type Result<T> = result::Result<T, Error>;
 
-/// Errors that can occur at startup or in the process of connectioning to clients, parseing HTTP and handling requests.
+/// Errors that can occur at startup or in the process of connecting to clients, parsing HTTP and handling requests.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     /// Error while starting the server
@@ -39,13 +39,13 @@ pub enum StartupError {
     NoState,
 }
 
-/// Errors thet can arize while handling a request
+/// Errors that can arise while handling a request
 #[derive(Debug, Clone)]
 pub enum HandleError {
     /// Route matching request path not found
     NotFound(Method, String),
 
-    /// A route or middleware paniced while running
+    /// A route or middleware panicked while running
     Panic(Box<Result<Rc<Request>>>, String),
 }
 

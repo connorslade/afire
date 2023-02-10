@@ -95,7 +95,7 @@ impl Logger {
         }
     }
 
-    /// Enable writeing events to stdout
+    /// Enable writing events to stdout
     /// ## Example
     /// ```rust
     /// // Import Lib
@@ -160,7 +160,7 @@ impl Logger {
                 }
 
                 self.send_log(format!(
-                    "[{}] {} {}{}",
+                    "[{}] {} {}?{}",
                     req.address.ip(),
                     req.method,
                     new_path,

@@ -1,4 +1,4 @@
-//! Some little functions used here and thare
+//! Some little functions used here and there
 
 use std::borrow::Cow;
 use std::net::Ipv4Addr;

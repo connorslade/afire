@@ -2,7 +2,7 @@
  
 - Fix socket errors
 - Options handler middleware
-- Lazy body loading
+- Lazy body loading?
 - Access app in socket handler
 - Socket timeout system
 - Error handler trait (like middleware)
@@ -11,6 +11,7 @@
 - Cors - https://expressjs.com/en/resources/middleware/cors.html
 - Show how access app in middleware
 - Allow returning None in a route to go to the next route implement AsResponse for Response and Option<Response>
+- Redo examples
 
 # In Progress
 

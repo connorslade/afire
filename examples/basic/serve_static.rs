@@ -21,20 +21,20 @@ impl Example for ServeStatic {
         // Make a new static file server with a path
         extension::ServeStatic::new(STATIC_DIR)
             // TODO: Add back serve static middleware
-            // // Middleware here works much diffrently to afire middleware
+            // // Middleware here works much differently to afire middleware
             // // The middleware priority is still by most recently defined
             // // But this middleware takes functions only - no closures
-            // // and resultes of the middleware are put togther so more then one ac affect thre response
+            // // and results of the middleware are put together so more then one ac affect the response
             // //
             // // Args:
             // // - req: Client Request
             // // - res: Current Server Response
             // // - suc: File to serve was found
             // .middleware(|req, res, suc| {
-            //     // Print path sevred
-            //     println!("Staticly Served: {}", req.path);
+            //     // Print path served
+            //     println!("Staticky Served: {}", req.path);
             //     // Return none to not mess with response
-            //     // Or in this case add a header and pass through the sucess value
+            //     // Or in this case add a header and pass through the success value
             //     Some((res.header("X-Static-Serve", "true"), suc))
             // })
             // Function that runs when no file is found to serve
@@ -45,11 +45,11 @@ impl Example for ServeStatic {
                     .text("Page Not Found!")
             })
             // Add an extra mime type to the server
-            // It has alot already
+            // It has a lot already
             .mime_type("key", "value")
             // Set serve path
             .path(STATIC_PATH)
-            // Attatch the middleware to the server
+            // Attach the middleware to the server
             .attach(&mut server);
 
         // Start the server

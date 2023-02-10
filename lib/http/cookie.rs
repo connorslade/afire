@@ -54,7 +54,7 @@ impl Cookie {
     /// Make a Vec of Cookies from a String.
     /// Intended for making Cookie Vec from HTTP Headers.
     /// Will only return None of the cookie string does not start with "Cookie:".
-    /// If thare are any invalid cookies, they will be ignored.
+    /// If there are any invalid cookies, they will be ignored.
     pub(crate) fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
         if let Some(cookie_string) = cookie_string.strip_prefix("Cookie:") {
             let cookies = cookie_string.trim().split("; ").collect::<Vec<&str>>();

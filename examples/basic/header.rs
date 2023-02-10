@@ -16,7 +16,7 @@ impl Example for Header {
             // Define server wide default headers
             // These will be send with every response
             // If the same header is defined in the route it will be put before the default header
-            // Although it is not garunteed to be the one picked by the client it usually is
+            // Although it is not guaranteed to be the one picked by the client it usually is
             // At the bottom of this file is a representation of the order of the headers
             .default_header("X-Server-Header", "This is a server wide header");
 
@@ -37,7 +37,7 @@ impl Example for Header {
             let text = "<a href=\"https://connorcode.com\">connorcode</a>";
 
             // The response code of 308 tells the client to redirect to the location specified in the header
-            // Thare are other response codes you can use too
+            // There are other response codes you can use too
             // 301 -> Moved Permanently
             // 302 -> Found
             // 303 -> See Other

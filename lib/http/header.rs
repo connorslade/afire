@@ -24,7 +24,9 @@ pub struct Header {
 pub struct Headers(pub(crate) Vec<Header>);
 
 impl Header {
-    /// Make a new header from a name and a value, which bolth mut implement AsRef<str>.
+    /// Make a new header from a name and a value.
+    /// The name must implement Into<HeaderType>, so it can be a string or a [`HeaderType`].
+    /// The value can be anything that implements AsRef<str>, including a String, or &str.
     /// ## Example
     /// ```rust
     /// # use afire::Header;
@@ -161,7 +163,7 @@ impl fmt::Display for Header {
 }
 
 /// Stringify a Vec of headers.
-/// Each header is in the format `name: value` amd separated by a carrage return and newline (`\r\n`).
+/// Each header is in the format `name: value` amd separated by a carriage return and newline (`\r\n`).
 pub(crate) fn headers_to_string(headers: &[Header]) -> String {
     let out = headers
         .iter()
@@ -176,19 +178,19 @@ pub(crate) fn headers_to_string(headers: &[Header]) -> String {
 /// Just the 'common' ones, which are ones that I use semi-frequently, or that are used internally.
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub enum HeaderType {
-    /// Indecates what content types (MIME types) are acceptable for the client.
+    /// Indicates what content types (MIME types) are acceptable for the client.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept))
     Accept,
-    /// Indecates what character sets are acceptable for the client.
+    /// Indicates what character sets are acceptable for the client.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Charset))
     AcceptCharset,
-    /// Indecates what content encodings (usally compression algorithms) are acceptable for the client.
+    /// Indicates what content encodings (usually compression algorithms) are acceptable for the client.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding))
     AcceptEncoding,
-    /// Indecates what languages are acceptable for the client.
+    /// Indicates what languages are acceptable for the client.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language))
     AcceptLanguage,
-    /// Allows re-useing a socket for multiple requests with `keep-alive`, or closing the scoket with `close`.
+    /// Allows re-using a socket for multiple requests with `keep-alive`, or closing the sockets with `close`.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection))
     Connection,
     /// Lists the encodings that have been applied to the entity body.
@@ -199,7 +201,7 @@ pub enum HeaderType {
     /// This is only required when the body is not chunked.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Length))
     ContentLength,
-    /// Indecates the media type of the entity body.
+    /// Indicates the media type of the entity body.
     /// This can be set on a response with the [`crate::Response::content`] method.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type))
     ContentType,
@@ -235,10 +237,10 @@ pub enum HeaderType {
     /// Note that afire *currently* does not have built-in support for websockets.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Upgrade))
     Upgrade,
-    /// Contains infomation about the client application, operating system, vendor, etc. that is making the request.
+    /// Contains information about the client application, operating system, vendor, etc. that is making the request.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent))
     UserAgent,
-    /// A header added by proxies to track message forewards, avoid request loops, and identifying protocol capabilities.
+    /// A header added by proxies to track message forewords, avoid request loops, and identifying protocol capabilities.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via))
     Via,
     /// Any other header that is not in this enum.

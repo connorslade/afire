@@ -19,8 +19,8 @@ pub enum MiddleResult {
 /// Trait used to implement Middleware, which is code that runs before and after the routes - potentially modifying the request and response.
 /// You can use Middleware to Log Requests, Ratelimit Requests, add Analytics, etc.
 ///
-/// Thare are two types of hooks: raw and non-raw.
-/// The raw hooks are passed a [`Result`], and thair default implementation calls the non-raw hooks if the Result is Ok.
+/// There are two types of hooks: raw and non-raw.
+/// The raw hooks are passed a [`Result`], and their default implementation calls the non-raw hooks if the Result is Ok.
 /// This allows you to handle errors (like page not found), while maintaining a clean API for middleware that doesn't need to handle errors.
 ///
 /// ## Hooks
@@ -80,8 +80,8 @@ pub trait Middleware {
     /// Middleware ot run after the response has been handled
     fn end(&self, _req: &Request, _res: &Response) {}
 
-    /// Attatch Middleware to a Server.
-    /// If you want to get a refrence to the server's state in your middleware state, you should override this method.
+    /// Attach Middleware to a Server.
+    /// If you want to get a reference to the server's state in your middleware state, you should override this method.
     fn attach<State>(self, server: &mut Server<State>)
     where
         Self: 'static + Send + Sync + Sized,

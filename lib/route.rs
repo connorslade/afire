@@ -5,11 +5,11 @@ use std::sync::Arc;
 use crate::{path::Path, Method, Request, Response};
 
 type StatelessRoute = Box<dyn Fn(&Request) -> Response + Send + Sync>;
-type StatefullRoute<State> = Box<dyn Fn(Arc<State>, &Request) -> Response + Send + Sync>;
+type StatefulRoute<State> = Box<dyn Fn(Arc<State>, &Request) -> Response + Send + Sync>;
 
 pub enum RouteType<State> {
     Stateless(StatelessRoute),
-    Statefull(StatefullRoute<State>),
+    Stateful(StatefulRoute<State>),
 }
 
 /// Defines a route.
@@ -24,7 +24,7 @@ pub struct Route<State> {
     /// Route path, in its tokenized form.
     path: Path,
 
-    /// Route Handler, either stateless or statefull.
+    /// Route Handler, either stateless or stateful.
     pub(crate) handler: RouteType<State>,
 }
 
@@ -42,18 +42,18 @@ impl<State> Route<State> {
     pub(crate) fn new_stateful(
         method: Method,
         path: String,
-        handler: StatefullRoute<State>,
+        handler: StatefulRoute<State>,
     ) -> Self {
         Self {
             method,
             path: Path::new(path),
-            handler: RouteType::Statefull(handler),
+            handler: RouteType::Stateful(handler),
         }
     }
 
     /// Checks if the route is stateful.
     pub(crate) fn is_stateful(&self) -> bool {
-        matches!(self.handler, RouteType::Statefull(_))
+        matches!(self.handler, RouteType::Stateful(_))
     }
 
     /// Checks if a Request matches the route.
@@ -70,7 +70,7 @@ impl<State> Debug for RouteType<State> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RouteType::Stateless(_) => f.write_str("stateless"),
-            RouteType::Statefull(_) => f.write_str("statefull"),
+            RouteType::Stateful(_) => f.write_str("stateful"),
         }
     }
 }

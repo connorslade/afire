@@ -3,7 +3,7 @@
 
 /// HTTP status codes.
 /// Used to indicate the status of an HTTP response.
-/// Note: Methods that accapt a [`Status`] will also accept any [`u16`] value, converting it to a Status::Custom if it is not a valid status code.
+/// Note: Methods that accept a [`Status`] will also accept any [`u16`] value, converting it to a Status::Custom if it is not a valid status code.
 ///
 ///  Supports Status:
 /// - 100-101
@@ -173,7 +173,7 @@ pub enum Status {
     GatewayTimeOut,
     /// HTTP 505 HTTP Version Not Supported.
     /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/505)
-    HTTPVersionnotsupported,
+    HTTPVersionNotSupported,
     /// HTTP 506 Variant Also Negotiates.
     /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/506)
     VariantAlsoNegotiates,
@@ -246,7 +246,7 @@ impl Status {
             Status::BadGateway => 502,
             Status::ServiceUnavailable => 503,
             Status::GatewayTimeOut => 504,
-            Status::HTTPVersionnotsupported => 505,
+            Status::HTTPVersionNotSupported => 505,
             Status::VariantAlsoNegotiates => 506,
             Status::NotExtended => 510,
             Status::NetworkAuthenticationRequired => 511,
@@ -377,7 +377,7 @@ impl From<u16> for Status {
             502 => Status::BadGateway,
             503 => Status::ServiceUnavailable,
             504 => Status::GatewayTimeOut,
-            505 => Status::HTTPVersionnotsupported,
+            505 => Status::HTTPVersionNotSupported,
             506 => Status::VariantAlsoNegotiates,
             510 => Status::NotExtended,
             511 => Status::NetworkAuthenticationRequired,
