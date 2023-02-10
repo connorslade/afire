@@ -18,6 +18,12 @@ impl ToHostAddress for Ipv4Addr {
     }
 }
 
+impl ToHostAddress for [u8; 4] {
+    fn to_address(&self) -> Result<Ipv4Addr> {
+        Ok(Ipv4Addr::new(self[0], self[1], self[2], self[3]))
+    }
+}
+
 impl ToHostAddress for String {
     fn to_address(&self) -> Result<Ipv4Addr> {
         Ok(Ipv4Addr::from(parse_ip(self)?))

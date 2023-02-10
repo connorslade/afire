@@ -63,18 +63,25 @@ pub mod prelude {
 mod extensions;
 #[cfg(feature = "extensions")]
 pub mod extension {
-    //! Built in Extensions
+    //! Useful extensions to the base afire.
+    //! Includes helpful middleware like Serve Static, Rate Limit and Logger.
+    //! Also has a [`util`] module for some misc utilities that are often helpful in backend development.
     //!
-    //! - Serve Static
-    //! - RateLimit
-    //! - Logger
-    //! - Request Id
-    //! - Date
+    //! ## All Feature
+    //! | Name            | Description                                           |
+    //! | --------------- | ----------------------------------------------------- |
+    //! | [`ServeStatic`] | Serve static files from a dir.                        |
+    //! | [`Date`]        | Add the Date header to responses. Required by HTTP.   |
+    //! | [`RateLimit`]   | Limit how many requests can be handled from a source. |
+    //! | [`Logger`]      | Log incoming requests to the console / file.          |
+    //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
+    //! | [`util`]        | Utilities that may be helpful when making an website. |
     pub use crate::extensions::{
-        date::Date,
+        date::{self, Date},
         logger::{self, Logger},
         ratelimit::RateLimiter,
         request_id::RequestId,
         serve_static::{self, ServeStatic},
+        util,
     };
 }

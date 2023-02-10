@@ -1,3 +1,6 @@
+//! Middleware to add the HTTP Date header (as defined in [RFC 9110, Section 5.6.7](https://www.rfc-editor.org/rfc/rfc9110.html#section-5.6.7)).
+//! This is technically required for all servers that have a clock, so I may move it to the core library at some point.
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
@@ -48,7 +51,7 @@ fn days_in_month(month: u8, year: u16) -> u8 {
 
 /// Returns the current date in the IMF-fixdate format.
 /// Example: `Sun, 06 Nov 1994 08:49:37 GMT`
-fn imp_date(epoch: u64) -> String {
+pub fn imp_date(epoch: u64) -> String {
     let seconds = epoch % 60;
     let minutes = (epoch / 60) % 60;
     let hours = (epoch / 3600) % 24;

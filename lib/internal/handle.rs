@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    error::{HandleError, ParseError, Result},
+    error::{HandleError, ParseError, Result, StreamError},
     internal::common::any_string,
     middleware::MiddleResult,
     route::RouteType,
@@ -121,6 +121,7 @@ where
                 Ok(_) => &e,
             };
 
+            // TODO: somehow error was Stream
             return (None, error_response(error, server));
         }
     };
@@ -171,9 +172,12 @@ where
     State: 'static + Send + Sync,
 {
     match err {
-        Error::Stream(_) | Error::Startup(_) => {
-            unreachable!("Stream and Startup errors should not be here")
+        Error::None | Error::Startup(_) => {
+            unreachable!("None and Startup errors should not be here")
         }
+        Error::Stream(e) => match e {
+            StreamError::UnexpectedEof => Response::new().status(400).text("Unexpected EOF"),
+        },
         Error::Parse(e) => match e {
             ParseError::NoSeparator => Response::new().status(400).text("No separator"),
             ParseError::NoMethod => Response::new().status(400).text("No method"),
@@ -197,6 +201,5 @@ where
             HandleError::Panic(_, _) => unreachable!(),
         },
         Error::Io(e) => Response::new().status(500).text(e),
-        Error::None => unreachable!(),
     }
 }

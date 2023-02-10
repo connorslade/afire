@@ -8,18 +8,11 @@ use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
 use afire::internal::encoding::decode_url;
-use afire::{Content, HeaderType, Method, Query, Response, Server, Status};
+use afire::{
+    extension::util::fmt_relative_time, Content, HeaderType, Method, Query, Response, Server, Status,
+};
 
 const DATA_LIMIT: usize = 10_000;
-
-const TIME_UNITS: &[(&str, u16)] = &[
-    ("second", 60),
-    ("minute", 60),
-    ("hour", 24),
-    ("day", 30),
-    ("month", 12),
-    ("year", 0),
-];
 
 struct Paste {
     name: String,
@@ -135,7 +128,7 @@ fn main() {
             out.push_str(&format!(
                 "<tr><td>{}</td><td>{}</td><td><a href=\"/p/{}\">🔗</a></td></tr>",
                 e.name,
-                best_time(e.time.elapsed().as_secs()),
+                fmt_relative_time(e.time.elapsed().as_secs()),
                 i
             ));
         }
@@ -147,23 +140,6 @@ fn main() {
     });
 
     server.start().unwrap();
-}
-
-// Turn relative  into a more readable relative time
-// Ex 1 minute ago or 3 years ago
-pub fn best_time(secs: u64) -> String {
-    let mut secs = secs as f64;
-
-    for i in TIME_UNITS {
-        if i.1 == 0 || secs < i.1 as f64 {
-            secs = secs.round();
-            return format!("{} {}{} ago", secs, i.0, if secs > 1.0 { "s" } else { "" });
-        }
-
-        secs /= i.1 as f64;
-    }
-
-    format!("{} years ago", secs.round())
 }
 
 // To use POST to /new with the body set to your paste data

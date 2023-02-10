@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use afire::{Content, HeaderType, Method, Query, Response, Server};
 
 use crate::Example;

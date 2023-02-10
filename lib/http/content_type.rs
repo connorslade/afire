@@ -34,6 +34,6 @@ impl Content<'_> {
 impl From<Content<'_>> for Header {
     // Convert Content to a Content-Type Header
     fn from(x: Content<'_>) -> Self {
-        Header::new("Content-Type", x.as_type())
+        Header::new("Content-Type", format!("{}; charset=utf-8", x.as_type()))
     }
 }
