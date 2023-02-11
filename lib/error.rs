@@ -37,6 +37,9 @@ pub enum StartupError {
 
     /// No state was specified, but a route requires it
     NoState,
+
+    /// The socket timeout specified is invalid (must be greater than 0)
+    InvalidSocketTimeout,
 }
 
 /// Errors that can arise while handling a request

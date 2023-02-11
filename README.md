@@ -8,14 +8,14 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "1.3.0"
+afire = "2.0.0"
 ```
 
 ## 📄 Info
 
 afire is a simple synchronous multithreaded express.js inspired rust web micro framework.
 wow that was long.
-It comes with some built extensions in for Static File Serving, Rate limiting, more.
+It comes with some built extensions in for Static File Serving, Rate limiting, and more.
 
 Below you can fine links to some afire related resources.
 
@@ -27,7 +27,7 @@ Below you can fine links to some afire related resources.
 
 For more examples see the examples directory [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
 
-Below is a super simple example so you can see the basics of aire syntax.
+Below is a super simple example so you can see the basics of afire syntax.
 
 ```rust no_run
 // Import Lib

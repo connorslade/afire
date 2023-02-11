@@ -170,10 +170,9 @@ impl<State: Send + Sync> Server<State> {
         }
     }
 
-    // TODO: Reimplement this
-    // also redo the docs
-    /// Set the socket Read / Write Timeout.
+    /// Set the timeout for the socket.
     /// This will ensure that the server will not hang on a request for too long.
+    /// By default there is no timeout.
     ///
     /// ## Example
     /// ```rust,no_run
@@ -182,7 +181,7 @@ impl<State: Send + Sync> Server<State> {
     /// // Create a server for localhost on port 8080
     /// let mut server = Server::<()>::new("localhost", 8080)
     ///     // Set socket timeout
-    ///     .socket_timeout(Duration::from_secs(1));
+    ///     .socket_timeout(Duration::from_secs(5));
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Self {
         trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
@@ -312,6 +311,10 @@ impl<State: Send + Sync> Server<State> {
     fn check(&self) -> Result<()> {
         if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
             return Err(StartupError::NoState.into());
+        }
+
+        if self.socket_timeout == Some(Duration::ZERO) {
+            return Err(StartupError::InvalidSocketTimeout.into());
         }
 
         Ok(())

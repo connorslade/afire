@@ -26,11 +26,9 @@ pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
 where
     State: 'static + Send + Sync,
 {
-    trace!(
-        Level::Debug,
-        "Opening socket {}",
-        stream.peer_addr().unwrap()
-    );
+    trace!(Level::Debug, "Opening socket {:?}", stream.peer_addr());
+    stream.set_read_timeout(this.socket_timeout).unwrap();
+    stream.set_write_timeout(this.socket_timeout).unwrap();
     loop {
         let mut keep_alive = false;
         let req = Request::from_socket(stream);
