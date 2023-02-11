@@ -1,207 +1,181 @@
-#[cfg(feature = "cookies")]
-use crate::cookie::Cookie;
+use std::{
+    cell::RefCell,
+    fmt::Debug,
+    io::{BufRead, BufReader, Read},
+    net::{SocketAddr, TcpStream},
+    str::FromStr,
+};
+
 use crate::{
-    common,
-    error::{Error, ParseError},
-    Header, Method, Query,
+    consts::BUFF_SIZE,
+    error::{ParseError, Result, StreamError},
+    header::{HeaderType, Headers},
+    Cookie, Error, Header, Method, Query,
 };
 
 /// Http Request
-#[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct Request {
-    /// Request method
+    /// Request method.
     pub method: Method,
 
-    /// Request path
+    /// Request path (not tokenized).
+    /// The query string is not included, its in the `query` field.
     pub path: String,
 
-    /// HTTP version
+    /// HTTP version string.
+    /// Should usually be "HTTP/1.1".
     pub version: String,
 
-    /// Path Params
-    #[cfg(feature = "path_patterns")]
-    pub path_params: Vec<(String, String)>,
+    /// Path Params, filled by the router
+    pub(crate) path_params: RefCell<Vec<(String, String)>>,
 
-    /// Request Query
+    /// Request Query.
     pub query: Query,
 
-    /// Request headers
-    pub headers: Vec<Header>,
+    /// Request headers.
+    /// Will not include cookies, which are in the `cookies` field.
+    pub headers: Headers,
 
-    /// Request Cookies
-    #[cfg(feature = "cookies")]
+    /// Request Cookies.
     pub cookies: Vec<Cookie>,
 
-    /// Request body
+    /// Request body, as a static byte vec.
     pub body: Vec<u8>,
 
-    /// Client address
-    pub address: String,
-
-    /// Raw Http Request
-    pub raw_data: Vec<u8>,
+    /// Client socket address.
+    /// If you are using a reverse proxy, this will be the address of the proxy (often localhost).
+    pub address: SocketAddr,
 }
 
 impl Request {
-    /// Parse an HTTP request into a [`Request]
-    pub fn from_bytes(bytes: &[u8], address: String) -> Result<Self, Error> {
-        // Find the \r\n\r\n to only parse the request 'metadata' (path, headers, etc)
-        let meta_end_index = match (0..bytes.len().saturating_sub(3)).find(|i| {
-            bytes[*i] == 0x0D
-                && bytes[i + 1] == 0x0A
-                && bytes[i + 2] == 0x0D
-                && bytes[i + 3] == 0x0A
-        }) {
-            Some(i) => i,
-            None => return Err(Error::Parse(ParseError::NoSeparator)),
-        };
-        // Turn the meta bytes into a string
-        let meta_string = String::from_utf8_lossy(&bytes[0..meta_end_index]);
-        let mut lines = meta_string.lines();
+    /// Read a request from a TcpStream.
+    pub(crate) fn from_socket(stream: &mut TcpStream) -> Result<Self> {
+        trace!(Level::Debug, "Reading header");
+        let peer_addr = stream.peer_addr()?;
+        let mut reader = BufReader::new(stream);
+        let mut request_line = Vec::with_capacity(BUFF_SIZE);
+        reader
+            .read_until(10, &mut request_line)
+            .map_err(|_| StreamError::UnexpectedEof)?;
 
-        // Parse the first like to get the method, path, query and verion
-        let first_meta = match lines.next() {
-            Some(i) => i,
-            None => return Err(Error::Parse(ParseError::NoRequestLine)),
-        };
-        let (method, path, query, version) = parse_first_meta(first_meta)?;
+        let (method, path, query, version) = parse_request_line(&request_line)?;
 
-        // Parse headers
         let mut headers = Vec::new();
         let mut cookies = Vec::new();
-        for (i, e) in lines.enumerate() {
-            headers.push(match Header::from_string(e) {
-                Some(j) => {
-                    if j.name == "Cookie" {
-                        cookies.extend(parse_cookie(j.clone()))
-                    }
-                    j
-                }
-                None => return Err(Error::Parse(ParseError::InvalidHeader(i))),
-            });
+        loop {
+            let mut buff = Vec::with_capacity(BUFF_SIZE);
+            reader
+                .read_until(10, &mut buff)
+                .map_err(|_| StreamError::UnexpectedEof)?;
+            let line = String::from_utf8_lossy(&buff);
+            if line.len() <= 2 {
+                break;
+            }
+
+            let header = Header::from_string(&line[..line.len() - 2])?;
+            if header.name != HeaderType::Cookie {
+                headers.push(header);
+                continue;
+            }
+
+            cookies.extend(Cookie::from_string(&header.value));
         }
 
-        Ok(Request {
+        let content_len = headers
+            .iter()
+            .find(|i| i.name == HeaderType::ContentLength)
+            .map(|i| i.value.parse::<usize>().unwrap_or(0))
+            .unwrap_or(0);
+        let mut body = vec![0; content_len];
+
+        if content_len > 0 {
+            reader
+                .read_exact(&mut body)
+                .map_err(|_| StreamError::UnexpectedEof)?;
+        }
+
+        Ok(Self {
             method,
             path,
-            version: version.to_owned(),
-            path_params: Vec::new(),
+            version,
+            path_params: RefCell::new(Vec::new()),
             query,
-            headers,
+            headers: Headers(headers),
             cookies,
-            body: bytes[4 + meta_end_index..].to_vec(),
-            address,
-            raw_data: bytes.to_vec(),
+            body,
+            address: peer_addr,
         })
     }
 
-    /// Get request body data as a string!
-    pub fn body_string(&self) -> Option<String> {
-        String::from_utf8(self.body.clone()).ok()
+    pub(crate) fn keep_alive(&self) -> bool {
+        self.headers
+            .get(HeaderType::Connection)
+            .map(|i| i.to_lowercase() == "keep-alive")
+            .unwrap_or(false)
     }
 
-    /// Get a request header by its name
-    ///
-    /// This is not case sensitive
-    /// ## Example
-    /// ```rust
-    /// // Import Library
-    /// use afire::{Request, Header, Method, Query};
-    ///
-    /// // Create Request
-    /// let request = Request {
-    ///     method: Method::GET,
-    ///     path: "/".to_owned(),
-    ///     version: "HTTP/1.1".to_owned(),
-    ///     #[cfg(feature = "path_patterns")]
-    ///     path_params: Vec::new(),
-    ///     query: Query::new_empty(),
-    ///     headers: vec![Header::new("hello", "world")],
-    ///     #[cfg(feature = "cookies")]
-    ///     cookies: Vec::new(),
-    ///     body: Vec::new(),
-    ///     address: "0.0.0.0".to_owned(),
-    ///     raw_data: Vec::new(),
-    /// };
-    ///
-    /// assert_eq!(request.header("hello").unwrap(), "world");
-    /// ```
-    pub fn header<T>(&self, name: T) -> Option<String>
-    where
-        T: AsRef<str>,
-    {
-        let name = name.as_ref().to_lowercase();
-        for i in self.headers.clone() {
-            if name == i.name.to_lowercase() {
-                return Some(i.value);
-            }
-        }
-        None
-    }
-
-    /// Get a path_params value
+    /// Get a path parameter by its name.
     ///
     /// ## Example
     /// ```rust
-    /// // Import Library
-    /// use afire::{Request, Response, Header, Method, Server};
-    ///
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
+    /// # use afire::{Request, Response, Header, Method, Server, Content};
+    /// # let mut server = Server::<()>::new("localhost", 8080);
     /// server.route(Method::GET, "/greet/{name}", |req| {
     ///     // Get name Path param
-    ///     let name = req.path_param("name").unwrap();
+    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
+    ///     let name = req.param("name").unwrap();
     ///
-    ///     // Make a nice Messgae
+    ///     // Format a nice message
     ///     let message = format!("Hello, {}", name);
     ///
     ///     // Send Response
     ///     Response::new()
     ///         .text(message)
-    ///         .header("Content-Type", "text/plain")
+    ///         .content(Content::TXT)
     /// });
-    ///
-    /// // Starts the server
-    /// // This is blocking
-    /// # server.set_run(false);
-    /// server.start().unwrap();
     /// ```
-    #[cfg(feature = "path_patterns")]
-    pub fn path_param<T>(&self, name: T) -> Option<String>
-    where
-        T: AsRef<str>,
-    {
+    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
         let name = name.as_ref().to_owned();
         self.path_params
+            .borrow()
             .iter()
             .find(|x| x.0 == name)
             .map(|i| i.1.to_owned())
     }
 }
 
-/// (Method, Path, Query, Version)
-fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), Error> {
-    let mut parts = str.split_whitespace();
+impl Debug for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Request")
+            .field("method", &self.method)
+            .field("path", &self.path)
+            .field("version", &self.version)
+            .field("path_params", &self.path_params.borrow())
+            .field("query", &self.query)
+            .field("headers", &self.headers)
+            .field("cookies", &self.cookies)
+            .field("body", &self.body)
+            .field("address", &self.address)
+            .finish()
+    }
+}
+
+/// Parse a request line into a method, path, query, and version
+pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query, String)> {
+    let request_line = String::from_utf8_lossy(bytes);
+    let mut parts = request_line.split_whitespace();
+
     let raw_method = match parts.next() {
         Some(i) => i,
         None => return Err(Error::Parse(ParseError::NoMethod)),
     };
-    let method = match raw_method.to_uppercase().as_str() {
-        "GET" => Method::GET,
-        "POST" => Method::POST,
-        "PUT" => Method::PUT,
-        "DELETE" => Method::DELETE,
-        "OPTIONS" => Method::OPTIONS,
-        "HEAD" => Method::HEAD,
-        "PATCH" => Method::PATCH,
-        "TRACE" => Method::TRACE,
-        _ => Method::CUSTOM(raw_method.to_owned()),
-    };
-
+    let method =
+        Method::from_str(raw_method).map_err(|_| Error::Parse(ParseError::InvalidMethod))?;
     let mut raw_path = match parts.next() {
         Some(i) => i.chars(),
         None => return Err(Error::Parse(ParseError::NoVersion)),
     };
+
     let mut final_path = String::new();
     let mut final_query = String::new();
     let mut last_is_slash = false;
@@ -226,43 +200,11 @@ fn parse_first_meta(str: &str) -> Result<(Method, String, Query, &str), Error> {
         }
     }
 
-    #[cfg(feature = "path_decode_url")]
-    {
-        final_path = common::decode_url(final_path)
-    }
-
-    let query = match Query::from_body(final_query) {
-        Some(i) => i,
-        None => return Err(Error::Parse(ParseError::InvalidQuery)),
-    };
-
+    let query = Query::from_body(&final_query);
     let version = match parts.next() {
-        Some(i) => i,
+        Some(i) => i.to_owned(),
         None => return Err(Error::Parse(ParseError::NoVersion)),
     };
 
     Ok((method, final_path, query, version))
-}
-
-fn parse_cookie(header: Header) -> Vec<Cookie> {
-    let mut final_cookies = Vec::new();
-    for i in header.value.split(';') {
-        let mut cookie_parts = i.splitn(2, '=');
-        let name = match cookie_parts.next() {
-            Some(i) => i.trim(),
-            None => continue,
-        };
-
-        let value = match &cookie_parts.next() {
-            Some(i) => i.trim(),
-            None => continue,
-        };
-
-        final_cookies.push(Cookie::new(
-            common::decode_url(name.to_owned()),
-            common::decode_url(value.to_owned()),
-        ));
-    }
-
-    final_cookies
 }

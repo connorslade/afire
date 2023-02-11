@@ -1,6 +1,8 @@
 use std::env;
 use std::io::{self, Write};
 
+use afire::trace::{set_log_level, Level};
+
 mod basic;
 mod cookie;
 mod data;
@@ -15,6 +17,7 @@ mod serve_file;
 mod serve_static;
 mod state;
 mod threading;
+mod trace;
 
 pub trait Example {
     fn name(&self) -> &'static str;
@@ -22,6 +25,7 @@ pub trait Example {
 }
 
 fn main() {
+    set_log_level(Level::Debug);
     let examples: Vec<Box<dyn Example>> = vec![
         Box::new(basic::Basic),
         Box::new(serve_file::ServeFile),
@@ -37,14 +41,16 @@ fn main() {
         Box::new(logging::Logging),
         Box::new(rate_limit::RateLimit),
         Box::new(threading::Threading),
+        Box::new(trace::Trace),
     ];
 
     if let Some(run_arg) = env::args().nth(1) {
-        return examples
-            .iter()
-            .find(|x| x.name() == run_arg)
-            .unwrap()
-            .exec();
+        let example = examples.iter().find(|x| x.name() == run_arg);
+        if example.is_none() {
+            return println!("[*] Invalid example name");
+        }
+
+        return example.unwrap().exec();
     };
 
     for (i, item) in examples.iter().enumerate() {
@@ -63,7 +69,7 @@ fn main() {
     };
 
     if run_index >= examples.len() {
-        return println!("[*] Invaild Id");
+        return println!("[*] Invalid Id");
     }
 
     println!("[*] Starting `{}`\n", examples[run_index].name());

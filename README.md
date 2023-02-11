@@ -1,6 +1,6 @@
-# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://img.shields.io/github/workflow/status/Basicprogrammer10/afire/CI?label=Tests"></a> <a href="#"><img src="https://img.shields.io/tokei/lines/github/Basicprogrammer10/afire?label=Total%20Lines"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"> <img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
+# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://github.com/Basicprogrammer10/afire/actions/workflows/rust.yml/badge.svg"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"> <img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
 
-afire is a _blazing fast_ web server micro framework for rust.
+afire is a _blazingly fast_ web server micro framework for rust.
 
 ## 💠 Install
 
@@ -8,28 +8,28 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "1.2.0"
+afire = "2.0.0"
 ```
 
 ## 📄 Info
 
 afire is a simple synchronous multithreaded express.js inspired rust web micro framework.
 wow that was long.
-It comes with some built extensions in for Static File Serving, Rate limiting, more.
+It comes with some built extensions in for Static File Serving, Rate limiting, and more.
 
 Below you can fine links to some afire related resources.
 
+- [Homepage](https://connorcode.com/writing/afire)
 - [Crates.io page](https://crates.io/crates/afire)
 - [API Docs](https://docs.rs/afire/latest/afire/)
-- [Homepage](https://connorcode.com/writing/afire)
 
 ## 💥 Example
 
 For more examples see the examples directory [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
 
-Below is a super simple example so you can see the basics of aire syntax.
+Below is a super simple example so you can see the basics of afire syntax.
 
-```rust
+```rust no_run
 // Import Lib
 use afire::{Server, Method, Response, Header, Content};
 
@@ -38,7 +38,7 @@ let mut server = Server::<()>::new("localhost", 8080);
 
 // Add a route
 server.route(Method::GET, "/greet/{name}", |req| {
-  let name = req.path_param("name").unwrap();
+  let name = req.param("name").unwrap();
 
   Response::new()
     .text(format!("Hello, {}", name))
@@ -47,7 +47,6 @@ server.route(Method::GET, "/greet/{name}", |req| {
 
 // Start the server
 // This is blocking
-# server.set_run(false);
 server.start().unwrap();
 ```
 

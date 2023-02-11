@@ -1,11 +1,14 @@
 use afire::{
     extension::logger::{Level, Logger},
-    Method, Middleware, Response, Server,
+    Content, Method, Middleware, Response, Server,
 };
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- logging`
+
 // Use some of afire's built-in middleware to log requests.
+
 pub struct Logging;
 
 impl Example for Logging {
@@ -20,24 +23,23 @@ impl Example for Logging {
         // Define a handler for GET "/"
         server.route(Method::GET, "/", |_req| {
             Response::new()
-                .status(200)
                 .text("Hello World!\nThis request has been logged!")
-                .header("Content-Type", "text/plain")
+                .content(Content::TXT)
         });
 
         // Make a logger and attach it to the server
 
-        // By defult Log Level is INFO, File is None and Console is true
-        // This could be condenced to `Logger::new().attach(&mut server);` as it uses al defult values
+        // By default Log Level is INFO, File is None and Console is true
+        // This could be condensed to `Logger::new().attach(&mut server);` as it uses al default values
         Logger::new()
             // The level of logging this can be Debug or Info
-            // Debug will give alot more information about the request
+            // Debug will give a lot more information about the request
             .level(Level::Info)
             // The file argument tells the logger if it should save to a file
             // Only one file can be defined per logger
-            // With logging to file it will wrtie to the file on every request... (for now)
+            // With logging to file it will write to the file on every request... (for now)
             .file("example.log")
-            // Tells the Logger it should log to the console aswell
+            // Tells the Logger it should log to the console as well
             .console(true)
             // This must be put at the end of your Logger Construction
             // It adds the Logger to your Server as Middleware

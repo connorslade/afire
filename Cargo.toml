@@ -1,43 +1,28 @@
 [package]
-name = "afire"
-version = "1.2.0"
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
+name = "afire"
+version = "2.0.0"
 
-repository = "https://github.com/Basicprogrammer10/afire"
-homepage = "https://connorcode.com/writing/afire"
-documentation = "https://docs.rs/afire"
-description = "🔥 A blazing fast web framework for Rust"
-keywords = ["afire", "http", "WebFramework", "WebServer"]
 categories = ["network-programming", "web-programming::http-server"]
-exclude = [".github/", "SocialShare.*"]
+description = "🔥 A blazing fast web framework for Rust"
+documentation = "https://docs.rs/afire"
+exclude = [".github/", "SocialShare.*", ".devcontainer"]
+homepage = "https://connorcode.com/writing/afire"
+keywords = ["afire", "http", "WebFramework", "WebServer"]
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/Basicprogrammer10/afire"
 
 [lib]
 name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = [
-  "cookies",
-  "panic_handler",
-  "path_patterns",
-  "dynamic_resize",
-  "path_decode_url"
-]
+default = ["tracing"]
 
-# Default On
-cookies = []
-panic_handler = []
-path_patterns = []
-dynamic_resize = []
-path_decode_url = []
-
-# Other
 extensions = []
 tracing = []
 
 [dev-dependencies]
-# Enable rate_limit and logging features for examples
-afire = { path = ".", features = ["extensions", "tracing"] }
+afire = { path = ".", features = ["extensions"] }

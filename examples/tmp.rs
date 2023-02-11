@@ -1,29 +1,65 @@
-use afire::prelude::*;
+use std::fs::{self, File};
 
-struct Middle;
+use afire::{extension::Date, extension::Logger, prelude::*, trace::set_log_level, trace::Level};
 
-impl Middleware for Middle {
-    fn post(&self, req: &error::Result<Request>, _res: &error::Result<Response>) -> MiddleResponse {
-        if let Ok(req) = req {
-            println!("{} {}", req.method, req.path)
-        }
-
-        MiddleResponse::Continue
-    }
-}
+// File to download
+const PATH: &str = r#"..."#;
 
 fn main() {
-    // Create a new Server instance on localhost port 8080
     let mut server = Server::<()>::new("localhost", 8080);
+    set_log_level(Level::Debug);
+    Logger::new().attach(&mut server);
 
-    // Define a handler for GET "/"
-    server.route(Method::GET, "/", |req| {
-        Response::new().text(req.body_string().unwrap())
+    server.route(Method::POST, "/upload", |req| {
+        println!("Received {} bytes", req.body.len());
+        Response::new().bytes(&req.body)
     });
 
-    Middle.attach(&mut server);
+    server.route(Method::GET, "/download", |_| {
+        let data = fs::read(PATH).unwrap();
+        Response::new().bytes(&data)
+    });
 
-    // Start the server
-    // This will block the current thread
-    server.start().unwrap();
+    server.route(Method::GET, "/download-stream", |_| {
+        let stream = File::open(PATH).unwrap();
+        Response::new().stream(stream)
+    });
+
+    server.route(Method::GET, "/", |req| {
+        let user_agent = req.headers.get(HeaderType::UserAgent).unwrap();
+        Response::new().text(user_agent).content(Content::TXT)
+    });
+
+    server.route(Method::ANY, "/panic", |_| panic!("panic!"));
+
+    Test.attach(&mut server);
+    Date.attach(&mut server);
+    server.start_threaded(5).unwrap();
+}
+
+struct Test;
+
+impl Middleware for Test {
+    fn pre(&self, req: &mut Request) -> MiddleResult {
+        if req.path.contains("hello") {
+            println!("Pre: {}", req.path);
+            return MiddleResult::Send(Response::new().text("Intercepted"));
+        }
+
+        MiddleResult::Continue
+    }
+
+    fn post(&self, req: &Request, _res: &mut Response) -> MiddleResult {
+        if req.path.contains("hello") {
+            println!("Post: {}", req.path);
+        }
+
+        MiddleResult::Continue
+    }
+
+    fn end(&self, req: &Request, _res: &Response) {
+        if req.path.contains("hello") {
+            println!("End: {}", req.path);
+        }
+    }
 }

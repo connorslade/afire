@@ -1,6 +1,8 @@
-use afire::{Method, Response, Server};
+use afire::{Content, Method, Response, Server};
 
 use crate::Example;
+
+// You can run this example with `cargo run --example basic -- path_params`
 
 // Use Path params to send data through a route path
 // You can also add `*` segments to match with any text
@@ -20,19 +22,17 @@ impl Example for PathParam {
         // This includes "/greet/bob", "/greet/fin"
         server.route(Method::GET, "/greet/{name}", |req| {
             // Get name path param
-            let name = req.path_param("name").unwrap();
+            let name = req.param("name").unwrap();
 
             // Make a nice Message to send
             let message = format!("Hello, {}", name);
 
             // Send Response
-            Response::new()
-                .text(message)
-                .header("Content-Type", "text/plain")
+            Response::new().text(message).content(Content::TXT)
         });
 
         // Define a greet route for Darren because he is very cool
-        // This will take priority over the other route as it is defind after
+        // This will take priority over the other route as it is defined after
         server.route(Method::GET, "/greet/Darren/", |_req| {
             Response::new().text("Hello, Darren. You are very cool")
         });

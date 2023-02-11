@@ -3,9 +3,9 @@
 // If file logging is enabled
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use crate::{common::remove_address_port, error::Result, Middleware, Request, Response};
+use crate::{Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -88,17 +88,14 @@ impl Logger {
     /// let logger = Logger::new()
     ///     .file("nose.txt");
     /// ```
-    pub fn file<T>(self, file: T) -> Logger
-    where
-        T: AsRef<Path>,
-    {
+    pub fn file(self, file: impl AsRef<str>) -> Logger {
         Logger {
             file: Some(PathBuf::from(file.as_ref())),
             ..self
         }
     }
 
-    /// Enable writeing events to stdout
+    /// Enable writing events to stdout
     /// ## Example
     /// ```rust
     /// // Import Lib
@@ -124,7 +121,7 @@ impl Logger {
             Level::Debug => {
                 // Format headers as strings
                 let mut headers = "".to_string();
-                for i in &req.headers {
+                for i in &*req.headers {
                     headers += &format!("{}: {}, ", i.name, i.value);
                 }
                 if headers.len() >= 2 {
@@ -133,7 +130,7 @@ impl Logger {
 
                 // Format Query as string
                 let mut query = "".to_string();
-                for i in &req.query.0 {
+                for i in req.query.iter() {
                     query += &format!("{}: {}, ", i[0], i[1]);
                 }
                 if query.len() >= 2 {
@@ -147,14 +144,12 @@ impl Logger {
 
                 self.send_log(format!(
                     "[{}] {} {} [{}] ({}) {{{}}}",
-                    remove_address_port(&req.address),
+                    &req.address.ip(),
                     req.method,
                     new_path,
                     query,
                     headers,
-                    String::from_utf8(req.body.clone())
-                        .unwrap_or_default()
-                        .replace('\n', "\\n")
+                    String::from_utf8_lossy(&req.body).replace('\n', "\\n")
                 ))
             }
 
@@ -165,8 +160,8 @@ impl Logger {
                 }
 
                 self.send_log(format!(
-                    "[{}] {} {}{}",
-                    remove_address_port(&req.address),
+                    "[{}] {} {}?{}",
+                    req.address.ip(),
                     req.method,
                     new_path,
                     req.query
@@ -200,10 +195,8 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn end(&self, req: &Result<Request>, _res: &Response) {
-        if let Ok(req) = req {
-            self.log(req);
-        }
+    fn end(&self, req: &Request, _res: &Response) {
+        self.log(req);
     }
 }
 

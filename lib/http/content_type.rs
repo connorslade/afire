@@ -1,4 +1,6 @@
-/// Common MIME types
+use crate::Header;
+
+/// Common MIME types.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Content<'a> {
     /// HTML - `text/html`
@@ -17,7 +19,7 @@ pub enum Content<'a> {
 
 impl Content<'_> {
     /// Get Content as a MIME Type
-    pub fn as_type(&self) -> String {
+    pub fn as_type(&self) -> &str {
         match self {
             Content::HTML => "text/html",
             Content::TXT => "text/plain",
@@ -26,6 +28,12 @@ impl Content<'_> {
             Content::XML => "application/xml",
             Content::Custom(i) => i,
         }
-        .to_owned()
+    }
+}
+
+impl From<Content<'_>> for Header {
+    // Convert Content to a Content-Type Header
+    fn from(x: Content<'_>) -> Self {
+        Header::new("Content-Type", format!("{}; charset=utf-8", x.as_type()))
     }
 }

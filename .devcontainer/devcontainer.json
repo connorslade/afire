@@ -1,0 +1,6 @@
+{
+	"name": "afire",
+	"image": "mcr.microsoft.com/devcontainers/rust:1-buster",
+	"postCreateCommand": "git submodule update --init --recursive",
+	"forwardPorts": [8080]
+}

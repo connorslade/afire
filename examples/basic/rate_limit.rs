@@ -1,6 +1,8 @@
-use afire::{extension::RateLimiter, Method, Middleware, Response, Server};
+use afire::{extension::RateLimiter, Content, Method, Middleware, Response, Server, Status};
 
 use crate::Example;
+
+// You can run this example with `cargo run --example basic -- rate_limit`
 
 // Use some of afire's built-in middleware to log requests.
 pub struct RateLimit;
@@ -16,10 +18,7 @@ impl Example for RateLimit {
 
         // Define a handler for GET "/"
         server.route(Method::GET, "/", |_req| {
-            Response::new()
-                .status(200)
-                .text("Hello World!")
-                .header("Content-Type", "text/plain")
+            Response::new().text("Hello World!").content(Content::TXT)
         });
 
         // For this example, we'll limit requests to 1 every 2 seconds
@@ -28,17 +27,17 @@ impl Example for RateLimit {
         // Default Limit is 10
         // Default Timeout is 60 sec
         RateLimiter::new()
-            // Overide the Limit to 1
+            // Override the Limit to 1
             .limit(1)
-            // Overide the timeout to 2
+            // Override the timeout to 2
             .timeout(2)
-            // Overide thge Handler
+            // Override the Handler
             .handler(Box::new(|_req| {
                 Some(
                     Response::new()
-                        .status(429)
+                        .status(Status::TooManyRequests)
                         .text("AHHHH!!! Too Many Requests")
-                        .header("Content-Type", "text/plain"),
+                        .content(Content::TXT),
                 )
             }))
             // Attach to the server

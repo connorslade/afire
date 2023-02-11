@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::net::IpAddr;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     RwLock,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::Status;
 use crate::{
-    common::remove_address_port,
-    error::Result,
-    middleware::{MiddleRequest, Middleware},
+    middleware::{MiddleResult, Middleware},
     Content, Request, Response,
 };
 
@@ -28,7 +28,7 @@ pub struct RateLimiter {
     req_timeout: u64,
 
     /// Table of requests per IP
-    requests: RwLock<HashMap<String, u64>>,
+    requests: RwLock<HashMap<IpAddr, u64>>,
 
     /// Handler for when the limit is reached
     handler: Handler,
@@ -47,7 +47,7 @@ impl RateLimiter {
             handler: Box::new(|_| {
                 Some(
                     Response::new()
-                        .status(429)
+                        .status(Status::TooManyRequests)
                         .text("Too Many Requests")
                         .content(Content::TXT),
                 )
@@ -58,7 +58,7 @@ impl RateLimiter {
     /// Set the request limit per timeout
     /// Attach the rate limiter to a server.
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
@@ -67,14 +67,13 @@ impl RateLimiter {
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
-    ///     // Overide limit to 100 requests
+    ///     // Override limit to 100 requests
     ///     .limit(100)
-    ///     // Attatch it to the server
+    ///     // Attach it to the server
     ///     .attach(&mut server);
     ///
     /// // Start Server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn limit(self, limit: u64) -> RateLimiter {
@@ -84,9 +83,9 @@ impl RateLimiter {
         }
     }
 
-    /// Set the Ratelimit refresh peroid
+    /// Set the Ratelimit refresh period
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, extension::RateLimiter, Middleware};
     ///
@@ -95,14 +94,13 @@ impl RateLimiter {
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
-    ///     // Overide timeout to 60 seconds
+    ///     // Override timeout to 60 seconds
     ///     .timeout(60)
-    ///     // Attatch it to the server
+    ///     // Attach it to the server
     ///     .attach(&mut server);
     ///
     /// // Start Server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn timeout(self, timeout: u64) -> RateLimiter {
@@ -112,9 +110,9 @@ impl RateLimiter {
         }
     }
 
-    /// Define a Custom Handler for when a client has exceded the ratelimit
+    /// Define a Custom Handler for when a client has exceeded the ratelimit
     /// ## Example
-    /// ```rust
+    /// ```rust,no_run
     /// // Import Lib
     /// use afire::{Server, Response, extension::RateLimiter, Middleware};
     ///
@@ -123,14 +121,13 @@ impl RateLimiter {
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
-    ///     // Overide the handler for requests exceding the limit
+    ///     // Override the handler for requests exceeding the limit
     ///     .handler(Box::new(|_req| Some(Response::new().text("much request"))))
-    ///     // Attatch it to the server
+    ///     // Attach it to the server
     ///     .attach(&mut server);
     ///
     /// // Start Server
     /// // This is blocking
-    /// # server.set_run(false);
     /// server.start().unwrap();
     /// ```
     pub fn handler(self, handler: Handler) -> RateLimiter {
@@ -138,7 +135,7 @@ impl RateLimiter {
     }
 
     /// Count a request.
-    fn add_request(&self, ip: String) {
+    fn add_request(&self, ip: IpAddr) {
         let mut req = self.requests.write().unwrap();
         let count = req.get(&ip).unwrap_or(&0) + 1;
         req.insert(ip, count);
@@ -158,36 +155,25 @@ impl RateLimiter {
     }
 
     /// Check if the request limit has been reached for an ip.
-    fn is_over_limit(&self, ip: String) -> bool {
+    fn is_over_limit(&self, ip: IpAddr) -> bool {
         self.requests.read().unwrap().get(&ip).unwrap_or(&0) >= &self.req_limit
     }
 }
 
 impl Middleware for RateLimiter {
-    fn pre(&self, req: &Result<Request>) -> MiddleRequest {
-        let req = match req {
-            Ok(i) => i,
-            Err(_) => return MiddleRequest::Continue,
-        };
-
-        if self.is_over_limit(remove_address_port(&req.address)) {
-            return match (self.handler)(req) {
-                Some(i) => MiddleRequest::Send(i),
-                None => MiddleRequest::Continue,
-            };
+    fn pre(&self, req: &mut Request) -> MiddleResult {
+        if self.is_over_limit(req.address.ip()) {
+            if let Some(i) = (self.handler)(req) {
+                return MiddleResult::Send(i);
+            }
         }
 
-        MiddleRequest::Continue
+        MiddleResult::Continue
     }
 
-    fn end(&self, req: &Result<Request>, _res: &Response) {
-        let req = match req {
-            Ok(i) => i,
-            Err(_) => return,
-        };
-
+    fn end(&self, req: &Request, _res: &Response) {
         self.check_reset();
-        self.add_request(remove_address_port(&req.address));
+        self.add_request(req.address.ip());
     }
 }
 
