@@ -32,12 +32,6 @@ pub enum MiddleResult {
 /// - [`Middleware::end`]
 ///
 pub trait Middleware {
-    // /// Middleware to run before the raw request bytes are parsed
-    //TODO: this
-    // fn pre_raw(&self, _req: &mut Vec<u8>) -> MiddleResult {
-    //     MiddleResult::Continue
-    // }
-
     /// Middleware to run before routes.
     /// Because this is the `raw` version of [`Middleware::pre`], it is passed a [`Result`].
     /// The default implementation calls [`Middleware::pre`] if the [`Result`] is [`Ok`].

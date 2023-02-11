@@ -1,6 +1,6 @@
 # 2.0.0
 
-Coming Soon
+February 11, 2023
 
 - Fix improper URL decoding behavior
 - Improve Memory Usage On `Request`s

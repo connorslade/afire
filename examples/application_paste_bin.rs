@@ -8,10 +8,7 @@ use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
 use afire::internal::encoding::decode_url;
-use afire::{
-    extension::util::fmt_relative_time, Content, HeaderType, Method, Query, Response, Server,
-    Status,
-};
+use afire::{Content, HeaderType, Method, Query, Response, Server, Status};
 
 const DATA_LIMIT: usize = 10_000;
 
@@ -141,6 +138,36 @@ fn main() {
     });
 
     server.start().unwrap();
+}
+
+const TIME_UNITS: &[(&str, u16)] = &[
+    ("second", 60),
+    ("minute", 60),
+    ("hour", 24),
+    ("day", 30),
+    ("month", 12),
+    ("year", 0),
+];
+
+/// Turn relative number of seconds into a more readable relative time.
+/// If the time is 0, now will be returned.
+/// Ex 1 minute ago or 3 years ago
+pub fn fmt_relative_time(secs: u64) -> String {
+    if secs == 0 {
+        return "now".into();
+    }
+
+    let mut secs = secs as f64;
+    for i in TIME_UNITS {
+        if i.1 == 0 || secs < i.1 as f64 {
+            secs = secs.round();
+            return format!("{} {}{} ago", secs, i.0, if secs > 1.0 { "s" } else { "" });
+        }
+
+        secs /= i.1 as f64;
+    }
+
+    format!("{} years ago", secs.round())
 }
 
 // To use POST to /new with the body set to your paste data

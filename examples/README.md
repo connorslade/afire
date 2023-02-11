@@ -1,5 +1,7 @@
 # 🔥 afire Examples
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=394493528&machine=basicLinux32gb&location=EastUs&devcontainer_path=.devcontainer%2Fdevcontainer.json)
+
 ## Basic
 
 Basic examples give you a nice and simple first look into using afire.

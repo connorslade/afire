@@ -249,7 +249,6 @@ impl Response {
         self
     }
 
-    // TODO: example
     /// Lets you modify the Response with a function before it is sent to the client.
     /// This can be used to have middleware that modifies the Response on specific routes.
     pub fn modifier(self, modifier: impl Fn(Response) -> Response) -> Self {

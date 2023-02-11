@@ -78,7 +78,8 @@ pub fn _trace(level: Level, str: String) {
     );
 }
 
-/// Internal Debug Printing
+/// Simple logging system.
+/// See [`mod@crate::trace`] for more information.
 ///
 /// Enabled with the `tracing` feature
 #[macro_export]

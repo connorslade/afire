@@ -7,7 +7,7 @@ use crate::internal::encoding::decode_url;
 
 /// Collection of query parameters.
 /// Can be made from the query string of a URL, or the body of a POST request.
-/// Similar to [`crate::headers::Headers`].
+/// Similar to [`crate::header::Headers`].
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Query(Vec<[String; 2]>);
 
