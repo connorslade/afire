@@ -3,13 +3,13 @@
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// afire's global log level.
-static LEVEL: AtomicU8 = AtomicU8::new(1);
+static LEVEL: AtomicU8 = AtomicU8::new(0);
 /// Whether or not to colorize the log output.
 static COLOR: AtomicBool = AtomicBool::new(true);
 
 /// Log levels.
 /// Used to control the verbosity of afire's internal logging.
-/// The default log level is [`Level::Error`].
+/// The default log level is [`Level::Off`].
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
 pub enum Level {

@@ -54,7 +54,7 @@ where
             }
         }
 
-        if !keep_alive || close {
+        if !keep_alive || close || !this.keep_alive {
             trace!(Level::Debug, "Closing socket");
             if let Err(e) = stream.shutdown(Shutdown::Both) {
                 trace!(Level::Error, "Error closing socket: {:?}", e);
@@ -119,7 +119,6 @@ where
                 Ok(_) => &e,
             };
 
-            // TODO: somehow error was Stream
             return (None, error_response(error, server));
         }
     };
@@ -176,16 +175,16 @@ where
         Error::Stream(e) => match e {
             StreamError::UnexpectedEof => Response::new().status(400).text("Unexpected EOF"),
         },
-        Error::Parse(e) => match e {
-            ParseError::NoSeparator => Response::new().status(400).text("No separator"),
-            ParseError::NoMethod => Response::new().status(400).text("No method"),
-            ParseError::NoPath => Response::new().status(400).text("No path"),
-            ParseError::NoVersion => Response::new().status(400).text("No HTTP version"),
-            ParseError::NoRequestLine => Response::new().status(400).text("No request line"),
-            ParseError::InvalidQuery => Response::new().status(400).text("Invalid query"),
-            ParseError::InvalidHeader => Response::new().status(400).text("Invalid header"),
-            ParseError::InvalidMethod => Response::new().status(400).text("Invalid method"),
-        },
+        Error::Parse(e) => Response::new().status(400).text(match e {
+            ParseError::NoSeparator => "No separator",
+            ParseError::NoMethod => "No method",
+            ParseError::NoPath => "No path",
+            ParseError::NoVersion => "No HTTP version",
+            ParseError::NoRequestLine => "No request line",
+            ParseError::InvalidQuery => "Invalid query",
+            ParseError::InvalidHeader => "Invalid header",
+            ParseError::InvalidMethod => "Invalid method",
+        }),
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()
                 .status(Status::NotFound)

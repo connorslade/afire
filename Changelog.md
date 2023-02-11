@@ -1,4 +1,4 @@
-# 1.3.0
+# 2.0.0
 
 Coming Soon
 
@@ -64,12 +64,12 @@ June 24, 2022
 - Add Cache Middleware
 - Remove insane build script
 - When building http response only add Content-Length and default headers if they are not already present
-- Add server state syste
+- Add server state system
 - Improved Request Parsing
 - Redo Error system
-- Remove the requests raw_data feild
+- Remove the requests raw_data felid
 - Remove Request::body_string in favor of String::from_utf8()
-- Fix HTTP parseing and genatation issues
+- Fix HTTP parsing and generation issues
 
 # 1.1.0
 
@@ -130,7 +130,7 @@ Jan 25, 2022 s
 - Remove thread pool from project (for now)
 - Make Custom Content Type use &str not String
 - Make VERSION Public
-- Add External Unit Testsremove_address_port
+- Add External Unit Tests remove_address_port
 - Use the built-in `IpAddr` enum for server Ip
 - Remove `.ip_string()` for `.ip.to_string()`
 - Add `Response.close()` for closing a stream with no response
@@ -165,7 +165,7 @@ Dec 04, 2021
 - Rename `add_default_header` to `default_header`
 - Store Raw Request data and Request body as `Vec<u8>`
 - Fix Panic Handler feature compile problems
-- Dont use an Option for Vec of default headers
+- Don't use an Option for Vec of default headers
 - Fix Header Parsing
 - Add a `header` method on Request to get headers
 
@@ -195,7 +195,7 @@ Oct 27, 2021
 - Start / Start Threaded returns Option
 - Add .unwrap to all server.starts in examples
 - Add http.rs to move raw http parsing out of server.rs
-- Dont give up on cookie parsing if cookie header is malformed
+- Don't give up on cookie parsing if cookie header is malformed
 - Add optional Socket Timeout
 - Add Socket Timeout Docs
 
@@ -242,7 +242,7 @@ Sep 17, 2021
 Sep 05, 2021
 
 - Allow responding with bytes, not just strings
-- Add Serving Favoricon as example thing
+- Add Serving Favicon as example thing
 
 # 0.1.3
 
@@ -262,7 +262,7 @@ Sep 01, 2021
 Aug 31, 2021
 
 - Add Optional Rate limiter _beta_
-- Update readme abit
+- Update readme a bit
 - Copy new readme to lib.rs
 - Add internal docs to Ratelimit
 - Add Optional Logger _beta_

@@ -40,6 +40,11 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     /// Headers automatically added to every response.
     pub default_headers: Vec<Header>,
 
+    /// Weather to allow keep-alive connections.
+    /// If this is set to false, the server will close the connection after every request.
+    /// This is enabled by default.
+    pub keep_alive: bool,
+
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
 }
@@ -72,6 +77,7 @@ impl<State: Send + Sync> Server<State> {
             }),
 
             default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
+            keep_alive: true,
             socket_timeout: None,
             state: None,
         }
@@ -190,6 +196,24 @@ impl<State: Send + Sync> Server<State> {
             socket_timeout: Some(socket_timeout),
             ..self
         }
+    }
+
+    /// Set the keep alive state of the server.
+    /// This will determine if the server will keep the connection alive after a request.
+    /// By default this is true.
+    /// If you aren't using a threadpool, you may want to set this to false.
+    /// ## Example
+    /// ```rust
+    /// # use afire::Server;
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<()>::new("localhost", 8080)
+    ///     // Disable Keep Alive
+    ///     .keep_alive(false);
+    /// ```
+    pub fn keep_alive(self, keep_alive: bool) -> Self {
+        trace!("🔁 Setting Keep Alive to {}", keep_alive);
+
+        Server { keep_alive, ..self }
     }
 
     /// Set the state of a server.
