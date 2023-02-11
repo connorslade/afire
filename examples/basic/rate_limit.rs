@@ -2,6 +2,8 @@ use afire::{extension::RateLimiter, Content, Method, Middleware, Response, Serve
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- rate_limit`
+
 // Use some of afire's built-in middleware to log requests.
 pub struct RateLimit;
 

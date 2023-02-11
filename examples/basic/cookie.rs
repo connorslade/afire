@@ -2,8 +2,11 @@ use afire::{Content, Method, Response, Server, SetCookie};
 
 use crate::Example;
 
-// Get cookies from the client and format them as a HTML table
-// Also allow setting cookies
+// You can run this example with `cargo run --example basic -- cookie`
+
+// This example shows how you can work with cookies using the Cookie and SetCookie structs
+// We will make a route to show all cookies and a route to set a cookie
+
 pub struct Cookie;
 
 impl Example for Cookie {
@@ -13,7 +16,7 @@ impl Example for Cookie {
 
     fn exec(&self) {
         // Create a new Server instance on localhost port 8080
-        let mut server = Server::<()>::new("localhost", 8080);
+        let mut server = Server::<()>::new([127, 0, 0, 1], 8080);
 
         // Define a route to show request cookies as a table
         server.route(Method::GET, "/", |req| {
@@ -60,7 +63,7 @@ impl Example for Cookie {
         // Now goto http://localhost:8080/set?name=hello&value=world
         // Then goto http://localhost:8080/ and you should see a table with the cookie
 
-        // Start the server
+        // Start the server in single threaded mode
         // This will block the current thread
         server.start().unwrap();
     }

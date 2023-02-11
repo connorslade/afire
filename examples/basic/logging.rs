@@ -5,7 +5,10 @@ use afire::{
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- logging`
+
 // Use some of afire's built-in middleware to log requests.
+
 pub struct Logging;
 
 impl Example for Logging {

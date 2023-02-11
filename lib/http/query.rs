@@ -3,6 +3,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use crate::internal::encoding::decode_url;
+
 /// Collection of query parameters.
 /// Can be made from the query string of a URL, or the body of a POST request.
 /// Similar to [`crate::headers::Headers`].
@@ -86,12 +88,12 @@ impl Query {
             let mut sub = i.splitn(2, '=');
 
             let key = match sub.next() {
-                Some(i) => i.to_owned(),
+                Some(i) => decode_url(i).unwrap_or_else(|| i.to_owned()),
                 None => continue,
             };
 
             let value = match sub.next() {
-                Some(i) => i.to_owned(),
+                Some(i) => decode_url(i).unwrap_or_else(|| i.to_owned()),
                 None => continue,
             };
 

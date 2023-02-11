@@ -2,8 +2,9 @@ use afire::{Content, Method, Response, Server, Status};
 
 use crate::Example;
 
-// Introduce the way routing works in afire
+// You can run this example with `cargo run --example basic -- routing`
 
+// In this example I will introduce the way routing works in afire
 // In afire the newest routes take priority over other routes.
 // This means that if you have two routes that could run for a request
 // the one defined last will run.
@@ -26,7 +27,7 @@ impl Example for Routing {
         // This route will run for all requests but because any other route
         // will take priority it will only run when no other route is defined.
         /* PRIO 0 */
-        server.route(Method::ANY, "*", |_req| {
+        server.route(Method::ANY, "**", |_req| {
             Response::new()
                 .status(Status::NotFound)
                 .text("The page you are looking for does not exist :/")

@@ -9,7 +9,8 @@ use std::{borrow::Borrow, sync::RwLock};
 
 use afire::internal::encoding::decode_url;
 use afire::{
-    extension::util::fmt_relative_time, Content, HeaderType, Method, Query, Response, Server, Status,
+    extension::util::fmt_relative_time, Content, HeaderType, Method, Query, Response, Server,
+    Status,
 };
 
 const DATA_LIMIT: usize = 10_000;

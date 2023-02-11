@@ -5,13 +5,15 @@ use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- threading`
+
 // Create a new basic server like in example 01
 // However, we want to use a thread pool to handle the requests
-// This is incredibly simple in afire
 
 // In production, you would probably want to use a reverse proxy like nginx
-// or something similar to split the load across multiple servers
+// or something similar to split the load across multiple servers if you have a lot of traffic
 // But just a thread pool is a good way to get started
+
 pub struct Threading;
 
 impl Example for Threading {
@@ -40,5 +42,7 @@ impl Example for Threading {
         // Start the server with 8 threads
         // This will block the current thread
         server.start_threaded(8).unwrap();
+
+        // If you go to http://localhost:8080 you should see the thread ID change with each refresh
     }
 }

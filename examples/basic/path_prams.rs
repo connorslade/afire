@@ -2,6 +2,8 @@ use afire::{Content, Method, Response, Server};
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- path_params`
+
 // Use Path params to send data through a route path
 // You can also add `*` segments to match with any text
 pub struct PathParam;

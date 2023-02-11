@@ -284,6 +284,8 @@ impl<State: Send + Sync> Server<State> {
     /// Create a new stateful route.
     /// Is the same as [`Server::route`], but the state is passed as the first parameter.
     /// (See [`Server::state`])
+    ///
+    /// Note: If you add a stateful route, you must also set the state or starting the sever will return an error.
     /// ## Example
     /// ```rust
     /// # use afire::{Server, Response, Header, Method};

@@ -55,30 +55,28 @@ impl Cookie {
     /// Intended for making Cookie Vec from HTTP Headers.
     /// Will only return None of the cookie string does not start with "Cookie:".
     /// If there are any invalid cookies, they will be ignored.
-    pub(crate) fn from_string(cookie_string: &str) -> Option<Vec<Cookie>> {
-        if let Some(cookie_string) = cookie_string.strip_prefix("Cookie:") {
-            let cookies = cookie_string.trim().split("; ").collect::<Vec<&str>>();
-            let mut final_cookies = Vec::new();
-            for i in cookies {
-                let mut cookie_parts = i.splitn(2, '=');
-                let name = match cookie_parts.next() {
-                    Some(i) => i.trim(),
-                    None => continue,
-                };
+    pub(crate) fn from_string(cookie_string: &str) -> Vec<Cookie> {
+        let cookies = cookie_string.trim().split("; ").collect::<Vec<&str>>();
+        let mut final_cookies = Vec::new();
+        for i in cookies {
+            let mut cookie_parts = i.splitn(2, '=');
+            let name = match cookie_parts.next() {
+                Some(i) => i.trim(),
+                None => continue,
+            };
 
-                let value = match &cookie_parts.next() {
-                    Some(i) => i.trim(),
-                    None => continue,
-                }
-                .trim_end_matches(';');
-
-                let name = decode_url(name).unwrap_or_else(|| name.to_owned());
-                let value = decode_url(value).unwrap_or_else(|| value.to_owned());
-                final_cookies.push(Cookie::new(name, value));
+            let value = match &cookie_parts.next() {
+                Some(i) => i.trim(),
+                None => continue,
             }
-            return Some(final_cookies);
+            .trim_end_matches(';');
+
+            let name = decode_url(name).unwrap_or_else(|| name.to_owned());
+            let value = decode_url(value).unwrap_or_else(|| value.to_owned());
+            final_cookies.push(Cookie::new(name, value));
         }
-        None
+
+        final_cookies
     }
 }
 
@@ -216,8 +214,8 @@ mod test {
 
     #[test]
     fn test_cookie_parse() {
-        let cookie_string = "Cookie: name=value; name2=value2; name3=value3";
-        let cookies = Cookie::from_string(cookie_string).unwrap();
+        let cookie_string = "name=value; name2=value2; name3=value3";
+        let cookies = Cookie::from_string(cookie_string);
         assert_eq!(cookies.len(), 3);
         assert_eq!(cookies[0].name, "name");
         assert_eq!(cookies[0].value, "value");
@@ -229,19 +227,12 @@ mod test {
 
     #[test]
     fn test_ignore_cookie_parse() {
-        let cookie_string = "Cookie: name=value; name2 value2; name3=value3;";
-        let cookies = Cookie::from_string(cookie_string).unwrap();
+        let cookie_string = "name=value; name2 value2; name3=value3;";
+        let cookies = Cookie::from_string(cookie_string);
         assert_eq!(cookies.len(), 2);
         assert_eq!(cookies[0].name, "name");
         assert_eq!(cookies[0].value, "value");
         assert_eq!(cookies[1].name, "name3");
         assert_eq!(cookies[1].value, "value3");
-    }
-
-    #[test]
-    fn test_invalid_cookie_parse() {
-        let cookie_string = "Cookies: name=value; name2=value2; name3=value3";
-        let cookies = Cookie::from_string(cookie_string);
-        assert_eq!(cookies, None);
     }
 }

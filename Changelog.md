@@ -1,6 +1,6 @@
 # 1.3.0
 
-Comming Soon
+Coming Soon
 
 - Fix improper URL decoding behavior
 - Improve Memory Usage On `Request`s
@@ -10,6 +10,39 @@ Comming Soon
 - Remade social share image
 - Let ServeStatic::new take in strings and paths (previously only strings)
 - Remove unnecessary feature flags (cookies, path_patterns, dynamic_resize, path_decode_url)
+- More clear info on IO errors
+- Improve Memory Usage On `Request`s
+- Less cloning internally
+- Make SocketAddr accessible from Request
+- New error types: Startup / Stream
+- Date middleware in extensions
+- Another middleware rewrite
+- Util module
+- All Content variants use charset=utf-8 by default
+- HeaderType enum
+- Status enum
+- New Header methods
+- New Query methods
+- Encoding module
+- Server::new accepts ToHostAddress (Ipv4Addr, String, &str, [u8; 4])
+- Rewrote socket handler (this is a big one)
+- Trace system
+- Streaming response
+- Socket keep-alive!
+- Request modifier
+- Error handler has app state
+- Panic if no app state and stateful routes
+- Documentation of internal structs
+- Fix improper URL decoding behavior
+- Internal code cleanup
+- Remade social share image
+- Let ServeStatic::new take in strings and paths (previously only strings)
+- Rewrote lots of documentation with spelling fixes and better code examples
+- Remove unnecessary feature flags (cookies, path_patterns, dynamic_resize, path_decode_url)
+- Removed cache extension
+- Removed socket handler struct (don't think it was ever used)
+- Removed the buff_size field from server, its handled automatically now
+- Removed `set_run` on the server, its no longer needed internally
 
 # 1.2.0
 

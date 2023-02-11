@@ -4,9 +4,12 @@ use afire::{Content, Method, Response, Server, Status};
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- error_handling`
+
 // Don't crash thread from a panic in a route
 // This does not apply to the error handler itself
 // afire will catch any panic in a route and return a 500 error by default
+
 pub struct ErrorHandling;
 
 impl Example for ErrorHandling {

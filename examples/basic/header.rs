@@ -1,9 +1,10 @@
-use afire::{Content, Method, Response, Server, Status};
+use afire::{Content, HeaderType, Method, Response, Server, Status};
 
 use crate::Example;
 
 // Read request headers and send a response with custom headers
 // You may want to read https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers to understand headers more
+
 pub struct Header;
 
 impl Example for Header {
@@ -18,16 +19,19 @@ impl Example for Header {
             // If the same header is defined in the route it will be put before the default header
             // Although it is not guaranteed to be the one picked by the client it usually is
             // At the bottom of this file is a representation of the order of the headers
-            .default_header("X-Server-Header", "This is a server wide header");
+            .default_header("X-Server-Header", "This is a server wide header")
+            // You can also use the HeaderType enum to define a header type
+            // This is also true with the .header method on the Response struct
+            .default_header(HeaderType::Server, "afire");
 
         // Define a route to redirect to another website
         server.route(Method::GET, "/", |_req| {
             // Because this is all bout headers I have put the header vector here
             let headers = vec![
                 // Tell the client what type of data we are sending
-                afire::Header::new("Content-Type", "text/html"),
+                afire::Header::new(HeaderType::ContentType, "text/html"),
                 // Tell the client to redirect to another website
-                afire::Header::new("Location", "https://connorcode.com"),
+                afire::Header::new(HeaderType::Location, "https://connorcode.com"),
                 // Custom header
                 afire::Header::new("X-Custom-Header", "This is a custom header"),
             ];
@@ -73,11 +77,12 @@ impl Example for Header {
 
 // This is a representation of the order of the headers
 // The order is important because the client usually picks the first header it can find
+// Note: The default headers and ContentLength are only added if they are not already defined
 
-// -------------------
-// |  Route Headers  |
 // -------------------
 // | Default Headers |
 // -------------------
 // |  ContentLength  |
+// -------------------
+// |  Route Headers  |
 // -------------------

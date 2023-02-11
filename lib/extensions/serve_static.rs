@@ -1,11 +1,12 @@
 //! extension to serve static files from disk
 
-use std::fs;
+use std::{fs::File, rc::Rc};
 
 use crate::{
+    error::{HandleError, Result},
     middleware::{MiddleResult, Middleware},
     path::normalize_path,
-    HeaderType, Request, Response, Status,
+    Error, HeaderType, Request, Response, Status,
 };
 
 /// Serve Static Content
@@ -23,22 +24,30 @@ pub struct ServeStatic {
     pub disabled_files: Vec<String>,
 
     /// Page not found route
-    pub not_found: fn(&Request, bool) -> Response,
+    pub not_found: fn(Rc<Request>, bool) -> Response,
 
     /// MIME Types
     pub types: Vec<(String, String)>,
 }
 
 impl Middleware for ServeStatic {
-    fn post(&self, req: &Request, _res: &mut Response) -> MiddleResult {
-        let path = String::new();
-        // let path = match res {
-        //     Err(Error::Handle(e)) => match &**e {
-        //         HandleError::NotFound(_, i) => i,
-        //         _ => return MiddleResult::Continue,
-        //     },
-        //     _ => return MiddleResult::Continue,
-        // };
+    fn post_raw(
+        &self,
+        req: Result<std::rc::Rc<Request>>,
+        res: &mut Result<Response>,
+    ) -> MiddleResult {
+        let req = match req {
+            Ok(req) => req,
+            Err(_) => return MiddleResult::Continue,
+        };
+
+        let path = match res {
+            Err(Error::Handle(e)) => match &**e {
+                HandleError::NotFound(_, i) => i,
+                _ => return MiddleResult::Continue,
+            },
+            _ => return MiddleResult::Continue,
+        };
 
         if !path.starts_with(&self.serve_path) {
             return MiddleResult::Continue;
@@ -164,7 +173,7 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn not_found(self, f: fn(&Request, bool) -> Response) -> Self {
+    pub fn not_found(self, f: fn(Rc<Request>, bool) -> Response) -> Self {
         Self {
             not_found: f,
             ..self
@@ -267,7 +276,7 @@ impl ServeStatic {
     }
 }
 
-fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
+fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
     let mut path = format!(
         "{}/{}",
         this.data_dir,
@@ -297,10 +306,10 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
     }
 
     // Try to read File
-    match fs::read(&path) {
+    match File::open(&path) {
         // If its found send it as response
-        Ok(content) => (
-            Response::new().bytes(&content).header(
+        Ok(file) => (
+            Response::new().stream(file).header(
                 "Content-Type",
                 get_type(&path, &this.types)
                     .unwrap_or_else(|| "application/octet-stream".to_owned()),
@@ -309,7 +318,10 @@ fn process_req(req: &Request, this: &ServeStatic) -> (Response, bool) {
         ),
 
         // If not send the 404 route defined
-        Err(_) => ((this.not_found)(req, false), false),
+        Err(e) => {
+            dbg!(e);
+            ((this.not_found)(req, false), false)
+        }
     }
 }
 

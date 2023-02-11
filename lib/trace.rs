@@ -52,6 +52,12 @@ pub fn set_log_level(level: Level) {
     LEVEL.store(level as u8, Ordering::Relaxed);
 }
 
+/// Globally enables or disables colorized log output.
+/// Enabled by default.
+pub fn set_log_color(color: bool) {
+    COLOR.store(color, Ordering::Relaxed);
+}
+
 /// Logs a message at the specified log level.
 /// Hidden from the docs, as it is only intended for internal use through the [`trace!`] macro.
 #[doc(hidden)]

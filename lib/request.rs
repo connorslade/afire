@@ -78,12 +78,7 @@ impl Request {
                 continue;
             }
 
-            if let Some(i) = Cookie::from_string(&header.value) {
-                cookies.extend(i);
-                continue;
-            }
-
-            headers.push(header);
+            cookies.extend(Cookie::from_string(&header.value));
         }
 
         let content_len = headers

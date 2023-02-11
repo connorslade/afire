@@ -1,10 +1,14 @@
 use afire::{Content, Method, Response, Server, Status};
-use std::fs;
+use std::fs::File;
 
 use crate::Example;
 
+// You can run this example with `cargo run --example basic -- serve_file`
+
 // Serve a local file
 // On each request, the server will read the file and send it to the client.
+// Usually it is preferred to use the ServeStatic middleware for this
+
 pub struct ServeFile;
 
 impl Example for ServeFile {
@@ -18,20 +22,22 @@ impl Example for ServeFile {
 
         // Define a handler for GET "/"
         server.route(Method::GET, "/", |_req| {
-            // Try to read File
-            match fs::read("examples/basic/data/index.html") {
+            // Try to open a file
+            match File::open("examples/basic/data/index.html") {
                 // If its found send it as response
-                // This used `new_raw` to send the file as raw bytes not a string
-                // This may not be useful for html files but if you want to to serve an image file this will be useful
-                Ok(content) => Response::new().bytes(&content).content(Content::TXT),
+                // Because we used File::open and not fs::read, we can use the stream method to send the file in chunks
+                // This is more efficient than reading the whole file into memory and then sending it
+                Ok(content) => Response::new().stream(content).content(Content::HTML),
 
-                // If not send a 404 error
+                // If the file is not found, send a 404 response
                 Err(_) => Response::new()
                     .status(Status::NotFound)
                     .text("Not Found :/")
                     .content(Content::TXT),
             }
         });
+
+        // View the file at http://localhost:8080
 
         // Start the server
         // This will block the current thread

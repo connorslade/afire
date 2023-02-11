@@ -52,6 +52,9 @@ impl Example for ServeStatic {
             // Attach the middleware to the server
             .attach(&mut server);
 
+        // View the file at http://localhost:8080
+        // You should also see a favicon in the browser tab
+
         // Start the server
         // This will block the current thread
         server.start().unwrap();
