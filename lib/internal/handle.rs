@@ -193,12 +193,9 @@ where
                 .status(Status::NotFound)
                 .text(format!("Cannot {} {}", method, path))
                 .content(Content::TXT),
-            #[cfg(feature = "panic_handler")]
             HandleError::Panic(r, e) => {
                 (server.error_handler)(server.state.clone(), r, e.to_owned())
             }
-            #[cfg(not(feature = "panic_handler"))]
-            HandleError::Panic(_, _) => unreachable!(),
         },
         Error::Io(e) => Response::new().status(500).text(e),
     }

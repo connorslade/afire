@@ -9,8 +9,8 @@ use crate::{
     Error, HeaderType, Request, Response, Status,
 };
 
+type SSMiddleware = Box<dyn Fn(Rc<Request>, &mut Response, &mut bool) + Send + Sync>;
 /// Serve Static Content
-#[derive(Clone)]
 pub struct ServeStatic {
     /// Path to serve static content on
     ///
@@ -25,6 +25,11 @@ pub struct ServeStatic {
 
     /// Page not found route
     pub not_found: fn(Rc<Request>, bool) -> Response,
+
+    /// Middleware
+    ///
+    /// (Request, Static Response, success [eg If file found])
+    pub middleware: Vec<SSMiddleware>,
 
     /// MIME Types
     pub types: Vec<(String, String)>,
@@ -53,7 +58,11 @@ impl Middleware for ServeStatic {
             return MiddleResult::Continue;
         }
 
-        let res = process_req(req, self);
+        let mut res = process_req(req.clone(), self);
+        for i in self.middleware.iter().rev() {
+            i(req.clone(), &mut res.0, &mut res.1);
+        }
+
         MiddleResult::Send(res.0)
     }
 }
@@ -78,6 +87,7 @@ impl ServeStatic {
             serve_path: normalize_path("/".to_owned()),
             data_dir: data_path.as_ref().to_string(),
             disabled_files: Vec::new(),
+            middleware: Vec::new(),
             not_found: |req, _| {
                 Response::new()
                     .status(Status::NotFound)
@@ -248,6 +258,22 @@ impl ServeStatic {
         Self { types, ..self }
     }
 
+    /// Add a middleware to the serve static extension.
+    /// Middleware here works much differently to the normal afire middleware.
+    /// The middleware priority is still by most recently defined.
+    ///
+    /// The middleware function takes 3 parameters: the request, the response, and weather the file was loaded successfully.
+    /// In your middleware you can modify the response and the bool.
+    pub fn middleware(
+        self,
+        f: impl Fn(Rc<Request>, &mut Response, &mut bool) + Send + Sync + 'static,
+    ) -> Self {
+        let mut middleware = self.middleware;
+        middleware.push(Box::new(f));
+
+        Self { middleware, ..self }
+    }
+
     /// Set path to serve static files on
     ///
     /// Default is '/' (root)
@@ -318,10 +344,7 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
         ),
 
         // If not send the 404 route defined
-        Err(e) => {
-            dbg!(e);
-            ((this.not_found)(req, false), false)
-        }
+        Err(_) => ((this.not_found)(req, false), false),
     }
 }
 

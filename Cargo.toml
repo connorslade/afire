@@ -20,8 +20,7 @@ path = "lib/lib.rs"
 
 [features]
 # Default
-default = ["panic_handler", "tracing"]
-panic_handler = []
+default = ["tracing"]
 
 # Other
 extensions = []

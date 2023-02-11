@@ -35,7 +35,6 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub state: Option<Arc<State>>,
 
     /// Default response for internal server errors
-    #[cfg(feature = "panic_handler")]
     pub error_handler: ErrorHandler<State>,
 
     /// Headers automatically added to every response.
@@ -65,7 +64,6 @@ impl<State: Send + Sync> Server<State> {
             routes: Vec::new(),
             middleware: Vec::new(),
 
-            #[cfg(feature = "panic_handler")]
             error_handler: Box::new(|_state, _req, err| {
                 Response::new()
                     .status(Status::InternalServerError)
@@ -238,7 +236,6 @@ impl<State: Send + Sync> Server<State> {
     ///         .text(format!("Internal Server Error: {}", err))
     /// });
     /// ```
-    #[cfg(feature = "panic_handler")]
     pub fn error_handler(
         &mut self,
         res: impl Fn(Option<Arc<State>>, &Box<Result<Rc<Request>>>, String) -> Response
