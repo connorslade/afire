@@ -67,6 +67,13 @@ impl Query {
         self.iter_mut().find(|i| *i[0] == key).map(|i| &mut i[1])
     }
 
+    /// Gets the key-value pair of the specified key.
+    /// If the key does not exist, this will return None.
+    pub fn get_query(&self, key: impl AsRef<str>) -> Option<&[String; 2]> {
+        let key = key.as_ref().to_owned();
+        self.iter().find(|i| *i[0] == key)
+    }
+
     /// Get the key-value pair of the specified key as a mutable reference.
     /// If the key does not exist, this will return None.
     pub fn get_query_mut(&mut self, key: impl AsRef<str>) -> Option<&mut [String; 2]> {

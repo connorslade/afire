@@ -3,7 +3,7 @@
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// afire's global log level.
-static LEVEL: AtomicU8 = AtomicU8::new(0);
+static LEVEL: AtomicU8 = AtomicU8::new(1);
 /// Whether or not to colorize the log output.
 static COLOR: AtomicBool = AtomicBool::new(true);
 

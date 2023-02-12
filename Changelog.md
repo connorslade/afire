@@ -1,3 +1,10 @@
+# 2.1.0
+
+Coming Soon
+
+- Added a get_query method on Query
+- Changed default log level back to Error
+
 # 2.0.0
 
 February 11, 2023
