@@ -13,9 +13,11 @@ use crate::error::{ParseError, Result};
 pub struct Header {
     /// Name of the Header
     pub name: HeaderType,
-
     /// Value of the Header
     pub value: String,
+    /// Parameters of the Header.
+    /// For example, the `charset` parameter in `Content-Type: text/html; charset=utf-8`.
+    pub params: Vec<(String, String)>,
 }
 
 /// Collection of headers.
@@ -37,6 +39,7 @@ impl Header {
         Header {
             name: name.into(),
             value: value.as_ref().to_owned(),
+            params: Vec::new(),
         }
     }
 
@@ -67,10 +70,74 @@ impl Header {
             None => return Err(ParseError::InvalidHeader.into()),
         };
 
+        let parts = value.split(';').collect::<Vec<_>>();
+        let mut params = Vec::new();
+
+        for i in parts.iter().skip(1) {
+            let split = i.splitn(2, '=').collect::<Vec<_>>();
+            if split.len() != 2 {
+                return Err(ParseError::InvalidHeader.into());
+            }
+
+            let key = split
+                .first()
+                .ok_or(ParseError::InvalidHeader)?
+                .trim()
+                .to_string();
+            let value = split
+                .get(1)
+                .ok_or(ParseError::InvalidHeader)?
+                .trim()
+                .to_string();
+
+            params.push((key, value));
+        }
+
         Ok(Header {
             name: name.into(),
-            value,
+            value: parts[0].to_string(),
+            params,
         })
+    }
+
+    /// Gets the value of the specified parameter, returning `None` if it is not present.
+    /// A parameter is a key-value pair that is separated by a semicolon and a space.
+    /// Example: `Content-Type: text/html; charset=utf-8`, where `charset` is the parameter.
+    pub fn get_param(&self, name: impl AsRef<str>) -> Option<&String> {
+        let name = name.as_ref();
+        self.params
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value)
+    }
+
+    /// Just like [`get_param`], but returns a mutable reference.
+    pub fn get_param_mut(&mut self, name: impl AsRef<str>) -> Option<&mut String> {
+        let name = name.as_ref();
+        self.params
+            .iter_mut()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value)
+    }
+
+    /// Adds a parameter to the header.
+    /// A parameter is a key-value pair that is separated by a semicolon and a space.
+    /// Example: `Content-Type: text/html; charset=utf-8`, where `charset` is the parameter.
+    /// ## Example
+    /// ```rust
+    /// # use afire::Header;
+    /// let header = Header::new("Content-Type", "text/html")
+    ///    .param("charset", "utf-8");
+    /// ```
+    pub fn param(self, name: impl AsRef<str>, value: impl AsRef<str>) -> Self {
+        let mut params = self.params;
+        params.push((name.as_ref().to_string(), value.as_ref().to_string()));
+
+        Self {
+            name: self.name,
+            value: self.value,
+            params,
+        }
     }
 }
 

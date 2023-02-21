@@ -4,6 +4,8 @@ Coming Soon
 
 - Added a get_query method on Query
 - Changed default log level back to Error
+- More built-in encoding systems (base64 & sha-1)
+- Multipart request parsing
 
 # 2.0.0
 

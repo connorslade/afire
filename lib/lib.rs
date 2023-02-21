@@ -38,6 +38,7 @@ pub use self::{
     error::Error,
     header::{Header, HeaderType},
     http::header,
+    http::multipart,
     method::Method,
     middleware::Middleware,
     query::Query,

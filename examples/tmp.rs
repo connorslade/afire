@@ -1,9 +1,13 @@
-use std::fs::{self, File};
+use std::{
+    convert::TryFrom,
+    fs::{self, File},
+};
 
 use afire::{
     extension::Date,
     extension::Logger,
     internal::encoding::{base64, sha1},
+    multipart::MultipartData,
     prelude::*,
     trace,
     trace::{set_log_level, Level},
@@ -41,6 +45,15 @@ fn main() {
 
     server.route(Method::ANY, "/panic", |_| panic!("panic!"));
 
+    server.route(Method::POST, "/file-upload", |req| {
+        let multipart = MultipartData::try_from(req).unwrap();
+        let entry = multipart.get("file").unwrap();
+
+        Response::new().bytes(entry.data).content(Content::Custom(
+            entry.headers.get(HeaderType::ContentType).unwrap(),
+        ))
+    });
+
     const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     server.route(Method::GET, "/ws", |req| {
         let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap().to_owned();
@@ -50,13 +63,12 @@ fn main() {
 
         let mut upgrade = Response::new()
             .status(Status::SwitchingProtocols)
-            .header("Upgrade", "websocket")
-            .header("Connection", "Upgrade")
+            .header(HeaderType::Upgrade, "websocket")
+            .header(HeaderType::Connection, "Upgrade")
             .header("Sec-WebSocket-Accept", &accept)
             .header("Sec-WebSocket-Version", "13");
         upgrade.write(req.socket.clone(), &[]).unwrap();
 
-        // let upgrade = Response::new().status(Status::SwitchingProtocols).
         Response::end()
     });
 
