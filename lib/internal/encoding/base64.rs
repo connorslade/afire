@@ -2,9 +2,9 @@
 //! - Reference: https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp
 //! - Reference: https://dev.to/tiemen/implementing-base64-from-scratch-in-rust-kb1
 
-const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
-                            abcdefghijklmnopqrstuvwxyz\
-                            0123456789+/";
+const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                       abcdefghijklmnopqrstuvwxyz\
+                       0123456789+/";
 
 /// Encodes a byte slice into a base64 string (with padding).
 pub fn encode(inp: &[u8]) -> String {
@@ -12,29 +12,26 @@ pub fn encode(inp: &[u8]) -> String {
     let mut out = String::with_capacity(end_len);
 
     for i in (0..inp.len()).step_by(3) {
-        out.push(BASE64_CHARS[((inp[i] & 0xfc) >> 2) as usize] as char);
+        out.push(CHARS[((inp[i] & 0xfc) >> 2) as usize] as char);
 
         if i + 1 < inp.len() {
-            out.push(
-                BASE64_CHARS[(((inp[i] & 0x03) << 4) + ((inp[i + 1] & 0xf0) >> 4)) as usize]
-                    as char,
-            );
+            out.push(CHARS[(((inp[i] & 0x03) << 4) + ((inp[i + 1] & 0xf0) >> 4)) as usize] as char);
 
             if i + 2 < inp.len() {
                 out.push(
-                    BASE64_CHARS[(((inp[i + 1] & 0x0f) << 2) + ((inp[i + 2] & 0xc0) >> 6)) as usize]
+                    CHARS[(((inp[i + 1] & 0x0f) << 2) + ((inp[i + 2] & 0xc0) >> 6)) as usize]
                         as char,
                 );
-                out.push(BASE64_CHARS[(inp[i + 2] & 0x3f) as usize] as char);
+                out.push(CHARS[(inp[i + 2] & 0x3f) as usize] as char);
                 continue;
             }
 
-            out.push(BASE64_CHARS[((inp[i + 1] & 0x0f) << 2) as usize] as char);
+            out.push(CHARS[((inp[i + 1] & 0x0f) << 2) as usize] as char);
             out.push('=');
             continue;
         }
 
-        out.push(BASE64_CHARS[((inp[i] & 0x03) << 4) as usize] as char);
+        out.push(CHARS[((inp[i] & 0x03) << 4) as usize] as char);
         out.push('=');
         out.push('=');
     }
@@ -48,55 +45,31 @@ pub fn decode(inp: &str) -> Option<Vec<u8>> {
         return Some(Vec::new());
     }
 
-    let result = inp
-        .chars()
-        .collect::<Vec<_>>()
-        .chunks(4)
-        .map(|chunk| {
-            chunk
-                .iter()
-                .filter(|character| *character != &'=')
-                .map(|character| from_char(*character as u8).unwrap())
-                .collect()
-        })
-        .flat_map(merge)
-        .collect::<Vec<_>>();
+    let out_size = (inp.len() / 4) * 3;
+    let mut out = Vec::with_capacity(out_size);
 
-    Some(result)
-}
+    'o: for chunk in inp.as_bytes().chunks(4) {
+        let mut decode = 0;
 
-fn from_char(chr: u8) -> Option<u8> {
-    Some(match chr as char {
-        'A'..='Z' => chr as u8 - b'A',
-        'a'..='z' => chr as u8 - b'a' + 26,
-        '0'..='9' => chr as u8 - b'0' + 52,
-        '+' => 62,
-        '/' => 63,
-        _ => return None,
-    })
-}
+        for (i, e) in chunk.iter().enumerate() {
+            match *e as char {
+                'A'..='Z' => decode |= ((e - 65) as u32) << (6 * (3 - i)),
+                'a'..='z' => decode |= ((e - 71) as u32) << (6 * (3 - i)),
+                '0'..='9' => decode |= ((e + 04) as u32) << (6 * (3 - i)),
+                '+' => decode |= 62 << (6 * i),
+                '/' => decode |= 63 << (6 * i),
+                '=' => {
+                    out.extend_from_slice(&decode.to_be_bytes()[1..i]);
+                    continue 'o;
+                }
+                _ => return None,
+            }
+        }
 
-fn merge(bytes: Vec<u8>) -> Vec<u8> {
-    let mut out = match bytes.len() {
-        2 => vec![
-            (bytes[0] & 0b00111111) << 2 | bytes[1] >> 4,
-            (bytes[1] & 0b00001111) << 4,
-        ],
-        3 => vec![
-            (bytes[0] & 0b00111111) << 2 | bytes[1] >> 4,
-            (bytes[1] & 0b00001111) << 4 | bytes[2] >> 2,
-            (bytes[2] & 0b00000011) << 6,
-        ],
-        4 => vec![
-            (bytes[0] & 0b00111111) << 2 | bytes[1] >> 4,
-            (bytes[1] & 0b00001111) << 4 | bytes[2] >> 2,
-            (bytes[2] & 0b00000011) << 6 | bytes[3] & 0b00111111,
-        ],
-        _ => unreachable!(),
-    };
+        out.extend_from_slice(&decode.to_be_bytes()[1..4]);
+    }
 
-    out.retain(|x| *x != 0);
-    out
+    Some(out)
 }
 
 #[cfg(test)]
