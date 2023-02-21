@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::rc::Rc;
+use std::sync::Mutex;
 
 use crate::consts;
 use crate::header::{HeaderType, Headers};
@@ -40,6 +42,10 @@ pub struct Response {
 pub enum ResponseBody {
     Static(Vec<u8>),
     Stream(Writeable),
+}
+
+pub trait AsResponse {
+    fn as_response(self) -> Option<Response>;
 }
 
 impl Response {
@@ -259,7 +265,7 @@ impl Response {
     /// Will take care of adding default headers and closing the connection if needed.
     pub(crate) fn write(
         &mut self,
-        stream: &mut TcpStream,
+        stream: Rc<Mutex<TcpStream>>,
         default_headers: &[Header],
     ) -> Result<()> {
         // Add default headers to response
@@ -297,8 +303,9 @@ impl Response {
             headers_to_string(&self.headers)
         );
 
+        let mut stream = stream.lock().unwrap();
         stream.write_all(response.as_bytes())?;
-        self.data.write(stream)?;
+        self.data.write(&mut *stream)?;
 
         Ok(())
     }
@@ -307,6 +314,24 @@ impl Response {
 impl Default for Response {
     fn default() -> Response {
         Response::new()
+    }
+}
+
+impl AsResponse for Response {
+    fn as_response(self) -> Option<Response> {
+        Some(self)
+    }
+}
+
+impl AsResponse for Option<Response> {
+    fn as_response(self) -> Option<Response> {
+        self
+    }
+}
+
+impl AsResponse for () {
+    fn as_response(self) -> Option<Response> {
+        None
     }
 }
 

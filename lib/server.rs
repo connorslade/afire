@@ -106,10 +106,10 @@ impl<State: Send + Sync> Server<State> {
         let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
 
         for event in listener.incoming() {
-            handle(&mut event?, self);
+            handle(event?, self);
         }
 
-        // We should Never Get Here
+        // We should never get Here
         unreachable!()
     }
 
@@ -146,9 +146,10 @@ impl<State: Send + Sync> Server<State> {
 
         for event in listener.incoming() {
             let this = this.clone();
-            pool.execute(move || handle(&mut event.unwrap(), &this));
+            pool.execute(move || handle(event.unwrap(), &this));
         }
 
+        // We should never get Here
         unreachable!()
     }
 

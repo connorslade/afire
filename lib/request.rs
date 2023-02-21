@@ -3,7 +3,9 @@ use std::{
     fmt::Debug,
     io::{BufRead, BufReader, Read},
     net::{SocketAddr, TcpStream},
+    rc::Rc,
     str::FromStr,
+    sync::Mutex,
 };
 
 use crate::{
@@ -45,14 +47,19 @@ pub struct Request {
     /// Client socket address.
     /// If you are using a reverse proxy, this will be the address of the proxy (often localhost).
     pub address: SocketAddr,
+
+    /// The raw tcp socket
+    pub socket: Rc<Mutex<TcpStream>>,
 }
 
 impl Request {
     /// Read a request from a TcpStream.
-    pub(crate) fn from_socket(stream: &mut TcpStream) -> Result<Self> {
+    pub(crate) fn from_socket(raw_stream: Rc<Mutex<TcpStream>>) -> Result<Self> {
+        let stream = raw_stream.lock().unwrap();
+
         trace!(Level::Debug, "Reading header");
         let peer_addr = stream.peer_addr()?;
-        let mut reader = BufReader::new(stream);
+        let mut reader = BufReader::new(&*stream);
         let mut request_line = Vec::with_capacity(BUFF_SIZE);
         reader
             .read_until(10, &mut request_line)
@@ -94,6 +101,7 @@ impl Request {
                 .map_err(|_| StreamError::UnexpectedEof)?;
         }
 
+        drop(stream);
         Ok(Self {
             method,
             path,
@@ -104,6 +112,7 @@ impl Request {
             cookies,
             body,
             address: peer_addr,
+            socket: raw_stream,
         })
     }
 

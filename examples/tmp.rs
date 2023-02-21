@@ -26,7 +26,9 @@ fn main() {
     });
 
     server.route(Method::GET, "/", |req| {
+        let mango = req.socket.lock().unwrap();
         let user_agent = req.headers.get(HeaderType::UserAgent).unwrap();
+        println!("{}", mango.peer_addr().unwrap());
         Response::new().text(user_agent).content(Content::TXT)
     });
 
