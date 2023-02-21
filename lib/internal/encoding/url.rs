@@ -4,7 +4,7 @@
 /// Decode a url encoded string.
 /// Supports `+` and `%` encoding.
 /// If the decode fails for any reason, [`None`] is returned.
-pub fn decode_url(url: &str) -> Option<String> {
+pub fn decode(url: &str) -> Option<String> {
     let mut chars = url.chars();
     let mut out = String::with_capacity(url.len());
 
@@ -27,7 +27,7 @@ pub fn decode_url(url: &str) -> Option<String> {
 /// Encodes a string with url encoding.
 /// Uses `%20` for spaces not `+`.
 /// Allowed characters are `A-Z`, `a-z`, `0-9`, `-`, `.`, `_` and `~`.
-pub fn encode_url(url: &str) -> String {
+pub fn encode(url: &str) -> String {
     const ALLOWED_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                                    abcdefghijklmnopqrstuvwxyz\
                                    0123456789-._~";
@@ -47,31 +47,31 @@ pub fn encode_url(url: &str) -> String {
 
 #[cfg(test)]
 mod test {
-    use super::{decode_url, encode_url};
+    use super::{decode, encode};
 
     #[test]
     fn test_url_decode() {
-        assert_eq!(decode_url("hello+world").unwrap(), "hello world");
-        assert_eq!(decode_url("hello%20world").unwrap(), "hello world");
+        assert_eq!(decode("hello+world").unwrap(), "hello world");
+        assert_eq!(decode("hello%20world").unwrap(), "hello world");
         assert_eq!(
-            decode_url("%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60").unwrap(),
+            decode("%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60").unwrap(),
             "<>\"#%{}|\\^~[]`"
         );
     }
 
     #[test]
     fn test_url_decode_fail() {
-        assert_eq!(decode_url("hello%20world%"), None);
-        assert_eq!(decode_url("hello%20world%2"), None);
-        assert_eq!(decode_url("hello%20world%2G"), None);
+        assert_eq!(decode("hello%20world%"), None);
+        assert_eq!(decode("hello%20world%2"), None);
+        assert_eq!(decode("hello%20world%2G"), None);
     }
 
     #[test]
     fn test_url_encode() {
-        assert_eq!(encode_url("hello world"), "hello%20world");
-        assert_eq!(encode_url("hello%20world"), "hello%2520world");
+        assert_eq!(encode("hello world"), "hello%20world");
+        assert_eq!(encode("hello%20world"), "hello%2520world");
         assert_eq!(
-            encode_url("<>\"#%{}|\\^~[]`"),
+            encode("<>\"#%{}|\\^~[]`"),
             "%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60"
         );
     }

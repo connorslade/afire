@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use crate::encoding::decode_url;
+use crate::encoding::url;
 
 /// Represents a Cookie
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -71,8 +71,8 @@ impl Cookie {
             }
             .trim_end_matches(';');
 
-            let name = decode_url(name).unwrap_or_else(|| name.to_owned());
-            let value = decode_url(value).unwrap_or_else(|| value.to_owned());
+            let name = url::decode(name).unwrap_or_else(|| name.to_owned());
+            let value = url::decode(value).unwrap_or_else(|| value.to_owned());
             final_cookies.push(Cookie::new(name, value));
         }
 

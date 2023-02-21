@@ -19,6 +19,8 @@ use crate::{
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
+// https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D?si=935c472e1d1140e5
+
 /// - Manages keep-alive sockets
 /// - Lets Request::from_socket read the request
 /// - Lets Response::write write the response to the socket

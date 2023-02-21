@@ -34,6 +34,15 @@ fn main() {
 
     server.route(Method::ANY, "/panic", |_| panic!("panic!"));
 
+    server.route(Method::GET, "/ws", |req| {
+        let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap();
+
+        // let accept = base64::encode(&sha1::Sha1::from(ws_key).digest().bytes());
+
+        // let upgrade = Response::new().status(Status::SwitchingProtocols).
+        Response::end()
+    });
+
     Test.attach(&mut server);
     Date.attach(&mut server);
     server.start_threaded(5).unwrap();

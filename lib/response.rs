@@ -77,6 +77,14 @@ impl Response {
         }
     }
 
+    /// Creates a new Default Response with the End flag set.
+    pub fn end() -> Self {
+        Self {
+            flag: ResponseFlag::End,
+            ..Default::default()
+        }
+    }
+
     /// Add a status code to a Response.
     /// This accepts [`Status`] as well as a [`u16`].
     /// ## Example

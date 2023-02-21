@@ -7,7 +7,7 @@
 use std::time::Instant;
 use std::{borrow::Borrow, sync::RwLock};
 
-use afire::internal::encoding::decode_url;
+use afire::internal::encoding::url;
 use afire::{Content, HeaderType, Method, Query, Response, Server, Status};
 
 const DATA_LIMIT: usize = 10_000;
@@ -74,8 +74,9 @@ fn main() {
     server.stateful_route(Method::POST, "/new-form", |app, req| {
         // Get data from response
         let query = Query::from_body(String::from_utf8_lossy(&req.body).borrow());
-        let name = decode_url(query.get("name").unwrap_or("Untitled")).expect("Invalid name");
-        let body = decode_url(query.get("body").expect("No body supplied")).expect("Invalid body");
+        let name = url::decode(query.get("name").unwrap_or("Untitled")).expect("Invalid name");
+        let body =
+            url::decode(query.get("body").expect("No body supplied")).expect("Invalid body");
 
         // Make sure paste data isn't too long
         if body.len() > DATA_LIMIT {
