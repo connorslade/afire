@@ -49,8 +49,8 @@ fn main() {
     // After successful creation the user will be redirected to the new quotes page.
     server.stateful_route(Method::POST, "/api/new", |app, req| {
         let form = Query::from_body(&String::from_utf8_lossy(&req.body));
-        let name = url::decode(form.get("author").expect("No author supplied"))
-            .expect("Invalid author");
+        let name =
+            url::decode(form.get("author").expect("No author supplied")).expect("Invalid author");
         let body =
             url::decode(form.get("quote").expect("No quote supplied")).expect("Invalid quote");
 

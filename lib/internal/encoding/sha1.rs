@@ -1,7 +1,9 @@
 //! SHA1 hash function.
+//!
 //! NOTE: This is not a secure hash function, and should not be used unless necessary.
 
 /// SHA1 hash function.
+///
 /// NOTE: This is not a secure hash function, and should not be used unless necessary.
 pub fn hash(message: &[u8]) -> [u8; 20] {
     let mut h0 = 0x67452301u32;
@@ -10,13 +12,11 @@ pub fn hash(message: &[u8]) -> [u8; 20] {
     let mut h3 = 0x10325476u32;
     let mut h4 = 0xc3d2e1f0u32;
 
-    let mut padded_message = vec![0u8; message.len() + 64 - message.len() % 64];
+    let msg_len = ((message.len() * 8 + 583) / 512) * 64;
+    let mut padded_message = vec![0u8; msg_len];
     padded_message[..message.len()].copy_from_slice(message);
     padded_message[message.len()] = 0x80;
-
-    let bit_len = (message.len() as u64) * 8;
-    let msg_len = padded_message.len();
-    padded_message[msg_len - 8..].copy_from_slice(&bit_len.to_be_bytes());
+    padded_message[msg_len - 8..].copy_from_slice(&(8 * message.len() as u64).to_be_bytes());
 
     for chunk in padded_message.chunks(64) {
         let mut w = [0u32; 80];
@@ -39,7 +39,7 @@ pub fn hash(message: &[u8]) -> [u8; 20] {
         let mut d = h3;
         let mut e = h4;
 
-        for i in 0..80 {
+        for (i, ele) in w.iter().enumerate() {
             let (f, k) = match i {
                 0..=19 => ((b & c) | ((!b) & d), 0x5a827999u32),
                 20..=39 => (b ^ c ^ d, 0x6ED9EBA1u32),
@@ -52,7 +52,7 @@ pub fn hash(message: &[u8]) -> [u8; 20] {
                 .wrapping_add(f)
                 .wrapping_add(e)
                 .wrapping_add(k)
-                .wrapping_add(w[i]);
+                .wrapping_add(*ele);
             e = d;
             d = c;
             c = b.rotate_left(30);
@@ -99,6 +99,17 @@ mod test {
             [
                 218, 57, 163, 238, 94, 107, 75, 13, 50, 85, 191, 239, 149, 96, 24, 144, 175, 216,
                 7, 9
+            ]
+        );
+    }
+
+    #[test]
+    fn test_ws_has() {
+        assert_eq!(
+            hash(b"dGhlIHNhbXBsZSBub25jZQ==258EAFA5-E914-47DA-95CA-C5AB0DC85B11"),
+            [
+                179, 122, 79, 44, 192, 98, 79, 22, 144, 246, 70, 6, 207, 56, 89, 69, 178, 190, 196,
+                234
             ]
         );
     }

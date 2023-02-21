@@ -1,6 +1,13 @@
 use std::fs::{self, File};
 
-use afire::{extension::Date, extension::Logger, prelude::*, trace::set_log_level, trace::Level};
+use afire::{
+    extension::Date,
+    extension::Logger,
+    internal::encoding::{base64, sha1},
+    prelude::*,
+    trace,
+    trace::{set_log_level, Level},
+};
 
 // File to download
 const PATH: &str = r#"..."#;
@@ -34,10 +41,20 @@ fn main() {
 
     server.route(Method::ANY, "/panic", |_| panic!("panic!"));
 
+    const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     server.route(Method::GET, "/ws", |req| {
-        let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap();
+        let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap().to_owned();
+        trace!("WS Key: {}", ws_key);
+        let accept = base64::encode(&sha1::hash((ws_key.clone() + WS_GUID).as_bytes()));
+        trace!("WS Accept: {}", accept);
 
-        // let accept = base64::encode(&sha1::Sha1::from(ws_key).digest().bytes());
+        let mut upgrade = Response::new()
+            .status(Status::SwitchingProtocols)
+            .header("Upgrade", "websocket")
+            .header("Connection", "Upgrade")
+            .header("Sec-WebSocket-Accept", &accept)
+            .header("Sec-WebSocket-Version", "13");
+        upgrade.write(req.socket.clone(), &[]).unwrap();
 
         // let upgrade = Response::new().status(Status::SwitchingProtocols).
         Response::end()

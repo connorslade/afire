@@ -75,8 +75,7 @@ fn main() {
         // Get data from response
         let query = Query::from_body(String::from_utf8_lossy(&req.body).borrow());
         let name = url::decode(query.get("name").unwrap_or("Untitled")).expect("Invalid name");
-        let body =
-            url::decode(query.get("body").expect("No body supplied")).expect("Invalid body");
+        let body = url::decode(query.get("body").expect("No body supplied")).expect("Invalid body");
 
         // Make sure paste data isn't too long
         if body.len() > DATA_LIMIT {

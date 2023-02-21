@@ -55,7 +55,7 @@ pub fn decode(inp: &str) -> Option<Vec<u8>> {
             match *e as char {
                 'A'..='Z' => decode |= ((e - 65) as u32) << (6 * (3 - i)),
                 'a'..='z' => decode |= ((e - 71) as u32) << (6 * (3 - i)),
-                '0'..='9' => decode |= ((e + 04) as u32) << (6 * (3 - i)),
+                '0'..='9' => decode |= ((e + 4) as u32) << (6 * (3 - i)),
                 '+' => decode |= 62 << (6 * i),
                 '/' => decode |= 63 << (6 * i),
                 '=' => {

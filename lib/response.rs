@@ -276,9 +276,10 @@ impl Response {
         modifier(self)
     }
 
+    // TODO: Make crate local
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
-    pub(crate) fn write(
+    pub fn write(
         &mut self,
         stream: Rc<Mutex<TcpStream>>,
         default_headers: &[Header],
