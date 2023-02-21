@@ -12,6 +12,7 @@ use crate::{
     error::{HandleError, ParseError, Result, StreamError},
     internal::common::any_string,
     middleware::MiddleResult,
+    response::ResponseFlag,
     route::RouteType,
     trace, Content, Error, Request, Response, Server, Status,
 };
@@ -42,7 +43,11 @@ where
 
         let (req, mut res) = get_response(req, this);
 
-        let close = res.close;
+        if res.flag == ResponseFlag::End {
+            trace!(Level::Debug, "Ending socket");
+            break;
+        }
+
         if let Err(e) = res.write(stream.clone(), &this.default_headers) {
             trace!(Level::Error, "Error writing to socket: {:?}", e);
         }
@@ -56,7 +61,7 @@ where
             }
         }
 
-        if !keep_alive || close || !this.keep_alive {
+        if !keep_alive || res.flag == ResponseFlag::Close || !this.keep_alive {
             trace!(Level::Debug, "Closing socket");
             if let Err(e) = stream.lock().unwrap().shutdown(Shutdown::Both) {
                 trace!(Level::Error, "Error closing socket: {:?}", e);

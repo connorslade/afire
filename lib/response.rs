@@ -31,9 +31,20 @@ pub struct Response {
     /// If this is None, the reason phrase will be automatically generated based on the status code.
     pub reason: Option<String>,
 
-    /// Force Close Connection.
-    /// Will set the Connection header to close and will close the connection after the response is sent.
-    pub close: bool,
+    /// Response Flags:
+    /// - Close: Set the Connection header to close and will close the connection after the response is sent.
+    /// - End: End the connection without sending a response
+    pub flag: ResponseFlag,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ResponseFlag {
+    /// No Flag
+    None,
+    /// Close the socket
+    Close,
+    /// End the connection without sending a response
+    End,
 }
 
 /// Response Data.
@@ -42,10 +53,6 @@ pub struct Response {
 pub enum ResponseBody {
     Static(Vec<u8>),
     Stream(Writeable),
-}
-
-pub trait AsResponse {
-    fn as_response(self) -> Option<Response>;
 }
 
 impl Response {
@@ -66,7 +73,7 @@ impl Response {
             data: vec![79, 75].into(),
             headers: Default::default(),
             reason: None,
-            close: false,
+            flag: ResponseFlag::None,
         }
     }
 
@@ -199,7 +206,7 @@ impl Response {
     /// ```
     pub fn close(self) -> Self {
         Self {
-            close: true,
+            flag: ResponseFlag::Close,
             ..self
         }
     }
@@ -284,7 +291,7 @@ impl Response {
         }
 
         // Add Connection: close if response is set to close
-        if self.close && !self.headers.has(HeaderType::Connection) {
+        if self.flag == ResponseFlag::Close && !self.headers.has(HeaderType::Connection) {
             self.headers.push(Header::new("Connection", "close"));
         }
 
@@ -305,7 +312,7 @@ impl Response {
 
         let mut stream = stream.lock().unwrap();
         stream.write_all(response.as_bytes())?;
-        self.data.write(&mut *stream)?;
+        self.data.write(&mut stream)?;
 
         Ok(())
     }
@@ -314,24 +321,6 @@ impl Response {
 impl Default for Response {
     fn default() -> Response {
         Response::new()
-    }
-}
-
-impl AsResponse for Response {
-    fn as_response(self) -> Option<Response> {
-        Some(self)
-    }
-}
-
-impl AsResponse for Option<Response> {
-    fn as_response(self) -> Option<Response> {
-        self
-    }
-}
-
-impl AsResponse for () {
-    fn as_response(self) -> Option<Response> {
-        None
     }
 }
 
