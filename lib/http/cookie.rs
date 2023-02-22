@@ -41,7 +41,8 @@ pub struct SetCookie {
 }
 
 /// A collection of Cookies.
-pub struct CookieJar(Vec<Cookie>);
+#[derive(Debug, Clone)]
+pub struct CookieJar(pub(crate) Vec<Cookie>);
 
 impl Cookie {
     /// Make a new Cookie from a name and a value.
@@ -169,6 +170,16 @@ impl SetCookie {
 }
 
 impl CookieJar {
+    /// Create a new empty CookieJar.
+    pub fn new() -> CookieJar {
+        CookieJar(Vec::new())
+    }
+
+    /// Create a new CookieJar from a Vec of Cookies.
+    pub fn from_vec(cookies: Vec<Cookie>) -> CookieJar {
+        CookieJar(cookies)
+    }
+
     /// Check if the cookie jar contains a cookie with the given name.
     /// ## Example
     /// ```rust
@@ -268,6 +279,12 @@ impl CookieJar {
     /// # }
     pub fn get_cookie_mut(&mut self, name: &str) -> Option<&mut Cookie> {
         self.iter_mut().find(|i| i.name == name)
+    }
+}
+
+impl Default for CookieJar {
+    fn default() -> Self {
+        CookieJar::new()
     }
 }
 

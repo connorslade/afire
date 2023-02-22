@@ -10,6 +10,7 @@ use std::{
 
 use crate::{
     consts::BUFF_SIZE,
+    cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
     Cookie, Error, Header, Method, Query,
@@ -39,7 +40,7 @@ pub struct Request {
     pub headers: Headers,
 
     /// Request Cookies.
-    pub cookies: Vec<Cookie>,
+    pub cookies: CookieJar,
 
     /// Request body, as a static byte vec.
     pub body: Vec<u8>,
@@ -109,7 +110,7 @@ impl Request {
             path_params: RefCell::new(Vec::new()),
             query,
             headers: Headers(headers),
-            cookies,
+            cookies: CookieJar(cookies),
             body,
             address: peer_addr,
             socket: raw_stream,
@@ -162,7 +163,7 @@ impl Debug for Request {
             .field("path_params", &self.path_params.borrow())
             .field("query", &self.query)
             .field("headers", &self.headers)
-            .field("cookies", &self.cookies)
+            .field("cookies", &*self.cookies)
             .field("body", &self.body)
             .field("address", &self.address)
             .finish()

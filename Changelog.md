@@ -7,7 +7,7 @@ Coming Soon
 - Response flags (Close & End)
 - More built-in encoding systems (base64 & sha-1)
 - Multipart request parsing
-- CookieJar struct for holding Cookies in the request / response
+- CookieJar struct for holding Cookies in the request
 
 # 2.0.0
 
