@@ -16,7 +16,7 @@ const MONTHS: [&str; 12] = [
 /// Middleware to add the HTTP Date header (as defined in [RFC 9110, Section 5.6.7](https://www.rfc-editor.org/rfc/rfc9110.html#section-5.6.7)).
 /// This is technically required for all servers that have a clock, so I may move it to the core library at some point.
 ///
-/// # Example
+/// ## Example
 /// ```rust
 /// # use afire::{extension::Date, Middleware};
 /// # fn add(mut server: afire::Server) {

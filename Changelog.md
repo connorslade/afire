@@ -4,8 +4,10 @@ Coming Soon
 
 - Added a get_query method on Query
 - Changed default log level back to Error
+- Response flags (Close & End)
 - More built-in encoding systems (base64 & sha-1)
 - Multipart request parsing
+- CookieJar struct for holding Cookies in the request / response
 
 # 2.0.0
 

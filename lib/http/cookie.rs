@@ -2,12 +2,15 @@
 //! Cookies!
 //! This module provides a simple interface for setting and receiving cookies.
 
-use std::fmt;
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
 
 use crate::encoding::url;
 
 /// Represents a Cookie
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Cookie {
     /// Cookie Key
     pub name: String,
@@ -36,6 +39,9 @@ pub struct SetCookie {
     /// Cookie is secure
     pub secure: bool,
 }
+
+/// A collection of Cookies.
+pub struct CookieJar(Vec<Cookie>);
 
 impl Cookie {
     /// Make a new Cookie from a name and a value.
@@ -77,23 +83,6 @@ impl Cookie {
         }
 
         final_cookies
-    }
-}
-
-// Impl Debug
-impl fmt::Debug for Cookie {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Cookie")
-            .field("name", &self.name)
-            .field("value", &self.value)
-            .finish()
-    }
-}
-
-// Impl ToString for Cookie
-impl fmt::Display for Cookie {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}={}", self.name, self.value)
     }
 }
 
@@ -176,6 +165,130 @@ impl SetCookie {
         let mut new = self;
         new.secure = secure;
         new
+    }
+}
+
+impl CookieJar {
+    /// Check if the cookie jar contains a cookie with the given name.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::CookieJar;
+    /// # fn test(jar: &CookieJar) {
+    /// if jar.has("Session") {
+    ///     println!("Session cookie exists");
+    /// }
+    /// # }
+    pub fn has(&self, name: &str) -> bool {
+        self.iter().any(|i| i.name == name)
+    }
+
+    /// Adds a cookie to the jar with the given name and value.
+    /// See [`CookieJar::add_cookie`] for a version that takes a [`Cookie`] directly.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::CookieJar;
+    /// # fn test(jar: &mut CookieJar) {
+    /// jar.add("Session", "1234");
+    /// //                  ^^^^
+    /// // Very secure session ID
+    /// # }
+    pub fn add(&mut self, name: impl AsRef<str>, value: impl AsRef<str>) {
+        self.0.push(Cookie::new(name, value));
+    }
+
+    /// Gets the value of a cookie with the given name.
+    /// If the specified cookie does not exist, None is returned.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::CookieJar;
+    /// # fn test(jar: &CookieJar) {
+    /// if let Some(session) = jar.get("Session") {
+    ///     println!("Session cookie value: {}", session);
+    /// }
+    /// # }
+    pub fn get(&self, name: &str) -> Option<&str> {
+        self.iter()
+            .find(|i| i.name == name)
+            .map(|x| x.value.as_str())
+    }
+
+    /// Gets a mutable reference to the value of a cookie with the given name.
+    /// If the specified cookie does not exist, None is returned.
+    /// See [`CookieJar::get`] for a non-mutable version.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::CookieJar;
+    /// # fn test(jar: &mut CookieJar) {
+    /// if let Some(session) = jar.get_mut("Session") {
+    ///     *session = "new value".to_owned();
+    /// }
+    /// # }
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut String> {
+        self.iter_mut()
+            .find(|i| i.name == name)
+            .map(|x| &mut x.value)
+    }
+
+    /// Adds the given cookie to the jar.
+    /// See [`CookieJar::add`] for a version that takes a name and value directly.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::{CookieJar, Cookie};
+    /// # fn test(jar: &mut CookieJar) {
+    /// jar.add_cookie(Cookie::new("Session", "1234"));
+    /// # }
+    pub fn add_cookie(&mut self, cookie: Cookie) {
+        self.0.push(cookie);
+    }
+
+    /// Gets a reference to the Cookie struct of a cookie with the given name.
+    /// If the specified cookie does not exist, None is returned.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::CookieJar;
+    /// # fn test(jar: &CookieJar) {
+    /// if let Some(session) = jar.get_cookie("Session") {
+    ///     println!("Session cookie value: {}", session.value);
+    /// }
+    /// # }
+    pub fn get_cookie(&self, name: &str) -> Option<&Cookie> {
+        self.iter().find(|i| i.name == name)
+    }
+
+    /// Gets a mutable reference to the Cookie struct of a cookie with the given name.
+    /// If the specified cookie does not exist, None is returned.
+    /// See [`CookieJar::get_cookie`] for a non-mutable version.
+    /// ## Example
+    /// ```rust
+    /// # use afire::cookie::CookieJar;
+    /// # fn test(jar: &mut CookieJar) {
+    /// if let Some(session) = jar.get_cookie_mut("Session") {
+    ///     session.value = "new value".to_owned();
+    /// }
+    /// # }
+    pub fn get_cookie_mut(&mut self, name: &str) -> Option<&mut Cookie> {
+        self.iter_mut().find(|i| i.name == name)
+    }
+}
+
+impl Deref for CookieJar {
+    type Target = Vec<Cookie>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for CookieJar {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+// Impl ToString for Cookie
+impl fmt::Display for Cookie {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}={}", self.name, self.value)
     }
 }
 

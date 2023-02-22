@@ -111,7 +111,7 @@ impl Header {
             .map(|(_, value)| value)
     }
 
-    /// Just like [`get_param`], but returns a mutable reference.
+    /// Just like [`Header::get_param`], but returns a mutable reference.
     pub fn get_param_mut(&mut self, name: impl AsRef<str>) -> Option<&mut String> {
         let name = name.as_ref();
         self.params
@@ -171,6 +171,18 @@ impl Headers {
         self.iter().any(|x| x.name == name)
     }
 
+    /// Adds a header to the collection, using the specified name and value.
+    /// See [`Headers::add_header`] for a version that takes a [`Header`] directly.
+    /// ## Example
+    /// ```rust
+    /// # use afire::header::{Headers, HeaderType, Header};
+    /// # fn test(headers: &mut Headers) {
+    /// headers.add(HeaderType::ContentType, "text/html");
+    /// # }
+    pub fn add(&mut self, name: impl Into<HeaderType>, value: impl AsRef<str>) {
+        self.0.push(Header::new(name, value));
+    }
+
     /// Gets the value of the specified header.
     /// If the header is not present, `None` is returned.
     /// ## Example
@@ -197,6 +209,18 @@ impl Headers {
         self.iter_mut()
             .find(|x| x.name == name)
             .map(|x| &mut x.value)
+    }
+
+    /// Adds a header to the collection.
+    /// See [`Headers::add`] for a version that takes a name and value.
+    /// ## Example
+    /// ```rust
+    /// # use afire::header::{Headers, HeaderType, Header};
+    /// # fn test(headers: &mut Headers) {
+    /// headers.add(HeaderType::ContentType, "text/html");
+    /// # }
+    pub fn add_header(&mut self, header: Header) {
+        self.0.push(header);
     }
 
     /// Gets the specified header.
@@ -327,58 +351,60 @@ impl<T: AsRef<str>> From<T> for HeaderType {
 }
 
 impl HeaderType {
+    #[rustfmt::skip]
     fn from_str(s: &str) -> Self {
         match s.to_ascii_lowercase().as_str() {
-            "accept" => HeaderType::Accept,
-            "accept-charset" => HeaderType::AcceptCharset,
-            "accept-encoding" => HeaderType::AcceptEncoding,
-            "accept-language" => HeaderType::AcceptLanguage,
-            "connection" => HeaderType::Connection,
-            "content-encoding" => HeaderType::ContentEncoding,
-            "content-length" => HeaderType::ContentLength,
-            "content-type" => HeaderType::ContentType,
-            "cookie" => HeaderType::Cookie,
-            "date" => HeaderType::Date,
-            "host" => HeaderType::Host,
-            "location" => HeaderType::Location,
-            "referer" => HeaderType::Referer,
-            "server" => HeaderType::Server,
-            "set-cookie" => HeaderType::SetCookie,
+            "accept"            => HeaderType::Accept,
+            "accept-charset"    => HeaderType::AcceptCharset,
+            "accept-encoding"   => HeaderType::AcceptEncoding,
+            "accept-language"   => HeaderType::AcceptLanguage,
+            "connection"        => HeaderType::Connection,
+            "content-encoding"  => HeaderType::ContentEncoding,
+            "content-length"    => HeaderType::ContentLength,
+            "content-type"      => HeaderType::ContentType,
+            "cookie"            => HeaderType::Cookie,
+            "date"              => HeaderType::Date,
+            "host"              => HeaderType::Host,
+            "location"          => HeaderType::Location,
+            "referer"           => HeaderType::Referer,
+            "server"            => HeaderType::Server,
+            "set-cookie"        => HeaderType::SetCookie,
             "transfer-encoding" => HeaderType::TransferEncoding,
-            "upgrade" => HeaderType::Upgrade,
-            "user-agent" => HeaderType::UserAgent,
-            "via" => HeaderType::Via,
-            _ => HeaderType::Custom(s.to_string()),
+            "upgrade"           => HeaderType::Upgrade,
+            "user-agent"        => HeaderType::UserAgent,
+            "via"               => HeaderType::Via,
+            _                   => HeaderType::Custom(s.to_string()),
         }
     }
 }
 
 impl Display for HeaderType {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                HeaderType::Accept => "Accept",
-                HeaderType::AcceptCharset => "Accept-Charset",
-                HeaderType::AcceptEncoding => "Accept-Encoding",
-                HeaderType::AcceptLanguage => "Accept-Language",
-                HeaderType::Connection => "Connection",
-                HeaderType::ContentEncoding => "Content-Encoding",
-                HeaderType::ContentLength => "Content-Length",
-                HeaderType::ContentType => "Content-Type",
-                HeaderType::Cookie => "Cookie",
-                HeaderType::Date => "Date",
-                HeaderType::Host => "Host",
-                HeaderType::Location => "Location",
-                HeaderType::Referer => "Referer",
-                HeaderType::Server => "Server",
-                HeaderType::SetCookie => "Set-Cookie",
+                HeaderType::Accept           => "Accept",
+                HeaderType::AcceptCharset    => "Accept-Charset",
+                HeaderType::AcceptEncoding   => "Accept-Encoding",
+                HeaderType::AcceptLanguage   => "Accept-Language",
+                HeaderType::Connection       => "Connection",
+                HeaderType::ContentEncoding  => "Content-Encoding",
+                HeaderType::ContentLength    => "Content-Length",
+                HeaderType::ContentType      => "Content-Type",
+                HeaderType::Cookie           => "Cookie",
+                HeaderType::Date             => "Date",
+                HeaderType::Host             => "Host",
+                HeaderType::Location         => "Location",
+                HeaderType::Referer          => "Referer",
+                HeaderType::Server           => "Server",
+                HeaderType::SetCookie        => "Set-Cookie",
                 HeaderType::TransferEncoding => "Transfer-Encoding",
-                HeaderType::Upgrade => "Upgrade",
-                HeaderType::UserAgent => "User-Agent",
-                HeaderType::Via => "Via",
-                HeaderType::Custom(s) => s,
+                HeaderType::Upgrade          => "Upgrade",
+                HeaderType::UserAgent        => "User-Agent",
+                HeaderType::Via              => "Via",
+                HeaderType::Custom(s)        => s,
             }
         )
     }

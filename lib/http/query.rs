@@ -27,7 +27,7 @@ impl DerefMut for Query {
 
 impl Query {
     /// Checks if the specified key exists in the query.
-    /// # Example
+    /// ## Example
     /// ```rust
     /// # use afire::Query;
     /// # use std::str::FromStr;
@@ -42,9 +42,22 @@ impl Query {
         self.iter().any(|i| *i[0] == key)
     }
 
+    /// Adds a new key-value pair to the collection with the specified key and value.
+    /// See [`Query::add_query`] for adding a key-value pair with a `[String; 2]`.
+    /// ## Example
+    /// ```rust
+    /// # use afire::Query;
+    /// # use std::str::FromStr;
+    /// # fn test(query: &mut Query) {
+    /// query.add("foo", "bar");
+    /// # }
+    pub fn add(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.push([key.into(), value.into()]);
+    }
+
     /// Get a value from a key.
     /// This will return None if the key does not exist.
-    /// # Example
+    /// ## Example
     /// ```
     /// # use afire::Query;
     /// # use std::str::FromStr;
@@ -67,6 +80,18 @@ impl Query {
         self.iter_mut().find(|i| *i[0] == key).map(|i| &mut i[1])
     }
 
+    /// Adds a new key-value pair to the collection from a `[String; 2]`.
+    /// See [`Query::add`] for adding to the collection with a key and value.
+    /// ## Example
+    /// ```rust
+    /// # use afire::Query;
+    /// # fn test(query: &mut Query) {
+    /// query.add_query(["foo".to_owned(), "bar".to_owned()]);
+    /// # }
+    pub fn add_query(&mut self, query: [String; 2]) {
+        self.push(query);
+    }
+
     /// Gets the key-value pair of the specified key.
     /// If the key does not exist, this will return None.
     pub fn get_query(&self, key: impl AsRef<str>) -> Option<&[String; 2]> {
@@ -82,7 +107,7 @@ impl Query {
     }
 
     /// Create a new Query from a Form POST body
-    /// # Example
+    /// ## Example
     /// ```
     /// # use afire::Query;
     /// let query = Query::from_body("foo=bar&nose=dog");
