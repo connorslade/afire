@@ -8,9 +8,9 @@ use std::time::Duration;
 
 // Import local files
 use crate::{
-    error::Result, error::StartupError, handle::handle, internal::common::ToHostAddress,
-    thread_pool::ThreadPool, Content, Header, HeaderType, Method, Middleware, Request, Response,
-    Route, Status, VERSION,
+    error::Result, error::StartupError, handle::handle, header::Headers,
+    internal::common::ToHostAddress, thread_pool::ThreadPool, Content, Header, HeaderType, Method,
+    Middleware, Request, Response, Route, Status, VERSION,
 };
 
 type ErrorHandler<State> =
@@ -38,7 +38,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub error_handler: ErrorHandler<State>,
 
     /// Headers automatically added to every response.
-    pub default_headers: Vec<Header>,
+    pub default_headers: Headers,
 
     /// Weather to allow keep-alive connections.
     /// If this is set to false, the server will close the connection after every request.
@@ -76,7 +76,7 @@ impl<State: Send + Sync> Server<State> {
                     .content(Content::TXT)
             }),
 
-            default_headers: vec![Header::new("Server", format!("afire/{VERSION}"))],
+            default_headers: Headers(vec![Header::new("Server", format!("afire/{VERSION}"))]),
             keep_alive: true,
             socket_timeout: None,
             state: None,
