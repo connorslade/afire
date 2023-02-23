@@ -144,7 +144,7 @@ impl fmt::Display for Query {
             output.push_str(&format!("{}={}&", i[0], i[1]));
         }
         output.pop();
-        write!(f, "{}", output)
+        f.write_str(&output)
     }
 }
 

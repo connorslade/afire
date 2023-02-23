@@ -363,7 +363,7 @@ impl ResponseBody {
                         break;
                     }
 
-                    let mut section = format!("{:X}\r\n", read).as_bytes().to_vec();
+                    let mut section = format!("{read:X}\r\n").as_bytes().to_vec();
                     section.extend(&chunk[..read]);
                     section.extend(b"\r\n");
 

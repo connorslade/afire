@@ -1,7 +1,7 @@
 //! Some little functions used here and there
 
-use std::borrow::Cow;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::{borrow::Cow, net::IpAddr};
 
 use crate::error::{Result, StartupError};
 
@@ -9,30 +9,48 @@ use crate::error::{Result, StartupError};
 /// Default implementations are provided for `Ipv4Addr`, `String` and `&str`.
 pub trait ToHostAddress {
     /// Convert the type to an `Ipv4Addr`.
-    fn to_address(&self) -> Result<Ipv4Addr>;
+    fn to_address(&self) -> Result<IpAddr>;
 }
 
 impl ToHostAddress for Ipv4Addr {
-    fn to_address(&self) -> Result<Ipv4Addr> {
-        Ok(*self)
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok((*self).into())
+    }
+}
+
+impl ToHostAddress for Ipv6Addr {
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok((*self).into())
     }
 }
 
 impl ToHostAddress for [u8; 4] {
-    fn to_address(&self) -> Result<Ipv4Addr> {
-        Ok(Ipv4Addr::new(self[0], self[1], self[2], self[3]))
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(Ipv4Addr::new(self[0], self[1], self[2], self[3]).into())
+    }
+}
+
+impl ToHostAddress for [u16; 8] {
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(Ipv6Addr::from(*self).into())
+    }
+}
+
+impl ToHostAddress for [u8; 16] {
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(Ipv6Addr::from(*self).into())
     }
 }
 
 impl ToHostAddress for String {
-    fn to_address(&self) -> Result<Ipv4Addr> {
-        Ok(Ipv4Addr::from(parse_ip(self)?))
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(Ipv4Addr::from(parse_ip(self)?).into())
     }
 }
 
 impl ToHostAddress for &str {
-    fn to_address(&self) -> Result<Ipv4Addr> {
-        Ok(Ipv4Addr::from(parse_ip(self)?))
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(Ipv4Addr::from(parse_ip(self)?).into())
     }
 }
 

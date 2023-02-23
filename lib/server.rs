@@ -1,6 +1,6 @@
 // Import STD libraries
 use std::any::type_name;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
+use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
@@ -22,7 +22,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub port: u16,
 
     /// Ip address to listen on.
-    pub ip: Ipv4Addr,
+    pub ip: IpAddr,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -72,11 +72,11 @@ impl<State: Send + Sync> Server<State> {
             error_handler: Box::new(|_state, _req, err| {
                 Response::new()
                     .status(Status::InternalServerError)
-                    .text(format!("Internal Server Error :/\nError: {}", err))
+                    .text(format!("Internal Server Error :/\nError: {err}"))
                     .content(Content::TXT)
             }),
 
-            default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
+            default_headers: vec![Header::new("Server", format!("afire/{VERSION}"))],
             keep_alive: true,
             socket_timeout: None,
             state: None,
@@ -103,7 +103,7 @@ impl<State: Send + Sync> Server<State> {
         trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
         self.check()?;
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
+        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
 
         for event in listener.incoming() {
             handle(event?, self);
@@ -140,7 +140,7 @@ impl<State: Send + Sync> Server<State> {
         );
         self.check()?;
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
+        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
         let pool = ThreadPool::new(threads);
         let this = Arc::new(self);
 

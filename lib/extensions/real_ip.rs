@@ -41,8 +41,7 @@ impl RealIp for Request {
         // Otherwise return the socket address
         self.headers
             .get(header.into())
-            .map(|x| x.parse().ok())
-            .flatten()
+            .and_then(|x| x.parse().ok())
             .unwrap_or(ip)
     }
 }

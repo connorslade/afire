@@ -197,7 +197,7 @@ where
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()
                 .status(Status::NotFound)
-                .text(format!("Cannot {} {}", method, path))
+                .text(format!("Cannot {method} {path}"))
                 .content(Content::TXT),
             HandleError::Panic(r, e) => {
                 (server.error_handler)(server.state.clone(), r, e.to_owned())

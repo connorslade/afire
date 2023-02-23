@@ -8,6 +8,8 @@ Coming Soon
 - More built-in encoding systems (base64 & sha-1)
 - Multipart request parsing
 - CookieJar struct for holding Cookies in the request
+- RealIp extention
+- Allow serving an IPv6 addrs
 
 # 2.0.0
 
