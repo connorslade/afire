@@ -75,10 +75,12 @@ pub mod extension {
     //! | [`RateLimiter`] | Limit how many requests can be handled from a source. |
     //! | [`Logger`]      | Log incoming requests to the console / file.          |
     //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
+    //! | [`RealIp`]      | Get the real IP of a client through a reverse proxy   |
     pub use crate::extensions::{
         date::{self, Date},
         logger::{self, Logger},
         ratelimit::RateLimiter,
+        real_ip::RealIp,
         request_id::RequestId,
         serve_static::{self, ServeStatic},
     };

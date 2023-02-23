@@ -58,7 +58,7 @@ fn main() {
     server.route(Method::GET, "/ws", |req| {
         let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap().to_owned();
         trace!("WS Key: {}", ws_key);
-        let accept = base64::encode(&sha1::hash((ws_key.clone() + WS_GUID).as_bytes()));
+        let accept = base64::encode(&sha1::hash((ws_key + WS_GUID).as_bytes()));
         trace!("WS Accept: {}", accept);
 
         let mut upgrade = Response::new()
