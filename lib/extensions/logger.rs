@@ -137,7 +137,7 @@ impl Logger {
                     query = query[0..query.len() - 2].to_string()
                 }
 
-                let mut new_path = req.path.clone();
+                let mut new_path = req.path.to_owned();
                 if new_path.is_empty() {
                     new_path = "/".to_string();
                 }

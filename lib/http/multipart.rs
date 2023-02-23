@@ -74,14 +74,15 @@ impl<'a> TryFrom<&'a Request> for MultipartData<'a> {
         let content_type = req
             .headers
             .get_header("Content-Type")
-            .ok_or(MultipartError::InvalidContentType)?;
+            .ok_or(MultipartError::InvalidContentType)?
+            .params();
 
         let body_type = &content_type.value;
         let boundary = content_type
-            .get_param("boundary")
+            .get("boundary")
             .ok_or(MultipartError::InvalidBoundary)?;
 
-        if body_type != "multipart/form-data" {
+        if *body_type != "multipart/form-data" {
             return Err(MultipartError::InvalidContentType);
         }
 
@@ -138,16 +139,17 @@ impl<'a> TryFrom<&'a [u8]> for MultipartEntry<'a> {
         let content = headers
             .get_header("Content-Disposition")
             .ok_or(MultipartError::InvalidEntry)?;
+        let content_params = content.params();
 
         Ok(Self {
-            name: content
-                .get_param("name")
+            name: content_params
+                .get("name")
                 .ok_or(MultipartError::InvalidEntry)?
                 .strip_prefix('"')
                 .and_then(|x| x.strip_suffix('"'))
                 .ok_or(MultipartError::InvalidEntry)?
                 .to_string(),
-            filename: content.get_param("filename").map(|x| x.to_string()),
+            filename: content_params.get("filename").map(|x| x.to_string()),
             headers,
             data,
         })

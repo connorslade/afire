@@ -1,6 +1,8 @@
 use std::{
+    collections::HashMap,
     convert::TryFrom,
     fs::{self, File},
+    time::Instant,
 };
 
 use afire::{
@@ -52,6 +54,41 @@ fn main() {
         Response::new().bytes(entry.data).content(Content::Custom(
             entry.headers.get(HeaderType::ContentType).unwrap(),
         ))
+    });
+
+    server.route(Method::GET, "/header-stat", |req| {
+        let headers = req.headers.to_vec();
+        let mut head_map = HashMap::new();
+
+        for i in headers.iter() {
+            head_map.insert(i.name.clone(), i);
+        }
+
+        let mut res = String::new();
+        let start = Instant::now();
+        for _ in 0..100000 {
+            head_map.get(&HeaderType::UserAgent).unwrap();
+        }
+        let end = Instant::now();
+        res.push_str(&format!(
+            "HashMap: {}ns\n",
+            end.duration_since(start).as_nanos()
+        ));
+
+        let start = Instant::now();
+        for _ in 0..100000 {
+            headers
+                .iter()
+                .find(|i| i.name == HeaderType::UserAgent)
+                .unwrap();
+        }
+        let end = Instant::now();
+        res.push_str(&format!(
+            "Vec:     {}ns",
+            end.duration_since(start).as_nanos()
+        ));
+
+        Response::new().text(res)
     });
 
     const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";

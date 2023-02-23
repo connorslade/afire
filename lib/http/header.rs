@@ -15,9 +15,27 @@ pub struct Header {
     pub name: HeaderType,
     /// Value of the Header
     pub value: String,
-    /// Parameters of the Header.
-    /// For example, the `charset` parameter in `Content-Type: text/html; charset=utf-8`.
-    pub params: Vec<(String, String)>,
+}
+
+/// Parameters for a header.
+/// For example, the `charset` parameter in `Content-Type: text/html; charset=utf-8`.
+/// ## Example
+/// ```rust
+/// # use afire::{Method, Server, Response, HeaderType};
+/// # fn test(server: &mut Server) {
+/// server.route(Method::GET, "/", |req| {
+///     let header = req.headers.get_header(HeaderType::ContentType).unwrap();
+///     let params = header.params();
+///     let charset = params.get("charset").unwrap();
+///     Response::new().text(format!("Charset: {}", charset))
+/// });
+/// # }
+/// ```
+pub struct HeaderParams<'a> {
+    /// The value of the header.
+    pub value: &'a str,
+    /// The parameters of the header.
+    params: Vec<[&'a str; 2]>,
 }
 
 /// Collection of headers.
@@ -39,7 +57,6 @@ impl Header {
         Header {
             name: name.into(),
             value: value.as_ref().to_owned(),
-            params: Vec::new(),
         }
     }
 
@@ -60,84 +77,68 @@ impl Header {
             return Err(ParseError::InvalidHeader.into());
         }
 
-        let name = match split_header.next() {
-            Some(i) => i.trim().to_string(),
-            None => return Err(ParseError::InvalidHeader.into()),
-        };
+        let name = split_header
+            .next()
+            .ok_or(ParseError::InvalidHeader)?
+            .trim()
+            .into();
+        let value = split_header
+            .next()
+            .ok_or(ParseError::InvalidHeader)?
+            .trim()
+            .into();
 
-        let value = match split_header.next() {
-            Some(i) => i.trim().to_string(),
-            None => return Err(ParseError::InvalidHeader.into()),
-        };
+        Ok(Header { name, value })
+    }
 
-        let parts = value.split(';').collect::<Vec<_>>();
+    /// Get the parameters of the header.
+    pub fn params(&self) -> HeaderParams {
+        HeaderParams::new(self.value.as_str())
+    }
+}
+
+impl<'a> HeaderParams<'a> {
+    fn new(value: &'a str) -> Self {
         let mut params = Vec::new();
 
-        for i in parts.iter().skip(1) {
+        let mut parts = value.split(';');
+        let value = parts.next().unwrap_or_default();
+
+        for i in parts {
             let split = i.splitn(2, '=').collect::<Vec<_>>();
             if split.len() != 2 {
-                return Err(ParseError::InvalidHeader.into());
+                break;
             }
 
-            let key = split
-                .first()
-                .ok_or(ParseError::InvalidHeader)?
-                .trim()
-                .to_string();
-            let value = split
-                .get(1)
-                .ok_or(ParseError::InvalidHeader)?
-                .trim()
-                .to_string();
+            let key = match split.first() {
+                Some(key) => key.trim(),
+                None => break,
+            };
+            let value = match split.get(1) {
+                Some(value) => value.trim(),
+                None => break,
+            };
 
-            params.push((key, value));
+            params.push([key, value]);
         }
 
-        Ok(Header {
-            name: name.into(),
-            value: parts[0].to_string(),
-            params,
-        })
+        Self { value, params }
+    }
+
+    /// Checks if the header has the specified parameter.
+    pub fn has(&self, name: impl AsRef<str>) -> bool {
+        let name = name.as_ref();
+        self.params.iter().any(|[key, _]| key == &name)
     }
 
     /// Gets the value of the specified parameter, returning `None` if it is not present.
     /// A parameter is a key-value pair that is separated by a semicolon and a space.
-    /// Example: `Content-Type: text/html; charset=utf-8`, where `charset` is the parameter.
-    pub fn get_param(&self, name: impl AsRef<str>) -> Option<&String> {
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&str> {
         let name = name.as_ref();
         self.params
             .iter()
-            .find(|(key, _)| key == name)
-            .map(|(_, value)| value)
-    }
-
-    /// Just like [`Header::get_param`], but returns a mutable reference.
-    pub fn get_param_mut(&mut self, name: impl AsRef<str>) -> Option<&mut String> {
-        let name = name.as_ref();
-        self.params
-            .iter_mut()
-            .find(|(key, _)| key == name)
-            .map(|(_, value)| value)
-    }
-
-    /// Adds a parameter to the header.
-    /// A parameter is a key-value pair that is separated by a semicolon and a space.
-    /// Example: `Content-Type: text/html; charset=utf-8`, where `charset` is the parameter.
-    /// ## Example
-    /// ```rust
-    /// # use afire::Header;
-    /// let header = Header::new("Content-Type", "text/html")
-    ///    .param("charset", "utf-8");
-    /// ```
-    pub fn param(self, name: impl AsRef<str>, value: impl AsRef<str>) -> Self {
-        let mut params = self.params;
-        params.push((name.as_ref().to_string(), value.as_ref().to_string()));
-
-        Self {
-            name: self.name,
-            value: self.value,
-            params,
-        }
+            .find(|[key, _]| key == &name)
+            .map(|[_, value]| *value)
     }
 }
 
@@ -152,6 +153,20 @@ impl Deref for Headers {
 impl DerefMut for Headers {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<'a> Deref for HeaderParams<'a> {
+    type Target = Vec<[&'a str; 2]>;
+
+    fn deref(&self) -> &Self::Target {
+        self.params.as_ref()
+    }
+}
+
+impl<'a> DerefMut for HeaderParams<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.params.as_mut()
     }
 }
 

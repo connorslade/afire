@@ -11,6 +11,7 @@ Coming Soon
 - RealIp extension
 - Allow serving an IPv6 addr
 - Use a `Headers` struct to hold default headers
+- Added a HeaderParams struct
 
 # 2.0.0
 
