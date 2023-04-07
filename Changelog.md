@@ -14,6 +14,7 @@ Coming Soon
 - Added a HeaderParams struct
 - Impl ToHostAddress for &String
 - Add Server::app to get a reference to the app
+- Increase ServeStatic compatibility with other middleware
 
 # 2.0.0
 
