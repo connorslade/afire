@@ -6,7 +6,7 @@ use std::{borrow::Cow, net::IpAddr};
 use crate::error::{Result, StartupError};
 
 /// Trait used to accept multiple types for the address of a server.
-/// Default implementations are provided for `Ipv4Addr`, `String` and `&str`.
+/// Default implementations are provided for `Ipv4Addr`, `String`, `&String` and `&str`.
 pub trait ToHostAddress {
     /// Convert the type to an `Ipv4Addr`.
     fn to_address(&self) -> Result<IpAddr>;
@@ -43,6 +43,12 @@ impl ToHostAddress for [u8; 16] {
 }
 
 impl ToHostAddress for String {
+    fn to_address(&self) -> Result<IpAddr> {
+        Ok(Ipv4Addr::from(parse_ip(self)?).into())
+    }
+}
+
+impl ToHostAddress for &String {
     fn to_address(&self) -> Result<IpAddr> {
         Ok(Ipv4Addr::from(parse_ip(self)?).into())
     }
