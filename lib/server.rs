@@ -333,6 +333,21 @@ impl<State: Send + Sync> Server<State> {
         self
     }
 
+    /// Gets a reference to the current server state set outside of stateful routes.
+    /// Will <u>panic</u> if the server has no state.
+    /// ## Example
+    /// ```rust
+    /// # use afire::{Server, Response, Header, Method};
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<u32>::new("localhost", 8080).state(101);
+    ///
+    /// // Get its state and assert it is 101
+    /// assert_eq!(*server.app(), 101);
+    /// ```
+    pub fn app(&self) -> Arc<State> {
+        self.state.as_ref().unwrap().clone()
+    }
+
     fn check(&self) -> Result<()> {
         if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
             return Err(StartupError::NoState.into());
