@@ -6,6 +6,7 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::trace::emoji;
 // Import local files
 use crate::{
     error::Result, error::StartupError, handle::handle, header::Headers,
@@ -62,7 +63,7 @@ impl<State: Send + Sync> Server<State> {
     /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
     pub fn new(raw_ip: impl ToHostAddress, port: u16) -> Self {
-        trace!("🐍 Initializing Server v{}", VERSION);
+        trace!("{}Initializing Server v{}", emoji("🐍"), VERSION);
         Server {
             port,
             ip: raw_ip.to_address().unwrap(),
@@ -100,7 +101,7 @@ impl<State: Send + Sync> Server<State> {
     /// server.start().unwrap();
     /// ```
     pub fn start(&self) -> Result<()> {
-        trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
+        trace!("{}Starting Server [{}:{}]", emoji("✨"), self.ip, self.port);
         self.check()?;
 
         let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
@@ -133,7 +134,8 @@ impl<State: Send + Sync> Server<State> {
     /// ```
     pub fn start_threaded(self, threads: usize) -> Result<()> {
         trace!(
-            "✨ Starting Server [{}:{}] ({} threads)",
+            "{}Starting Server [{}:{}] ({} threads)",
+            emoji("✨"),
             self.ip,
             self.port,
             threads
@@ -168,7 +170,7 @@ impl<State: Send + Sync> Server<State> {
     pub fn default_header(self, key: impl Into<HeaderType>, value: impl AsRef<str>) -> Self {
         let mut headers = self.default_headers;
         let header = Header::new(key, value);
-        trace!("😀 Adding Server Header ({})", header);
+        trace!("{}Adding Server Header ({})", emoji("😀"), header);
         headers.push(header);
 
         Server {
@@ -191,7 +193,11 @@ impl<State: Send + Sync> Server<State> {
     ///     .socket_timeout(Duration::from_secs(5));
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Self {
-        trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
+        trace!(
+            "{}Setting Socket timeout to {:?}",
+            emoji("⏳"),
+            socket_timeout
+        );
 
         Server {
             socket_timeout: Some(socket_timeout),
@@ -212,7 +218,7 @@ impl<State: Send + Sync> Server<State> {
     ///     .keep_alive(false);
     /// ```
     pub fn keep_alive(self, keep_alive: bool) -> Self {
-        trace!("🔁 Setting Keep Alive to {}", keep_alive);
+        trace!("{}Setting Keep Alive to {}", emoji("🔁"), keep_alive);
 
         Server { keep_alive, ..self }
     }
@@ -237,7 +243,11 @@ impl<State: Send + Sync> Server<State> {
     /// });
     /// ```
     pub fn state(self, state: State) -> Self {
-        trace!("📦️ Setting Server State [{}]", type_name::<State>());
+        trace!(
+            "{}Setting Server State [{}]",
+            emoji("📦️"),
+            type_name::<State>()
+        );
 
         Self {
             state: Some(Arc::new(state)),
@@ -267,7 +277,7 @@ impl<State: Send + Sync> Server<State> {
             + Sync
             + 'static,
     ) {
-        trace!("✌ Setting Error Handler");
+        trace!("{}Setting Error Handler", emoji("✌"));
 
         self.error_handler = Box::new(res);
     }
@@ -295,7 +305,7 @@ impl<State: Send + Sync> Server<State> {
         handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
-        trace!("🚗 Adding Route {} {}", method, path);
+        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
@@ -326,7 +336,7 @@ impl<State: Send + Sync> Server<State> {
         handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
-        trace!("🚗 Adding Route {} {}", method, path);
+        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
 
         self.routes
             .push(Route::new_stateful(method, path, Box::new(handler)));

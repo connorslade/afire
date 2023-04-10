@@ -88,6 +88,13 @@ pub fn _trace(level: Level, str: String) {
     DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), str);
 }
 
+pub(crate) fn emoji(emoji: &str) -> String {
+    #[cfg(feature = "emoji-logging")]
+    return emoji.to_owned() + " ";
+    #[cfg(not(feature = "emoji-logging"))]
+    String::new()
+}
+
 /// Simple logging system.
 /// See [`mod@crate::trace`] for more information.
 ///

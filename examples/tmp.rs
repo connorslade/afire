@@ -10,8 +10,9 @@ use afire::{
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
-    trace::{set_log_formatter, set_log_level, Formatter, Level},
     trace,
+    trace::DefaultFormatter,
+    trace::{set_log_formatter, set_log_level, Formatter, Level},
 };
 
 // File to download
@@ -145,6 +146,6 @@ struct LogFormatter;
 
 impl Formatter for LogFormatter {
     fn format(&self, level: Level, color: bool, msg: String) {
-        println!("{} {}", level.as_str(), msg);
+        DefaultFormatter.format(level, color, msg);
     }
 }
