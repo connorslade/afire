@@ -6,13 +6,12 @@ use std::{
 };
 
 use afire::{
-    extension::Date,
-    extension::Logger,
+    extension::{Date, Logger},
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
+    trace::{set_log_formatter, set_log_level, Formatter, Level},
     trace,
-    trace::{set_log_level, Level},
 };
 
 // File to download
@@ -21,6 +20,7 @@ const PATH: &str = r#"..."#;
 fn main() {
     let mut server = Server::<()>::new("localhost", 8080);
     set_log_level(Level::Debug);
+    set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
 
     server.route(Method::POST, "/upload", |req| {
@@ -138,5 +138,13 @@ impl Middleware for Test {
         if req.path.contains("hello") {
             println!("End: {}", req.path);
         }
+    }
+}
+
+struct LogFormatter;
+
+impl Formatter for LogFormatter {
+    fn format(&self, level: Level, color: bool, msg: String) {
+        println!("{} {}", level.as_str(), msg);
     }
 }
