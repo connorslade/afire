@@ -1,16 +1,23 @@
 //! Basic built-in logging system
 
-use std::sync::{
-    atomic::{AtomicBool, AtomicU8, Ordering},
-    RwLock,
+use std::{
+    fmt::{self, Display},
+    sync::{
+        atomic::{AtomicBool, AtomicU8, Ordering},
+        RwLock,
+    },
 };
 
 /// afire's global log level.
 static LEVEL: AtomicU8 = AtomicU8::new(1);
 /// Whether or not to colorize the log output.
 static COLOR: AtomicBool = AtomicBool::new(true);
-// static FORMATTER: RwLock<Option<Box<dyn Formatter + Send + Sync + 'static>>> = RwLock::new(None);
+/// The global log formatter.
+/// Will use [`DefaultFormatter`] if none is set.
 static FORMATTER: RwLock<Option<Box<dyn Formatter + Send + Sync + 'static>>> = RwLock::new(None);
+/// Whether or not a formatter has been set.
+/// Used because loading a bool is faster than a RwLock.
+static FORMATTER_PRESENT: AtomicBool = AtomicBool::new(false);
 
 /// Log levels.
 /// Used to control the verbosity of afire's internal logging.
@@ -41,13 +48,19 @@ impl Level {
     }
 
     /// Gets the ansi color code for the log level.
-    /// By default, this is used to colorize the log output if [`COLOR`] is enabled.
+    /// By default, this is used to colorize the log output if color is enabled.
     pub fn get_color(&self) -> &'static str {
         match self {
             Level::Trace | Level::Off => "\x1b[0m",
             Level::Error => "\x1b[31m",
             Level::Debug => "\x1b[36m",
         }
+    }
+}
+
+impl Display for Level {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -67,6 +80,7 @@ pub fn set_log_color(color: bool) {
 /// This can be used to redirect afire's log output to a file, or to another logging system.
 /// By default, afire will use a simple formatter that prints to stdout.
 pub fn set_log_formatter(formatter: impl Formatter + Send + Sync + 'static) {
+    FORMATTER_PRESENT.store(true, Ordering::Relaxed);
     *FORMATTER.write().unwrap() = Some(Box::new(formatter));
 }
 
@@ -79,10 +93,12 @@ pub fn _trace(level: Level, str: String) {
         return;
     }
 
-    let formatter = FORMATTER.read().unwrap();
-    if let Some(formatter) = &*formatter {
-        formatter.format(level, COLOR.load(Ordering::Relaxed), str);
-        return;
+    if FORMATTER_PRESENT.load(Ordering::Relaxed) {
+        let formatter = FORMATTER.read().unwrap();
+        if let Some(formatter) = &*formatter {
+            formatter.format(level, COLOR.load(Ordering::Relaxed), str);
+            return;
+        }
     }
 
     DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), str);

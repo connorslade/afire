@@ -45,8 +45,8 @@ pub struct Headers(pub(crate) Vec<Header>);
 
 impl Header {
     /// Make a new header from a name and a value.
-    /// The name must implement Into<HeaderType>, so it can be a string or a [`HeaderType`].
-    /// The value can be anything that implements AsRef<str>, including a String, or &str.
+    /// The name must implement `Into<HeaderType>`, so it can be a string or a [`HeaderType`].
+    /// The value can be anything that implements `AsRef<str>`, including a String, or &str.
     /// ## Example
     /// ```rust
     /// # use afire::Header;
