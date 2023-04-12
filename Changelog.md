@@ -15,6 +15,9 @@ Coming Soon
 - Impl ToHostAddress for &String
 - Add Server::app to get a reference to the app
 - Increase ServeStatic compatibility with other middleware
+- Custom log formatter support
+- Optional emoji in logging
+- Fix the Display impl on Query
 
 # 2.0.0
 
