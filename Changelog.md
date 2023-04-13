@@ -18,6 +18,7 @@ Coming Soon
 - Custom log formatter support
 - Optional emoji in logging
 - Fix the Display impl on Query
+- Add body_str method to Request
 
 # 2.0.0
 
