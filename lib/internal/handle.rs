@@ -51,7 +51,7 @@ where
         }
 
         if let Err(e) = res.write(stream.clone(), &this.default_headers) {
-            trace!(Level::Error, "Error writing to socket: {:?}", e);
+            trace!(Level::Debug, "Error writing to socket: {:?}", e);
         }
 
         // End Middleware
@@ -66,7 +66,7 @@ where
         if !keep_alive || res.flag == ResponseFlag::Close || !this.keep_alive {
             trace!(Level::Debug, "Closing socket");
             if let Err(e) = stream.lock().unwrap().shutdown(Shutdown::Both) {
-                trace!(Level::Error, "Error closing socket: {:?}", e);
+                trace!(Level::Debug, "Error closing socket: {:?}", e);
             }
             break;
         }

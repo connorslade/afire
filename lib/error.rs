@@ -95,8 +95,7 @@ pub enum StreamError {
 impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // TODO: probally a better way to do this
-        f.write_str(&format!("{:?}", self))
+        f.write_fmt(format_args!("{self:?}"))
     }
 }
 
