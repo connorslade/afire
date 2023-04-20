@@ -1,6 +1,11 @@
 //! Errors that can occur in the process of connecting to clients, parsing HTTP and handling requests.
 
-use std::{rc::Rc, result};
+use std::{
+    error,
+    fmt::{self, Display, Formatter},
+    rc::Rc,
+    result,
+};
 
 use crate::{Method, Request};
 
@@ -85,6 +90,14 @@ pub enum ParseError {
 pub enum StreamError {
     /// The stream ended unexpectedly
     UnexpectedEof,
+}
+
+impl error::Error for Error {}
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // TODO: probally a better way to do this
+        f.write_str(&format!("{:?}", self))
+    }
 }
 
 impl From<StartupError> for Error {
