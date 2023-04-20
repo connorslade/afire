@@ -160,7 +160,7 @@ impl Logger {
                 }
 
                 self.send_log(format!(
-                    "[{}] {} {}?{}",
+                    "[{}] {} {}{}",
                     req.address.ip(),
                     req.method,
                     new_path,

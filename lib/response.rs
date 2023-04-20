@@ -20,7 +20,7 @@ pub struct Response {
     pub status: Status,
 
     /// Response Data.
-    /// Can be either a Static Vec<u8> or a Stream (impl [`Read`])
+    /// Can be either a Static `Vec<u8>` or a Stream (impl [`Read`])
     pub data: ResponseBody,
 
     /// List of response headers.
@@ -172,7 +172,7 @@ impl Response {
     }
 
     /// Add a Header to a Response.
-    /// Will accept any type that implements AsRef<str>, so [`String`], [`str`], [`&str`], etc.
+    /// Will accept any type that implements `AsRef<str>`, so [`String`], [`str`], [`&str`], etc.
     /// ## Example
     /// ```rust
     /// # use afire::{Response, Header};

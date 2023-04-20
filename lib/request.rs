@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     cell::RefCell,
     fmt::Debug,
     io::{BufRead, BufReader, Read},
@@ -54,6 +55,49 @@ pub struct Request {
 }
 
 impl Request {
+    pub(crate) fn keep_alive(&self) -> bool {
+        self.headers
+            .get(HeaderType::Connection)
+            .map(|i| i.to_lowercase() == "keep-alive")
+            .unwrap_or(false)
+    }
+
+    /// Get a path parameter by its name.
+    ///
+    /// ## Example
+    /// ```rust
+    /// # use afire::{Request, Response, Header, Method, Server, Content};
+    /// # let mut server = Server::<()>::new("localhost", 8080);
+    /// server.route(Method::GET, "/greet/{name}", |req| {
+    ///     // Get name Path param
+    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
+    ///     let name = req.param("name").unwrap();
+    ///
+    ///     // Format a nice message
+    ///     let message = format!("Hello, {}", name);
+    ///
+    ///     // Send Response
+    ///     Response::new()
+    ///         .text(message)
+    ///         .content(Content::TXT)
+    /// });
+    /// ```
+    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
+        let name = name.as_ref().to_owned();
+        self.path_params
+            .borrow()
+            .iter()
+            .find(|x| x.0 == name)
+            .map(|i| i.1.to_owned())
+    }
+
+    /// Gets the body of the request as a string.
+    /// This uses the [`String::from_utf8_lossy`] method, so it will replace invalid UTF-8 characters with the unicode replacement character (�).
+    /// If you want to use a different encoding or handle invalid characters, use a string method on the body field.
+    pub fn body_str(&self) -> Cow<'_, str> {
+        String::from_utf8_lossy(&self.body)
+    }
+
     /// Read a request from a TcpStream.
     pub(crate) fn from_socket(raw_stream: Rc<Mutex<TcpStream>>) -> Result<Self> {
         let stream = raw_stream.lock().unwrap();
@@ -115,42 +159,6 @@ impl Request {
             address: peer_addr,
             socket: raw_stream,
         })
-    }
-
-    pub(crate) fn keep_alive(&self) -> bool {
-        self.headers
-            .get(HeaderType::Connection)
-            .map(|i| i.to_lowercase() == "keep-alive")
-            .unwrap_or(false)
-    }
-
-    /// Get a path parameter by its name.
-    ///
-    /// ## Example
-    /// ```rust
-    /// # use afire::{Request, Response, Header, Method, Server, Content};
-    /// # let mut server = Server::<()>::new("localhost", 8080);
-    /// server.route(Method::GET, "/greet/{name}", |req| {
-    ///     // Get name Path param
-    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
-    ///     let name = req.param("name").unwrap();
-    ///
-    ///     // Format a nice message
-    ///     let message = format!("Hello, {}", name);
-    ///
-    ///     // Send Response
-    ///     Response::new()
-    ///         .text(message)
-    ///         .content(Content::TXT)
-    /// });
-    /// ```
-    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
-        let name = name.as_ref().to_owned();
-        self.path_params
-            .borrow()
-            .iter()
-            .find(|x| x.0 == name)
-            .map(|i| i.1.to_owned())
     }
 }
 

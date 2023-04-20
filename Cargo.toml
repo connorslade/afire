@@ -19,8 +19,9 @@ name = "afire"
 path = "lib/lib.rs"
 
 [features]
-default = ["tracing"]
+default = ["tracing", "emoji-logging"]
 
+emoji-logging = []
 extensions = []
 tracing = []
 

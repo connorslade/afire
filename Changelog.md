@@ -12,6 +12,13 @@ Coming Soon
 - Allow serving an IPv6 addr
 - Use a `Headers` struct to hold default headers
 - Added a HeaderParams struct
+- Impl ToHostAddress for &String
+- Add Server::app to get a reference to the app
+- Increase ServeStatic compatibility with other middleware
+- Custom log formatter support
+- Optional emoji in logging
+- Fix the Display impl on Query
+- Add body_str method to Request
 
 # 2.0.0
 

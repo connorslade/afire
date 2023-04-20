@@ -58,12 +58,13 @@ impl Middleware for ServeStatic {
             return MiddleResult::Continue;
         }
 
-        let mut res = process_req(req.clone(), self);
+        let mut new_res = process_req(req.clone(), self);
         for i in self.middleware.iter().rev() {
-            i(req.clone(), &mut res.0, &mut res.1);
+            i(req.clone(), &mut new_res.0, &mut new_res.1);
         }
 
-        MiddleResult::Send(res.0)
+        *res = Ok(new_res.0);
+        MiddleResult::Continue
     }
 }
 

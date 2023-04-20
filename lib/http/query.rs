@@ -139,8 +139,12 @@ impl Query {
 // Implement fmt::Display for Query
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_empty() {
+            return f.write_str("");
+        }
+
         let mut output = String::from("?");
-        for i in self.0.clone() {
+        for i in &self.0 {
             output.push_str(&format!("{}={}&", i[0], i[1]));
         }
         output.pop();
