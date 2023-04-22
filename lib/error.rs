@@ -9,7 +9,7 @@ use std::{
 
 use crate::{Method, Request};
 
-/// Easy way to use a Result<T, Error>
+/// Easy way to use a Result<T, [`afire::Error`]>
 pub type Result<T> = result::Result<T, Error>;
 
 /// Errors that can occur at startup or in the process of connecting to clients, parsing HTTP and handling requests.
@@ -95,7 +95,64 @@ pub enum StreamError {
 impl error::Error for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{self:?}"))
+        match self {
+            Error::Handle(e) => fmt::Display::fmt(e, f),
+            Error::Startup(e) => fmt::Display::fmt(e, f),
+            Error::Stream(e) => fmt::Display::fmt(e, f),
+            Error::Parse(e) => fmt::Display::fmt(e, f),
+            Error::Io(e) => f.write_str(e),
+            Error::None => f.write_str("None"),
+        }
+    }
+}
+
+impl Display for HandleError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            HandleError::NotFound(method, path) => {
+                f.write_fmt(format_args!("No route found at {method} {path}"))
+            }
+            HandleError::Panic(_req, err) => {
+                f.write_fmt(format_args!("Route handler panicked: {err}"))
+            }
+        }
+    }
+}
+
+impl Display for StartupError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            StartupError::InvalidIp => "The IP address specified is invalid",
+            StartupError::NoState => "No state was specified, but a route requires it",
+            StartupError::InvalidSocketTimeout => {
+                "The socket timeout specified is invalid (must be greater than 0)"
+            }
+        })
+    }
+}
+
+impl Display for StreamError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            StreamError::UnexpectedEof => "The stream ended unexpectedly",
+        })
+    }
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ParseError::NoSeparator => {
+                r"No `\r\n\r\n` found in request to separate metadata from body"
+            }
+            ParseError::NoMethod => "No Method found in request HTTP",
+            ParseError::NoPath => "No Path found in request HTTP",
+            ParseError::NoVersion => "No Version found in request HTTP",
+            ParseError::NoRequestLine => "No Request Line found in HTTP",
+            ParseError::InvalidQuery => "Invalid Query in Path",
+            ParseError::InvalidMethod => "Invalid Method in Request HTTP",
+            ParseError::InvalidHeader => "Invalid Header in Request HTTP",
+        })
     }
 }
 
