@@ -19,6 +19,9 @@ Coming Soon
 - Optional emoji in logging
 - Fix the Display impl on Query
 - Add body_str method to Request
+- Impl std::error::Error for afire::Error
+- Impl Display for error types
+- Don't execute format on lower log-levels
 
 # 2.0.0
 
@@ -133,7 +136,7 @@ Feb 19, 2022
 
 # 0.3.0
 
-Jan 25, 2022 s
+Jan 25, 2022
 
 - Add content types
 - Update Logger syntax

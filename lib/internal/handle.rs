@@ -40,7 +40,13 @@ where
 
         if let Ok(req) = &req {
             keep_alive = req.keep_alive();
-            trace!(Level::Debug, "{} {} {}", req.method, req.path, keep_alive);
+            trace!(
+                Level::Debug,
+                "{} {} {{ keep_alive: {} }}",
+                req.method,
+                req.path,
+                keep_alive
+            );
         }
 
         let (req, mut res) = get_response(req, this);

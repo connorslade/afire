@@ -2,6 +2,8 @@ use std::{
     collections::HashMap,
     convert::TryFrom,
     fs::{self, File},
+    io::{self, Read},
+    sync::Arc,
     time::Instant,
 };
 
@@ -55,6 +57,16 @@ fn main() {
         Response::new().bytes(entry.data).content(Content::Custom(
             entry.headers.get(HeaderType::ContentType).unwrap(),
         ))
+    });
+
+    // No-copy file echo
+    server.route(Method::POST, "/raw-upload", |req| {
+        let body = req.body.clone();
+        Response::new()
+            .stream(Cursor::new(body))
+            .content(Content::Custom(
+                req.headers.get(HeaderType::ContentType).unwrap(),
+            ))
     });
 
     server.route(Method::GET, "/header-stat", |req| {
@@ -147,5 +159,29 @@ struct LogFormatter;
 impl Formatter for LogFormatter {
     fn format(&self, level: Level, color: bool, msg: String) {
         DefaultFormatter.format(level, color, msg);
+    }
+}
+
+struct Cursor {
+    inner: Arc<Vec<u8>>,
+    index: u64,
+}
+
+impl Cursor {
+    fn new(inner: Arc<Vec<u8>>) -> Self {
+        Self { inner, index: 0 }
+    }
+
+    fn remaining_slice(&self) -> &[u8] {
+        let len = self.index.min(self.inner.as_ref().len() as u64);
+        &self.inner.as_ref()[(len as usize)..]
+    }
+}
+
+impl Read for Cursor {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let n = Read::read(&mut self.remaining_slice(), buf)?;
+        self.index += n as u64;
+        Ok(n)
     }
 }

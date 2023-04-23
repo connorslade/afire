@@ -6,12 +6,11 @@ use std::str;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::trace::emoji;
 // Import local files
 use crate::{
     error::Result, error::StartupError, handle::handle, header::Headers,
-    internal::common::ToHostAddress, thread_pool::ThreadPool, Content, Header, HeaderType, Method,
-    Middleware, Request, Response, Route, Status, VERSION,
+    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Header,
+    HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
 };
 
 type ErrorHandler<State> =

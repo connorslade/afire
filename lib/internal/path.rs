@@ -49,6 +49,10 @@ impl Path {
 
     /// Match Path, returns None if it doesn't match and the path params if it does
     pub fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
+        if self.parts == [PathPart::AnyAfter] {
+            return Some(Vec::new());
+        }
+
         let path = normalize_path(path);
         let mut out = Vec::new();
 

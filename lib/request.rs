@@ -6,7 +6,7 @@ use std::{
     net::{SocketAddr, TcpStream},
     rc::Rc,
     str::FromStr,
-    sync::Mutex,
+    sync::{Mutex, Arc},
 };
 
 use crate::{
@@ -44,7 +44,7 @@ pub struct Request {
     pub cookies: CookieJar,
 
     /// Request body, as a static byte vec.
-    pub body: Vec<u8>,
+    pub body: Arc<Vec<u8>>,
 
     /// Client socket address.
     /// If you are using a reverse proxy, this will be the address of the proxy (often localhost).
@@ -155,7 +155,7 @@ impl Request {
             query,
             headers: Headers(headers),
             cookies: CookieJar(cookies),
-            body,
+            body: Arc::new(body),
             address: peer_addr,
             socket: raw_stream,
         })
