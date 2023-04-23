@@ -1,7 +1,7 @@
 //! Basic built-in logging system
 
 use std::{
-    fmt::{self, Display},
+    fmt::{self, Arguments, Display},
     sync::{
         atomic::{AtomicBool, AtomicU8, Ordering},
         RwLock,
@@ -60,7 +60,7 @@ impl Level {
 
 impl Display for Level {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        f.write_str(self.as_str())
     }
 }
 
@@ -87,21 +87,22 @@ pub fn set_log_formatter(formatter: impl Formatter + Send + Sync + 'static) {
 /// Logs a message at the specified log level.
 /// Hidden from the docs, as it is only intended for internal use through the [`trace!`] macro.
 #[doc(hidden)]
-pub fn _trace(level: Level, str: String) {
+pub fn _trace(level: Level, fmt: Arguments) {
     let log_level = LEVEL.load(Ordering::Relaxed);
     if level as u8 > log_level {
         return;
     }
 
+    let msg = fmt.to_string();
     if FORMATTER_PRESENT.load(Ordering::Relaxed) {
         let formatter = FORMATTER.read().unwrap();
         if let Some(formatter) = &*formatter {
-            formatter.format(level, COLOR.load(Ordering::Relaxed), str);
+            formatter.format(level, COLOR.load(Ordering::Relaxed), msg);
             return;
         }
     }
 
-    DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), str);
+    DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), msg);
 }
 
 pub(crate) fn emoji(emoji: &str) -> String {
@@ -119,11 +120,11 @@ pub(crate) fn emoji(emoji: &str) -> String {
 macro_rules! trace {
     (Level::$level: ident, $($arg: tt) *) => {
         #[cfg(feature = "tracing")]
-        $crate::trace::_trace($crate::trace::Level::$level, format!($($arg)+));
+        $crate::trace::_trace($crate::trace::Level::$level, format_args!($($arg)+));
     };
     ($($arg : tt) +) => {
         #[cfg(feature = "tracing")]
-        $crate::trace::_trace($crate::trace::Level::Trace, format!($($arg)+));
+        $crate::trace::_trace($crate::trace::Level::Trace, format_args!($($arg)+));
     };
 }
 
