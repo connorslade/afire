@@ -17,7 +17,7 @@ afire is a simple synchronous multithreaded express.js inspired rust web micro f
 wow that was long.
 It comes with some built extensions in for Static File Serving, Rate limiting, and more.
 
-Below you can fine links to some afire related resources.
+Below you can find links to some afire related resources.
 
 - [Homepage](https://connorcode.com/writing/afire)
 - [Crates.io page](https://crates.io/crates/afire)

@@ -6,7 +6,7 @@ use std::{
     net::{SocketAddr, TcpStream},
     rc::Rc,
     str::FromStr,
-    sync::{Mutex, Arc},
+    sync::{Arc, Mutex},
 };
 
 use crate::{

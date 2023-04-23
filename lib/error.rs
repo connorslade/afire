@@ -9,7 +9,7 @@ use std::{
 
 use crate::{Method, Request};
 
-/// Easy way to use a Result<T, [`afire::Error`]>
+/// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
 
 /// Errors that can occur at startup or in the process of connecting to clients, parsing HTTP and handling requests.
