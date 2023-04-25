@@ -1,6 +1,6 @@
 // Import STD libraries
 use std::any::type_name;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
+use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
@@ -8,9 +8,9 @@ use std::time::Duration;
 
 // Import local files
 use crate::{
-    error::Result, error::StartupError, handle::handle, internal::common::ToHostAddress,
-    thread_pool::ThreadPool, Content, Header, HeaderType, Method, Middleware, Request, Response,
-    Route, Status, VERSION,
+    error::Result, error::StartupError, handle::handle, header::Headers,
+    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Header,
+    HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
 };
 
 type ErrorHandler<State> =
@@ -22,7 +22,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub port: u16,
 
     /// Ip address to listen on.
-    pub ip: Ipv4Addr,
+    pub ip: IpAddr,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -38,7 +38,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub error_handler: ErrorHandler<State>,
 
     /// Headers automatically added to every response.
-    pub default_headers: Vec<Header>,
+    pub default_headers: Headers,
 
     /// Weather to allow keep-alive connections.
     /// If this is set to false, the server will close the connection after every request.
@@ -62,7 +62,7 @@ impl<State: Send + Sync> Server<State> {
     /// let mut server = Server::<()>::new("localhost", 8080);
     /// ```
     pub fn new(raw_ip: impl ToHostAddress, port: u16) -> Self {
-        trace!("🐍 Initializing Server v{}", VERSION);
+        trace!("{}Initializing Server v{}", emoji("🐍"), VERSION);
         Server {
             port,
             ip: raw_ip.to_address().unwrap(),
@@ -72,11 +72,11 @@ impl<State: Send + Sync> Server<State> {
             error_handler: Box::new(|_state, _req, err| {
                 Response::new()
                     .status(Status::InternalServerError)
-                    .text(format!("Internal Server Error :/\nError: {}", err))
+                    .text(format!("Internal Server Error :/\nError: {err}"))
                     .content(Content::TXT)
             }),
 
-            default_headers: vec![Header::new("Server", format!("afire/{}", VERSION))],
+            default_headers: Headers(vec![Header::new("Server", format!("afire/{VERSION}"))]),
             keep_alive: true,
             socket_timeout: None,
             state: None,
@@ -100,16 +100,16 @@ impl<State: Send + Sync> Server<State> {
     /// server.start().unwrap();
     /// ```
     pub fn start(&self) -> Result<()> {
-        trace!("✨ Starting Server [{}:{}]", self.ip, self.port);
+        trace!("{}Starting Server [{}:{}]", emoji("✨"), self.ip, self.port);
         self.check()?;
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
+        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
 
         for event in listener.incoming() {
-            handle(&mut event?, self);
+            handle(event?, self);
         }
 
-        // We should Never Get Here
+        // We should never get Here
         unreachable!()
     }
 
@@ -133,22 +133,24 @@ impl<State: Send + Sync> Server<State> {
     /// ```
     pub fn start_threaded(self, threads: usize) -> Result<()> {
         trace!(
-            "✨ Starting Server [{}:{}] ({} threads)",
+            "{}Starting Server [{}:{}] ({} threads)",
+            emoji("✨"),
             self.ip,
             self.port,
             threads
         );
         self.check()?;
 
-        let listener = TcpListener::bind(SocketAddr::new(IpAddr::V4(self.ip), self.port))?;
+        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
         let pool = ThreadPool::new(threads);
         let this = Arc::new(self);
 
         for event in listener.incoming() {
             let this = this.clone();
-            pool.execute(move || handle(&mut event.unwrap(), &this));
+            pool.execute(move || handle(event.unwrap(), &this));
         }
 
+        // We should never get Here
         unreachable!()
     }
 
@@ -167,7 +169,7 @@ impl<State: Send + Sync> Server<State> {
     pub fn default_header(self, key: impl Into<HeaderType>, value: impl AsRef<str>) -> Self {
         let mut headers = self.default_headers;
         let header = Header::new(key, value);
-        trace!("😀 Adding Server Header ({})", header);
+        trace!("{}Adding Server Header ({})", emoji("😀"), header);
         headers.push(header);
 
         Server {
@@ -190,7 +192,11 @@ impl<State: Send + Sync> Server<State> {
     ///     .socket_timeout(Duration::from_secs(5));
     /// ```
     pub fn socket_timeout(self, socket_timeout: Duration) -> Self {
-        trace!("⏳ Setting Socket timeout to {:?}", socket_timeout);
+        trace!(
+            "{}Setting Socket timeout to {:?}",
+            emoji("⏳"),
+            socket_timeout
+        );
 
         Server {
             socket_timeout: Some(socket_timeout),
@@ -211,7 +217,7 @@ impl<State: Send + Sync> Server<State> {
     ///     .keep_alive(false);
     /// ```
     pub fn keep_alive(self, keep_alive: bool) -> Self {
-        trace!("🔁 Setting Keep Alive to {}", keep_alive);
+        trace!("{}Setting Keep Alive to {}", emoji("🔁"), keep_alive);
 
         Server { keep_alive, ..self }
     }
@@ -236,7 +242,11 @@ impl<State: Send + Sync> Server<State> {
     /// });
     /// ```
     pub fn state(self, state: State) -> Self {
-        trace!("📦️ Setting Server State [{}]", type_name::<State>());
+        trace!(
+            "{}Setting Server State [{}]",
+            emoji("📦️"),
+            type_name::<State>()
+        );
 
         Self {
             state: Some(Arc::new(state)),
@@ -266,7 +276,7 @@ impl<State: Send + Sync> Server<State> {
             + Sync
             + 'static,
     ) {
-        trace!("✌ Setting Error Handler");
+        trace!("{}Setting Error Handler", emoji("✌"));
 
         self.error_handler = Box::new(res);
     }
@@ -294,7 +304,7 @@ impl<State: Send + Sync> Server<State> {
         handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
-        trace!("🚗 Adding Route {} {}", method, path);
+        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
@@ -325,11 +335,26 @@ impl<State: Send + Sync> Server<State> {
         handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
-        trace!("🚗 Adding Route {} {}", method, path);
+        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
 
         self.routes
             .push(Route::new_stateful(method, path, Box::new(handler)));
         self
+    }
+
+    /// Gets a reference to the current server state set outside of stateful routes.
+    /// Will <u>panic</u> if the server has no state.
+    /// ## Example
+    /// ```rust
+    /// # use afire::{Server, Response, Header, Method};
+    /// // Create a server for localhost on port 8080
+    /// let mut server = Server::<u32>::new("localhost", 8080).state(101);
+    ///
+    /// // Get its state and assert it is 101
+    /// assert_eq!(*server.app(), 101);
+    /// ```
+    pub fn app(&self) -> Arc<State> {
+        self.state.as_ref().unwrap().clone()
     }
 
     fn check(&self) -> Result<()> {

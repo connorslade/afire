@@ -137,7 +137,7 @@ impl Logger {
                     query = query[0..query.len() - 2].to_string()
                 }
 
-                let mut new_path = req.path.clone();
+                let mut new_path = req.path.to_owned();
                 if new_path.is_empty() {
                     new_path = "/".to_string();
                 }
@@ -160,7 +160,7 @@ impl Logger {
                 }
 
                 self.send_log(format!(
-                    "[{}] {} {}?{}",
+                    "[{}] {} {}{}",
                     req.address.ip(),
                     req.method,
                     new_path,
@@ -173,7 +173,7 @@ impl Logger {
     /// Send log data to file / stdout
     fn send_log(&self, data: String) {
         if self.console {
-            println!("{}", data);
+            println!("{data}");
         }
 
         if self.file.is_some() {
@@ -184,10 +184,10 @@ impl Logger {
                 .open(self.file.clone().unwrap())
                 .unwrap();
 
-            if writeln!(file, "{}", data).is_err() {
+            if writeln!(file, "{data}").is_err() {
                 println!(
                     "[-] Erm... Error writhing to file '{}",
-                    self.file.clone().unwrap().as_os_str().to_string_lossy()
+                    self.file.as_ref().unwrap().as_os_str().to_string_lossy()
                 )
             }
         }

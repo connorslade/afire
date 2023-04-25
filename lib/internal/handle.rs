@@ -5,44 +5,59 @@ use std::{
     ops::Deref,
     panic,
     rc::Rc,
+    sync::Mutex,
 };
 
 use crate::{
     error::{HandleError, ParseError, Result, StreamError},
     internal::common::any_string,
     middleware::MiddleResult,
+    response::ResponseFlag,
     route::RouteType,
     trace, Content, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
+// https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D
+
 /// - Manages keep-alive sockets
 /// - Lets Request::from_socket read the request
 /// - Lets Response::write write the response to the socket
 /// - Runs End Middleware
 /// - Optionally closes the socket
-pub(crate) fn handle<State>(stream: &mut TcpStream, this: &Server<State>)
+pub(crate) fn handle<State>(stream: TcpStream, this: &Server<State>)
 where
     State: 'static + Send + Sync,
 {
     trace!(Level::Debug, "Opening socket {:?}", stream.peer_addr());
     stream.set_read_timeout(this.socket_timeout).unwrap();
     stream.set_write_timeout(this.socket_timeout).unwrap();
+    let stream = Rc::new(Mutex::new(stream));
     loop {
         let mut keep_alive = false;
-        let req = Request::from_socket(stream);
+        let req = Request::from_socket(stream.clone());
 
         if let Ok(req) = &req {
             keep_alive = req.keep_alive();
-            trace!(Level::Debug, "{} {} {}", req.method, req.path, keep_alive);
+            trace!(
+                Level::Debug,
+                "{} {} {{ keep_alive: {} }}",
+                req.method,
+                req.path,
+                keep_alive
+            );
         }
 
         let (req, mut res) = get_response(req, this);
 
-        let close = res.close;
-        if let Err(e) = res.write(stream, &this.default_headers) {
-            trace!(Level::Error, "Error writing to socket: {:?}", e);
+        if res.flag == ResponseFlag::End {
+            trace!(Level::Debug, "Ending socket");
+            break;
+        }
+
+        if let Err(e) = res.write(stream.clone(), &this.default_headers) {
+            trace!(Level::Debug, "Error writing to socket: {:?}", e);
         }
 
         // End Middleware
@@ -54,10 +69,10 @@ where
             }
         }
 
-        if !keep_alive || close || !this.keep_alive {
+        if !keep_alive || res.flag == ResponseFlag::Close || !this.keep_alive {
             trace!(Level::Debug, "Closing socket");
-            if let Err(e) = stream.shutdown(Shutdown::Both) {
-                trace!(Level::Error, "Error closing socket: {:?}", e);
+            if let Err(e) = stream.lock().unwrap().shutdown(Shutdown::Both) {
+                trace!(Level::Debug, "Error closing socket: {:?}", e);
             }
             break;
         }
@@ -188,7 +203,7 @@ where
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()
                 .status(Status::NotFound)
-                .text(format!("Cannot {} {}", method, path))
+                .text(format!("Cannot {method} {path}"))
                 .content(Content::TXT),
             HandleError::Panic(r, e) => {
                 (server.error_handler)(server.state.clone(), r, e.to_owned())

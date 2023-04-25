@@ -25,7 +25,7 @@ impl Example for Cookie {
             html.push_str("<style>table, th, td {border:1px solid black;}</style>");
             html.push_str("<table>");
             html.push_str("<tr><th>Name</th><th>Value</th></tr>");
-            for cookie in &req.cookies {
+            for cookie in &*req.cookies {
                 html.push_str("<tr><td>");
                 html.push_str(&cookie.name);
                 html.push_str("</td><td>");

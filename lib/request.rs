@@ -1,13 +1,17 @@
 use std::{
+    borrow::Cow,
     cell::RefCell,
     fmt::Debug,
     io::{BufRead, BufReader, Read},
     net::{SocketAddr, TcpStream},
+    rc::Rc,
     str::FromStr,
+    sync::{Arc, Mutex},
 };
 
 use crate::{
     consts::BUFF_SIZE,
+    cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
     Cookie, Error, Header, Method, Query,
@@ -37,22 +41,70 @@ pub struct Request {
     pub headers: Headers,
 
     /// Request Cookies.
-    pub cookies: Vec<Cookie>,
+    pub cookies: CookieJar,
 
     /// Request body, as a static byte vec.
-    pub body: Vec<u8>,
+    pub body: Arc<Vec<u8>>,
 
     /// Client socket address.
     /// If you are using a reverse proxy, this will be the address of the proxy (often localhost).
     pub address: SocketAddr,
+
+    /// The raw tcp socket
+    pub socket: Rc<Mutex<TcpStream>>,
 }
 
 impl Request {
+    pub(crate) fn keep_alive(&self) -> bool {
+        self.headers
+            .get(HeaderType::Connection)
+            .map(|i| i.to_lowercase() == "keep-alive")
+            .unwrap_or(false)
+    }
+
+    /// Get a path parameter by its name.
+    ///
+    /// ## Example
+    /// ```rust
+    /// # use afire::{Request, Response, Header, Method, Server, Content};
+    /// # let mut server = Server::<()>::new("localhost", 8080);
+    /// server.route(Method::GET, "/greet/{name}", |req| {
+    ///     // Get name Path param
+    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
+    ///     let name = req.param("name").unwrap();
+    ///
+    ///     // Format a nice message
+    ///     let message = format!("Hello, {}", name);
+    ///
+    ///     // Send Response
+    ///     Response::new()
+    ///         .text(message)
+    ///         .content(Content::TXT)
+    /// });
+    /// ```
+    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
+        let name = name.as_ref().to_owned();
+        self.path_params
+            .borrow()
+            .iter()
+            .find(|x| x.0 == name)
+            .map(|i| i.1.to_owned())
+    }
+
+    /// Gets the body of the request as a string.
+    /// This uses the [`String::from_utf8_lossy`] method, so it will replace invalid UTF-8 characters with the unicode replacement character (�).
+    /// If you want to use a different encoding or handle invalid characters, use a string method on the body field.
+    pub fn body_str(&self) -> Cow<'_, str> {
+        String::from_utf8_lossy(&self.body)
+    }
+
     /// Read a request from a TcpStream.
-    pub(crate) fn from_socket(stream: &mut TcpStream) -> Result<Self> {
+    pub(crate) fn from_socket(raw_stream: Rc<Mutex<TcpStream>>) -> Result<Self> {
+        let stream = raw_stream.lock().unwrap();
+
         trace!(Level::Debug, "Reading header");
         let peer_addr = stream.peer_addr()?;
-        let mut reader = BufReader::new(stream);
+        let mut reader = BufReader::new(&*stream);
         let mut request_line = Vec::with_capacity(BUFF_SIZE);
         reader
             .read_until(10, &mut request_line)
@@ -94,6 +146,7 @@ impl Request {
                 .map_err(|_| StreamError::UnexpectedEof)?;
         }
 
+        drop(stream);
         Ok(Self {
             method,
             path,
@@ -101,46 +154,11 @@ impl Request {
             path_params: RefCell::new(Vec::new()),
             query,
             headers: Headers(headers),
-            cookies,
-            body,
+            cookies: CookieJar(cookies),
+            body: Arc::new(body),
             address: peer_addr,
+            socket: raw_stream,
         })
-    }
-
-    pub(crate) fn keep_alive(&self) -> bool {
-        self.headers
-            .get(HeaderType::Connection)
-            .map(|i| i.to_lowercase() == "keep-alive")
-            .unwrap_or(false)
-    }
-
-    /// Get a path parameter by its name.
-    ///
-    /// ## Example
-    /// ```rust
-    /// # use afire::{Request, Response, Header, Method, Server, Content};
-    /// # let mut server = Server::<()>::new("localhost", 8080);
-    /// server.route(Method::GET, "/greet/{name}", |req| {
-    ///     // Get name Path param
-    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
-    ///     let name = req.param("name").unwrap();
-    ///
-    ///     // Format a nice message
-    ///     let message = format!("Hello, {}", name);
-    ///
-    ///     // Send Response
-    ///     Response::new()
-    ///         .text(message)
-    ///         .content(Content::TXT)
-    /// });
-    /// ```
-    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
-        let name = name.as_ref().to_owned();
-        self.path_params
-            .borrow()
-            .iter()
-            .find(|x| x.0 == name)
-            .map(|i| i.1.to_owned())
     }
 }
 
@@ -153,7 +171,7 @@ impl Debug for Request {
             .field("path_params", &self.path_params.borrow())
             .field("query", &self.query)
             .field("headers", &self.headers)
-            .field("cookies", &self.cookies)
+            .field("cookies", &*self.cookies)
             .field("body", &self.body)
             .field("address", &self.address)
             .finish()

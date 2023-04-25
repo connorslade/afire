@@ -1,6 +1,6 @@
 //! HTTP Path stuff
 
-use super::encoding;
+use super::encoding::url;
 
 /// Http Path
 #[derive(Debug, PartialEq, Eq)]
@@ -49,6 +49,10 @@ impl Path {
 
     /// Match Path, returns None if it doesn't match and the path params if it does
     pub fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
+        if self.parts == [PathPart::AnyAfter] {
+            return Some(Vec::new());
+        }
+
         let path = normalize_path(path);
         let mut out = Vec::new();
 
@@ -61,10 +65,9 @@ impl Path {
                         return None;
                     }
                 }
-                PathPart::Param(x) => out.push((
-                    x.to_owned(),
-                    encoding::decode_url(j).unwrap_or_else(|| j.to_owned()),
-                )),
+                PathPart::Param(x) => {
+                    out.push((x.to_owned(), url::decode(j).unwrap_or_else(|| j.to_owned())))
+                }
                 PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}
             }

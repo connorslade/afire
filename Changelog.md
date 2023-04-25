@@ -1,3 +1,33 @@
+# 2.1.0
+
+April 24, 2023
+
+- Added a get_query method on Query
+- Changed default log level back to Error
+- Response flags (Close & End)
+- More built-in encoding systems (base64 & sha-1)
+- Change encoding system module format
+- Multipart request parsing
+- CookieJar struct for holding Cookies in the request
+- RealIp extension
+- Allow serving an IPv6 addr
+- Use a `Headers` struct to hold default headers
+- Added a HeaderParams struct
+- Impl ToHostAddress for &String
+- Add Server::app to get a reference to the app
+- Increase ServeStatic compatibility with other middleware
+- Custom log formatter support
+- Optional emoji in logging
+- Fix the Display impl on Query
+- Add body_str method to Request
+- Impl std::error::Error for afire::Error
+- Impl Display for error types
+- Don't execute format on lower log-levels
+- Fix spelling errors
+- Fix Logger middleware always appending `?` to the path
+- Don't consider sockets closing to be an error (only printed in debug tracing)
+- Mild performance improvements in the path matcher with catch-all routes
+
 # 2.0.0
 
 February 11, 2023
@@ -111,7 +141,7 @@ Feb 19, 2022
 
 # 0.3.0
 
-Jan 25, 2022 s
+Jan 25, 2022
 
 - Add content types
 - Update Logger syntax

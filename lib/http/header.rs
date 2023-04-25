@@ -13,9 +13,29 @@ use crate::error::{ParseError, Result};
 pub struct Header {
     /// Name of the Header
     pub name: HeaderType,
-
     /// Value of the Header
     pub value: String,
+}
+
+/// Parameters for a header.
+/// For example, the `charset` parameter in `Content-Type: text/html; charset=utf-8`.
+/// ## Example
+/// ```rust
+/// # use afire::{Method, Server, Response, HeaderType};
+/// # fn test(server: &mut Server) {
+/// server.route(Method::GET, "/", |req| {
+///     let header = req.headers.get_header(HeaderType::ContentType).unwrap();
+///     let params = header.params();
+///     let charset = params.get("charset").unwrap();
+///     Response::new().text(format!("Charset: {}", charset))
+/// });
+/// # }
+/// ```
+pub struct HeaderParams<'a> {
+    /// The value of the header.
+    pub value: &'a str,
+    /// The parameters of the header.
+    params: Vec<[&'a str; 2]>,
 }
 
 /// Collection of headers.
@@ -25,8 +45,8 @@ pub struct Headers(pub(crate) Vec<Header>);
 
 impl Header {
     /// Make a new header from a name and a value.
-    /// The name must implement Into<HeaderType>, so it can be a string or a [`HeaderType`].
-    /// The value can be anything that implements AsRef<str>, including a String, or &str.
+    /// The name must implement `Into<HeaderType>`, so it can be a string or a [`HeaderType`].
+    /// The value can be anything that implements `AsRef<str>`, including a String, or &str.
     /// ## Example
     /// ```rust
     /// # use afire::Header;
@@ -57,20 +77,68 @@ impl Header {
             return Err(ParseError::InvalidHeader.into());
         }
 
-        let name = match split_header.next() {
-            Some(i) => i.trim().to_string(),
-            None => return Err(ParseError::InvalidHeader.into()),
-        };
+        let name = split_header
+            .next()
+            .ok_or(ParseError::InvalidHeader)?
+            .trim()
+            .into();
+        let value = split_header
+            .next()
+            .ok_or(ParseError::InvalidHeader)?
+            .trim()
+            .into();
 
-        let value = match split_header.next() {
-            Some(i) => i.trim().to_string(),
-            None => return Err(ParseError::InvalidHeader.into()),
-        };
+        Ok(Header { name, value })
+    }
 
-        Ok(Header {
-            name: name.into(),
-            value,
-        })
+    /// Get the parameters of the header.
+    pub fn params(&self) -> HeaderParams {
+        HeaderParams::new(self.value.as_str())
+    }
+}
+
+impl<'a> HeaderParams<'a> {
+    fn new(value: &'a str) -> Self {
+        let mut params = Vec::new();
+
+        let mut parts = value.split(';');
+        let value = parts.next().unwrap_or_default();
+
+        for i in parts {
+            let split = i.splitn(2, '=').collect::<Vec<_>>();
+            if split.len() != 2 {
+                break;
+            }
+
+            let key = match split.first() {
+                Some(key) => key.trim(),
+                None => break,
+            };
+            let value = match split.get(1) {
+                Some(value) => value.trim(),
+                None => break,
+            };
+
+            params.push([key, value]);
+        }
+
+        Self { value, params }
+    }
+
+    /// Checks if the header has the specified parameter.
+    pub fn has(&self, name: impl AsRef<str>) -> bool {
+        let name = name.as_ref();
+        self.params.iter().any(|[key, _]| key == &name)
+    }
+
+    /// Gets the value of the specified parameter, returning `None` if it is not present.
+    /// A parameter is a key-value pair that is separated by a semicolon and a space.
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&str> {
+        let name = name.as_ref();
+        self.params
+            .iter()
+            .find(|[key, _]| key == &name)
+            .map(|[_, value]| *value)
     }
 }
 
@@ -88,6 +156,20 @@ impl DerefMut for Headers {
     }
 }
 
+impl<'a> Deref for HeaderParams<'a> {
+    type Target = Vec<[&'a str; 2]>;
+
+    fn deref(&self) -> &Self::Target {
+        self.params.as_ref()
+    }
+}
+
+impl<'a> DerefMut for HeaderParams<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.params.as_mut()
+    }
+}
+
 impl Headers {
     /// Checks if the request / response contains the specified header.
     /// ## Example
@@ -102,6 +184,18 @@ impl Headers {
     pub fn has(&self, name: impl Into<HeaderType>) -> bool {
         let name = name.into();
         self.iter().any(|x| x.name == name)
+    }
+
+    /// Adds a header to the collection, using the specified name and value.
+    /// See [`Headers::add_header`] for a version that takes a [`Header`] directly.
+    /// ## Example
+    /// ```rust
+    /// # use afire::header::{Headers, HeaderType, Header};
+    /// # fn test(headers: &mut Headers) {
+    /// headers.add(HeaderType::ContentType, "text/html");
+    /// # }
+    pub fn add(&mut self, name: impl Into<HeaderType>, value: impl AsRef<str>) {
+        self.0.push(Header::new(name, value));
     }
 
     /// Gets the value of the specified header.
@@ -130,6 +224,18 @@ impl Headers {
         self.iter_mut()
             .find(|x| x.name == name)
             .map(|x| &mut x.value)
+    }
+
+    /// Adds a header to the collection.
+    /// See [`Headers::add`] for a version that takes a name and value.
+    /// ## Example
+    /// ```rust
+    /// # use afire::header::{Headers, HeaderType, Header};
+    /// # fn test(headers: &mut Headers) {
+    /// headers.add(HeaderType::ContentType, "text/html");
+    /// # }
+    pub fn add_header(&mut self, header: Header) {
+        self.0.push(header);
     }
 
     /// Gets the specified header.
@@ -260,58 +366,60 @@ impl<T: AsRef<str>> From<T> for HeaderType {
 }
 
 impl HeaderType {
+    #[rustfmt::skip]
     fn from_str(s: &str) -> Self {
         match s.to_ascii_lowercase().as_str() {
-            "accept" => HeaderType::Accept,
-            "accept-charset" => HeaderType::AcceptCharset,
-            "accept-encoding" => HeaderType::AcceptEncoding,
-            "accept-language" => HeaderType::AcceptLanguage,
-            "connection" => HeaderType::Connection,
-            "content-encoding" => HeaderType::ContentEncoding,
-            "content-length" => HeaderType::ContentLength,
-            "content-type" => HeaderType::ContentType,
-            "cookie" => HeaderType::Cookie,
-            "date" => HeaderType::Date,
-            "host" => HeaderType::Host,
-            "location" => HeaderType::Location,
-            "referer" => HeaderType::Referer,
-            "server" => HeaderType::Server,
-            "set-cookie" => HeaderType::SetCookie,
+            "accept"            => HeaderType::Accept,
+            "accept-charset"    => HeaderType::AcceptCharset,
+            "accept-encoding"   => HeaderType::AcceptEncoding,
+            "accept-language"   => HeaderType::AcceptLanguage,
+            "connection"        => HeaderType::Connection,
+            "content-encoding"  => HeaderType::ContentEncoding,
+            "content-length"    => HeaderType::ContentLength,
+            "content-type"      => HeaderType::ContentType,
+            "cookie"            => HeaderType::Cookie,
+            "date"              => HeaderType::Date,
+            "host"              => HeaderType::Host,
+            "location"          => HeaderType::Location,
+            "referer"           => HeaderType::Referer,
+            "server"            => HeaderType::Server,
+            "set-cookie"        => HeaderType::SetCookie,
             "transfer-encoding" => HeaderType::TransferEncoding,
-            "upgrade" => HeaderType::Upgrade,
-            "user-agent" => HeaderType::UserAgent,
-            "via" => HeaderType::Via,
-            _ => HeaderType::Custom(s.to_string()),
+            "upgrade"           => HeaderType::Upgrade,
+            "user-agent"        => HeaderType::UserAgent,
+            "via"               => HeaderType::Via,
+            _                   => HeaderType::Custom(s.to_string()),
         }
     }
 }
 
 impl Display for HeaderType {
+    #[rustfmt::skip]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                HeaderType::Accept => "Accept",
-                HeaderType::AcceptCharset => "Accept-Charset",
-                HeaderType::AcceptEncoding => "Accept-Encoding",
-                HeaderType::AcceptLanguage => "Accept-Language",
-                HeaderType::Connection => "Connection",
-                HeaderType::ContentEncoding => "Content-Encoding",
-                HeaderType::ContentLength => "Content-Length",
-                HeaderType::ContentType => "Content-Type",
-                HeaderType::Cookie => "Cookie",
-                HeaderType::Date => "Date",
-                HeaderType::Host => "Host",
-                HeaderType::Location => "Location",
-                HeaderType::Referer => "Referer",
-                HeaderType::Server => "Server",
-                HeaderType::SetCookie => "Set-Cookie",
+                HeaderType::Accept           => "Accept",
+                HeaderType::AcceptCharset    => "Accept-Charset",
+                HeaderType::AcceptEncoding   => "Accept-Encoding",
+                HeaderType::AcceptLanguage   => "Accept-Language",
+                HeaderType::Connection       => "Connection",
+                HeaderType::ContentEncoding  => "Content-Encoding",
+                HeaderType::ContentLength    => "Content-Length",
+                HeaderType::ContentType      => "Content-Type",
+                HeaderType::Cookie           => "Cookie",
+                HeaderType::Date             => "Date",
+                HeaderType::Host             => "Host",
+                HeaderType::Location         => "Location",
+                HeaderType::Referer          => "Referer",
+                HeaderType::Server           => "Server",
+                HeaderType::SetCookie        => "Set-Cookie",
                 HeaderType::TransferEncoding => "Transfer-Encoding",
-                HeaderType::Upgrade => "Upgrade",
-                HeaderType::UserAgent => "User-Agent",
-                HeaderType::Via => "Via",
-                HeaderType::Custom(s) => s,
+                HeaderType::Upgrade          => "Upgrade",
+                HeaderType::UserAgent        => "User-Agent",
+                HeaderType::Via              => "Via",
+                HeaderType::Custom(s)        => s,
             }
         )
     }

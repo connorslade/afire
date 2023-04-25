@@ -4,7 +4,7 @@
 
 use std::{any::type_name, rc::Rc};
 
-use crate::{error::Result, Request, Response, Server};
+use crate::{error::Result, trace::emoji, Request, Response, Server};
 
 /// A response from a middleware handler
 pub enum MiddleResult {
@@ -81,7 +81,7 @@ pub trait Middleware {
         Self: 'static + Send + Sync + Sized,
         State: 'static + Send + Sync,
     {
-        trace!("📦 Adding Middleware {}", type_name::<Self>());
+        trace!("{}Adding Middleware {}", emoji("📦"), type_name::<Self>());
 
         server.middleware.push(Box::new(self));
     }

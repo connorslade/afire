@@ -14,7 +14,7 @@ use std::{
 
 use afire::{
     extension::date::imp_date,
-    internal::encoding::{decode_url, encode_url},
+    internal::encoding::url,
     trace,
     trace::{set_log_level, Level},
     Content, HeaderType, Method, Query, Response, Server, Status,
@@ -50,9 +50,9 @@ fn main() {
     server.stateful_route(Method::POST, "/api/new", |app, req| {
         let form = Query::from_body(&String::from_utf8_lossy(&req.body));
         let name =
-            decode_url(form.get("author").expect("No author supplied")).expect("Invalid author");
+            url::decode(form.get("author").expect("No author supplied")).expect("Invalid author");
         let body =
-            decode_url(form.get("quote").expect("No quote supplied")).expect("Invalid quote");
+            url::decode(form.get("quote").expect("No quote supplied")).expect("Invalid quote");
 
         let quote = Quote {
             name,
@@ -167,16 +167,16 @@ impl Quote {
     fn save(&self) -> String {
         format!(
             "{}:{}:{}",
-            encode_url(&self.name),
-            encode_url(&self.value),
+            url::encode(&self.name),
+            url::encode(&self.value),
             self.date
         )
     }
 
     fn load(line: &str) -> Option<Self> {
         let mut parts = line.split(':');
-        let name = decode_url(parts.next()?).unwrap();
-        let value = decode_url(parts.next()?).unwrap();
+        let name = url::decode(parts.next()?).unwrap();
+        let value = url::decode(parts.next()?).unwrap();
         let date = parts.next()?.parse().ok()?;
 
         Some(Self { name, value, date })

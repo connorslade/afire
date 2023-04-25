@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::rc::Rc;
+use std::sync::Mutex;
 
 use crate::consts;
 use crate::header::{HeaderType, Headers};
@@ -18,7 +20,7 @@ pub struct Response {
     pub status: Status,
 
     /// Response Data.
-    /// Can be either a Static Vec<u8> or a Stream (impl [`Read`])
+    /// Can be either a Static `Vec<u8>` or a Stream (impl [`Read`])
     pub data: ResponseBody,
 
     /// List of response headers.
@@ -29,9 +31,20 @@ pub struct Response {
     /// If this is None, the reason phrase will be automatically generated based on the status code.
     pub reason: Option<String>,
 
-    /// Force Close Connection.
-    /// Will set the Connection header to close and will close the connection after the response is sent.
-    pub close: bool,
+    /// Response Flags:
+    /// - Close: Set the Connection header to close and will close the connection after the response is sent.
+    /// - End: End the connection without sending a response
+    pub flag: ResponseFlag,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ResponseFlag {
+    /// No Flag
+    None,
+    /// Close the socket
+    Close,
+    /// End the connection without sending a response
+    End,
 }
 
 /// Response Data.
@@ -60,7 +73,15 @@ impl Response {
             data: vec![79, 75].into(),
             headers: Default::default(),
             reason: None,
-            close: false,
+            flag: ResponseFlag::None,
+        }
+    }
+
+    /// Creates a new Default Response with the End flag set.
+    pub fn end() -> Self {
+        Self {
+            flag: ResponseFlag::End,
+            ..Default::default()
         }
     }
 
@@ -151,7 +172,7 @@ impl Response {
     }
 
     /// Add a Header to a Response.
-    /// Will accept any type that implements AsRef<str>, so [`String`], [`str`], [`&str`], etc.
+    /// Will accept any type that implements `AsRef<str>`, so [`String`], [`str`], [`&str`], etc.
     /// ## Example
     /// ```rust
     /// # use afire::{Response, Header};
@@ -193,7 +214,7 @@ impl Response {
     /// ```
     pub fn close(self) -> Self {
         Self {
-            close: true,
+            flag: ResponseFlag::Close,
             ..self
         }
     }
@@ -255,11 +276,12 @@ impl Response {
         modifier(self)
     }
 
+    // TODO: Make crate local
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
-    pub(crate) fn write(
+    pub fn write(
         &mut self,
-        stream: &mut TcpStream,
+        stream: Rc<Mutex<TcpStream>>,
         default_headers: &[Header],
     ) -> Result<()> {
         // Add default headers to response
@@ -278,7 +300,7 @@ impl Response {
         }
 
         // Add Connection: close if response is set to close
-        if self.close && !self.headers.has(HeaderType::Connection) {
+        if self.flag == ResponseFlag::Close && !self.headers.has(HeaderType::Connection) {
             self.headers.push(Header::new("Connection", "close"));
         }
 
@@ -297,8 +319,9 @@ impl Response {
             headers_to_string(&self.headers)
         );
 
+        let mut stream = stream.lock().unwrap();
         stream.write_all(response.as_bytes())?;
-        self.data.write(stream)?;
+        self.data.write(&mut stream)?;
 
         Ok(())
     }
@@ -340,7 +363,7 @@ impl ResponseBody {
                         break;
                     }
 
-                    let mut section = format!("{:X}\r\n", read).as_bytes().to_vec();
+                    let mut section = format!("{read:X}\r\n").as_bytes().to_vec();
                     section.extend(&chunk[..read]);
                     section.extend(b"\r\n");
 

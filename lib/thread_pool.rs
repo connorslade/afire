@@ -61,7 +61,7 @@ impl Worker {
     /// Creates a new worker thread.
     fn new(id: usize, rx: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         let handle = thread::Builder::new()
-            .name(format!("Worker {}", id))
+            .name(format!("Worker {id}"))
             .spawn(move || loop {
                 let job = rx.lock().unwrap().recv().unwrap();
                 match job {
