@@ -1,3 +1,5 @@
+// Note: This module is intended for internal testing only
+
 use std::{
     collections::HashMap,
     convert::TryFrom,

@@ -17,6 +17,7 @@ static COLOR: AtomicBool = AtomicBool::new(true);
 static FORMATTER: RwLock<Option<Box<dyn Formatter + Send + Sync + 'static>>> = RwLock::new(None);
 /// Whether or not a formatter has been set.
 /// Used because loading a bool is faster than a RwLock.
+/// This is always loaded before the RwLock to improve performance when using the default formatter.
 static FORMATTER_PRESENT: AtomicBool = AtomicBool::new(false);
 
 /// Log levels.
@@ -105,6 +106,7 @@ pub fn _trace(level: Level, fmt: Arguments) {
     DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), msg);
 }
 
+// this is a totally normal and necessary function
 pub(crate) fn emoji(emoji: &str) -> String {
     #[cfg(feature = "emoji-logging")]
     return emoji.to_owned() + " ";

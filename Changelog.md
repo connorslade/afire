@@ -1,11 +1,12 @@
 # 2.1.0
 
-Coming Soon
+April 24, 2023
 
 - Added a get_query method on Query
 - Changed default log level back to Error
 - Response flags (Close & End)
 - More built-in encoding systems (base64 & sha-1)
+- Change encoding system module format
 - Multipart request parsing
 - CookieJar struct for holding Cookies in the request
 - RealIp extension
@@ -22,6 +23,10 @@ Coming Soon
 - Impl std::error::Error for afire::Error
 - Impl Display for error types
 - Don't execute format on lower log-levels
+- Fix spelling errors
+- Fix Logger middleware always appending `?` to the path
+- Don't consider sockets closing to be an error (only printed in debug tracing)
+- Mild performance improvements in the path matcher with catch-all routes
 
 # 2.0.0
 

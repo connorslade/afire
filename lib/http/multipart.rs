@@ -112,7 +112,7 @@ impl<'a> TryFrom<&'a [u8]> for MultipartEntry<'a> {
         // Split the headers from the data.
         let index = value
             .windows(4)
-            .position(|x| x[0] == b'\r' && x[1] == b'\n' && x[2] == b'\r' && x[3] == b'\n')
+            .position(|x| x == b"\r\n\r\n")
             .ok_or(MultipartError::InvalidEntry)?
             + 4;
 
@@ -157,13 +157,12 @@ impl<'a> TryFrom<&'a [u8]> for MultipartEntry<'a> {
 }
 
 fn split_boundary<'a>(data: &'a [u8], boundary: &[u8]) -> Vec<&'a [u8]> {
-    let mut indexes = vec![];
-
-    for (i, e) in data.windows(boundary.len()).enumerate() {
-        if e == boundary {
-            indexes.push((i, i + boundary.len()));
-        }
-    }
+    let indexes = data
+        .windows(boundary.len())
+        .enumerate()
+        .filter(|(_, x)| x == &boundary)
+        .map(|(i, _)| (i, i + boundary.len()))
+        .collect::<Vec<_>>();
 
     let mut out = Vec::with_capacity(indexes.len() + 1);
     let mut start = 0;
