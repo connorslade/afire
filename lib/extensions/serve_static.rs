@@ -10,6 +10,7 @@ use crate::{
 };
 
 type SSMiddleware = Box<dyn Fn(Rc<Request>, &mut Response, &mut bool) + Send + Sync>;
+
 /// Serve Static Content
 pub struct ServeStatic {
     /// Path to serve static content on
@@ -95,11 +96,7 @@ impl ServeStatic {
                     .text(format!("The page `{}` was not found...", req.path))
                     .header(HeaderType::ContentType, "text/plain")
             },
-            types: TYPES
-                .to_vec()
-                .iter()
-                .map(|x| (x.0.to_owned(), x.1.to_owned()))
-                .collect(),
+            types: Vec::new(),
         }
     }
 
@@ -333,13 +330,15 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
     }
 
     // Try to read File
+    let ext = path.rsplit('.').next().unwrap_or_default();
     match File::open(&path) {
         // If its found send it as response
         Ok(file) => (
             Response::new().stream(file).header(
                 "Content-Type",
-                get_type(&path, &this.types)
-                    .unwrap_or_else(|| "application/octet-stream".to_owned()),
+                get_type(ext, &TYPES)
+                    .or_else(|| this.types.iter().find(|x| x.0 == ext).map(|x| x.1.as_str()))
+                    .unwrap_or("application/octet-stream"),
             ),
             true,
         ),
@@ -347,11 +346,6 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
         // If not send the 404 route defined
         Err(_) => ((this.not_found)(req, false), false),
     }
-}
-
-fn get_type(path: &str, types: &[(String, String)]) -> Option<String> {
-    let ext = path.split('.').last()?;
-    Some(types.iter().map(|x| x.to_owned()).find(|x| x.0 == ext)?.1)
 }
 
 #[inline]
@@ -363,64 +357,90 @@ fn safe_path(mut path: String) -> String {
     path
 }
 
-/// Common MIME Types
+/// Common MIME Types (sorted in alphabetical order by extension)
 ///
 /// Used by Serve-static extensions
-pub const TYPES: [(&str, &str); 56] = [
-    ("html", "text/html"),
-    ("css", "text/css"),
-    ("js", "application/javascript"),
-    ("png", "image/png"),
-    ("jpg", "image/jpeg"),
-    ("jpeg", "image/jpeg"),
-    ("gif", "image/gif"),
-    ("ico", "image/x-icon"),
-    ("svg", "image/svg+xml"),
-    ("txt", "text/plain"),
-    ("aac", "audio/aac"),
-    ("avi", "video/x-msvideo"),
-    ("bin", "application/octet-stream"),
-    ("bmp", "image/bmp"),
-    ("bz", "application/x-bzip"),
-    ("bz2", "application/x-bzip2"),
-    ("cda", "application/x-cdf"),
-    ("csv", "text/csv"),
-    ("epub", "application/epub+zip"),
-    ("gz", "application/gzip"),
-    ("htm", "text/html"),
-    ("ics", "text/calendar"),
-    ("jar", "application/java-archive"),
-    ("json", "application/json"),
-    ("jsonld", "application/ld+json"),
-    ("midi", "audio/midi audio/x-midi"),
-    ("mid", "audio/midi audio/x-midi"),
-    ("mjs", "text/javascript"),
-    ("mp3", "audio/mpeg"),
-    ("mp4", "video/mp4"),
-    ("mpeg", "video/mpeg"),
-    ("oga", "audio/ogg"),
-    ("ogv", "video/ogg"),
-    ("ogx", "application/ogg"),
-    ("opus", "audio/opus"),
-    ("otf", "font/otf"),
-    ("pdf", "application/pdf"),
-    ("rar", "application/vnd.rar"),
-    ("rtf", "application/rtf"),
-    ("sh", "application/x-sh"),
-    ("swf", "application/x-shockwave-flash"),
-    ("tar", "application/x-tar"),
-    ("tif", "image/tiff"),
-    ("tiff", "image/tiff"),
-    ("ts", "text/x-typescript"),
-    ("ttf", "font/ttf"),
-    ("wav", "audio/wav"),
-    ("weba", "audio/webm"),
-    ("webm", "video/webm"),
-    ("webp", "image/webp"),
-    ("woff", "font/woff"),
-    ("woff2", "font/woff2"),
-    ("xhtml", "application/xhtml+xml"),
-    ("xml", "application/xml"),
-    ("zip", "application/zip"),
-    ("7z", "application/x-7z-compressed"),
+pub const TYPES: [MIME; 56] = [
+    MIME::new("7z", "application/x-7z-compressed"),
+    MIME::new("aac", "audio/aac"),
+    MIME::new("avi", "video/x-msvideo"),
+    MIME::new("bin", "application/octet-stream"),
+    MIME::new("bmp", "image/bmp"),
+    MIME::new("bz", "application/x-bzip"),
+    MIME::new("bz2", "application/x-bzip2"),
+    MIME::new("cda", "application/x-cdf"),
+    MIME::new("css", "text/css"),
+    MIME::new("csv", "text/csv"),
+    MIME::new("epub", "application/epub+zip"),
+    MIME::new("gif", "image/gif"),
+    MIME::new("gz", "application/gzip"),
+    MIME::new("htm", "text/html"),
+    MIME::new("html", "text/html"),
+    MIME::new("ico", "image/x-icon"),
+    MIME::new("ics", "text/calendar"),
+    MIME::new("jar", "application/java-archive"),
+    MIME::new("jpeg", "image/jpeg"),
+    MIME::new("jpg", "image/jpeg"),
+    MIME::new("js", "application/javascript"),
+    MIME::new("json", "application/json"),
+    MIME::new("jsonld", "application/ld+json"),
+    MIME::new("mid", "audio/midi audio/x-midi"),
+    MIME::new("midi", "audio/midi audio/x-midi"),
+    MIME::new("mjs", "text/javascript"),
+    MIME::new("mp3", "audio/mpeg"),
+    MIME::new("mp4", "video/mp4"),
+    MIME::new("mpeg", "video/mpeg"),
+    MIME::new("oga", "audio/ogg"),
+    MIME::new("ogv", "video/ogg"),
+    MIME::new("ogx", "application/ogg"),
+    MIME::new("opus", "audio/opus"),
+    MIME::new("otf", "font/otf"),
+    MIME::new("pdf", "application/pdf"),
+    MIME::new("png", "image/png"),
+    MIME::new("rar", "application/vnd.rar"),
+    MIME::new("rtf", "application/rtf"),
+    MIME::new("sh", "application/x-sh"),
+    MIME::new("svg", "image/svg+xml"),
+    MIME::new("swf", "application/x-shockwave-flash"),
+    MIME::new("tar", "application/x-tar"),
+    MIME::new("tif", "image/tiff"),
+    MIME::new("tiff", "image/tiff"),
+    MIME::new("ts", "text/x-typescript"),
+    MIME::new("ttf", "font/ttf"),
+    MIME::new("txt", "text/plain"),
+    MIME::new("wav", "audio/wav"),
+    MIME::new("weba", "audio/webm"),
+    MIME::new("webm", "video/webm"),
+    MIME::new("webp", "image/webp"),
+    MIME::new("woff", "font/woff"),
+    MIME::new("woff2", "font/woff2"),
+    MIME::new("xhtml", "application/xhtml+xml"),
+    MIME::new("xml", "application/xml"),
+    MIME::new("zip", "application/zip"),
 ];
+
+/// Struct to hold a file extension and its matching MIME type
+#[derive(Debug, Clone)]
+pub struct MIME {
+    extension: &'static str,
+    mime_type: &'static str,
+}
+
+impl MIME {
+    /// Create a new MIME type
+    pub const fn new(extension: &'static str, mime_type: &'static str) -> Self {
+        Self {
+            extension,
+            mime_type,
+        }
+    }
+}
+
+/// Gets the MIME type from the specified file extension using a slice of MIME types.
+/// If no type is found, None is returned.
+pub fn get_type(ext: &str, extensions: &[MIME]) -> Option<&'static str> {
+    extensions
+        .binary_search_by(|x| x.extension.cmp(ext))
+        .map(|x| TYPES[x].mime_type)
+        .ok()
+}

@@ -2,6 +2,8 @@
 
 Coming Soon
 
+- Use binary search on ServeStatic MMIE types (save those clock cycles)
+
 # 2.1.0
 
 April 24, 2023
