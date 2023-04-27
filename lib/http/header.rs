@@ -349,6 +349,10 @@ pub enum HeaderType {
     /// A header added by proxies to track message forewords, avoid request loops, and identifying protocol capabilities.
     /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via))
     Via,
+    /// A header often added by reverse proxies to allow web servers to know from which IP a request is originating.
+    /// This is not an official HTTP header, but is still widely used.
+    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For))
+    XForwardedFor,
     /// Any other header that is not in this enum.
     Custom(String),
 }
@@ -388,6 +392,7 @@ impl HeaderType {
             "upgrade"           => HeaderType::Upgrade,
             "user-agent"        => HeaderType::UserAgent,
             "via"               => HeaderType::Via,
+            "x-forwarded-for"   => HeaderType::XForwardedFor,
             _                   => HeaderType::Custom(s.to_string()),
         }
     }
@@ -419,6 +424,7 @@ impl Display for HeaderType {
                 HeaderType::Upgrade          => "Upgrade",
                 HeaderType::UserAgent        => "User-Agent",
                 HeaderType::Via              => "Via",
+                HeaderType::XForwardedFor    => "X-Forwarded-For",
                 HeaderType::Custom(s)        => s,
             }
         )

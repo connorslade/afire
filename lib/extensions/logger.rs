@@ -1,11 +1,12 @@
 //! Log requests to the console or a file
 
 // If file logging is enabled
-use std::fs::OpenOptions;
-use std::io::prelude::*;
-use std::path::PathBuf;
+use std::fs::{File, OpenOptions};
+use std::io::{self, prelude::*};
+use std::path::Path;
+use std::sync::Mutex;
 
-use crate::{Middleware, Request, Response};
+use crate::{extension::RealIp, HeaderType, Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -24,14 +25,14 @@ pub enum Level {
 /// Logger
 #[derive(Debug)]
 pub struct Logger {
-    /// Is Logger enabled
-    enabled: bool,
-
     /// What level of logs to show
     level: Level,
 
+    /// What header to use to get the clients actual IP
+    real_ip: Option<HeaderType>,
+
     /// Optional file to write logs to
-    file: Option<PathBuf>,
+    file: Option<Mutex<File>>,
 
     /// If logs should also be printed to stdout
     console: bool,
@@ -57,8 +58,8 @@ impl Logger {
     /// ```
     pub fn new() -> Logger {
         Logger {
-            enabled: true,
             level: Level::Info,
+            real_ip: None,
             file: None,
             console: true,
         }
@@ -74,8 +75,19 @@ impl Logger {
     /// let logger = Logger::new()
     ///     .level(Level::Debug);
     /// ```
-    pub fn level(self, level: Level) -> Logger {
-        Logger { level, ..self }
+    pub fn level(self, level: Level) -> Self {
+        Self { level, ..self }
+    }
+
+    /// Uses the [`RealIP`] extention for log IPs.
+    /// You will need to supply the header that will contain the IP address, for example the [X-Forwarded-For header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) ([`HeaderType::XForwardedFor`])
+    ///
+    /// **Warning**: Make sure your reverse proxy is overwriting the specified header on the incoming requests so clients cant spoof their original Ips.
+    pub fn real_ip(self, real_ip: HeaderType) -> Self {
+        Self {
+            real_ip: Some(real_ip),
+            ..self
+        }
     }
 
     /// Set the log file of a logger
@@ -88,11 +100,17 @@ impl Logger {
     /// let logger = Logger::new()
     ///     .file("nose.txt");
     /// ```
-    pub fn file(self, file: impl AsRef<str>) -> Logger {
-        Logger {
-            file: Some(PathBuf::from(file.as_ref())),
+    pub fn file(self, file: impl AsRef<Path>) -> io::Result<Self> {
+        Ok(Self {
+            file: Some(Mutex::new(
+                OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .append(true)
+                    .open(file)?,
+            )),
             ..self
-        }
+        })
     }
 
     /// Enable writing events to stdout
@@ -105,16 +123,16 @@ impl Logger {
     /// let logger = Logger::new()
     ///     .console(true );
     /// ```
-    pub fn console(self, console: bool) -> Logger {
-        Logger { console, ..self }
+    pub fn console(self, console: bool) -> Self {
+        Self { console, ..self }
     }
 
     /// Take a request and log it
     fn log(&self, req: &Request) {
-        // If the logger is disabled, don't do anything
-        if !self.enabled {
-            return;
-        }
+        let ip = match &self.real_ip {
+            Some(i) => req.real_ip_header(i),
+            None => req.address.ip(),
+        };
 
         match self.level {
             // Add Headers and Body to this one
@@ -143,8 +161,7 @@ impl Logger {
                 }
 
                 self.send_log(format!(
-                    "[{}] {} {} [{}] ({}) {{{}}}",
-                    &req.address.ip(),
+                    "[{ip}] {} {} [{}] ({}) {{{}}}",
                     req.method,
                     new_path,
                     query,
@@ -159,13 +176,7 @@ impl Logger {
                     new_path = "/".to_string();
                 }
 
-                self.send_log(format!(
-                    "[{}] {} {}{}",
-                    req.address.ip(),
-                    req.method,
-                    new_path,
-                    req.query
-                ))
+                self.send_log(format!("[{ip}] {} {}{}", req.method, new_path, req.query))
             }
         }
     }
@@ -176,19 +187,9 @@ impl Logger {
             println!("{data}");
         }
 
-        if self.file.is_some() {
-            let mut file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .append(true)
-                .open(self.file.clone().unwrap())
-                .unwrap();
-
-            if writeln!(file, "{data}").is_err() {
-                println!(
-                    "[-] Erm... Error writhing to file '{}",
-                    self.file.as_ref().unwrap().as_os_str().to_string_lossy()
-                )
+        if let Some(i) = &self.file {
+            if let Err(e) = writeln!(i.lock().unwrap(), "{data}") {
+                eprintln!("[-] Erm... Error writhing to log file: {e}")
             }
         }
     }
