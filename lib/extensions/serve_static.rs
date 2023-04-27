@@ -1,6 +1,6 @@
 //! extension to serve static files from disk
 
-use std::{fs::File, rc::Rc};
+use std::{borrow::Cow, fs::File, rc::Rc};
 
 use crate::{
     error::{HandleError, Result},
@@ -304,12 +304,7 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
     let mut path = format!(
         "{}/{}",
         this.data_dir,
-        safe_path(
-            req.path
-                .strip_prefix(&this.serve_path)
-                .unwrap_or(&req.path)
-                .to_owned()
-        )
+        safe_path(req.path.strip_prefix(&this.serve_path).unwrap())
     );
 
     // Add Index.html if path ends with /
@@ -348,13 +343,25 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
     }
 }
 
+/// Prevents path traversals.
+/// Ex: '/hello/../../../data.db' => '/data.db'
 #[inline]
-fn safe_path(mut path: String) -> String {
-    path = path.replace('\\', "/");
-    while path.contains("/..") {
-        path = path.replace("/..", "");
+fn safe_path<'a>(path: &'a str) -> Cow<'a, str> {
+    if !path.contains("..") {
+        return Cow::Borrowed(path);
     }
-    path
+
+    let mut out = Vec::new();
+    for i in path.split(['/', '\\']) {
+        match i {
+            ".." => {
+                out.pop();
+            }
+            _ => out.push(i),
+        }
+    }
+
+    Cow::Owned(out.join("/"))
 }
 
 /// Common MIME Types (sorted in alphabetical order by extension)
