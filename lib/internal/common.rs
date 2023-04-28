@@ -1,6 +1,7 @@
 //! Some little functions used here and there
 
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{borrow::Cow, net::IpAddr};
 
 use crate::error::{Result, StartupError};
@@ -98,11 +99,20 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
     Cow::Borrowed("")
 }
 
+/// Get the current time since the Unix Epoch.
+/// Will panic if the system time is before the Unix Epoch.
+pub(crate) fn epoch() -> Duration {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("System time is before the Unix Epoch. Make sure your date is set correctly.")
+}
+
 #[cfg(test)]
 mod test {
-    use crate::error::StartupError;
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-    use super::parse_ip;
+    use super::{parse_ip, ToHostAddress};
+    use crate::error::StartupError;
 
     #[test]
     fn test_parse_ip() {
@@ -111,6 +121,74 @@ mod test {
         assert_eq!(
             parse_ip("256.231.43.3"),
             Err(StartupError::InvalidIp.into())
+        );
+    }
+
+    #[test]
+    fn test_from_ipv4_addr() {
+        assert_eq!(
+            Ipv4Addr::new(127, 0, 0, 1).to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_ipv6_addr() {
+        assert_eq!(
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1).to_address().unwrap(),
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_u8x4_addr() {
+        assert_eq!(
+            [127, 0, 0, 1].to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_u16x8_addr() {
+        assert_eq!(
+            [0, 0, 0, 0, 0, 0, 0, 1].to_address().unwrap(),
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_u8x16_addr() {
+        assert_eq!(
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+                .to_address()
+                .unwrap(),
+            IpAddr::V6(Ipv6Addr::from([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+            ]))
+        );
+    }
+
+    #[test]
+    fn test_from_string_addr() {
+        assert_eq!(
+            "127.0.0.1".to_owned().to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_ref_string_addr() {
+        assert_eq!(
+            (&"127.0.0.1".to_owned()).to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_ref_str_addr() {
+        assert_eq!(
+            "127.0.0.1".to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
         );
     }
 }

@@ -1,3 +1,5 @@
+//! An extension to limit the amount of requests sent from a single IP that will be handled by the server.
+
 use std::collections::HashMap;
 use std::fmt;
 use std::net::IpAddr;
@@ -5,8 +7,8 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     RwLock,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::internal::common::epoch;
 use crate::Status;
 use crate::{
     middleware::{MiddleResult, Middleware},
@@ -27,10 +29,12 @@ pub struct RateLimiter {
     /// How often to reset the counters (sec)
     req_timeout: u64,
 
-    /// Table of requests per IP
+    /// Table that maps an IP to a list of request timestamps
+    // requests: RwLock<HashMap<IpAddr, Vec<u64>>>,
     requests: RwLock<HashMap<IpAddr, u64>>,
 
-    /// Handler for when the limit is reached
+    /// Handler for when the limit is reached.
+    /// If the handler returns None, the request will be processed normally.
     handler: Handler,
 }
 
@@ -110,7 +114,8 @@ impl RateLimiter {
         }
     }
 
-    /// Define a Custom Handler for when a client has exceeded the ratelimit
+    /// Define a Custom Handler for when a client has exceeded the ratelimit.
+    /// If the handler returns None, the request will be processed normally.
     /// ## Example
     /// ```rust,no_run
     /// // Import Lib
@@ -143,11 +148,7 @@ impl RateLimiter {
 
     /// Check if request table needs to be cleared.
     fn check_reset(&self) {
-        let time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
+        let time = epoch().as_secs();
         if self.last_reset.load(Ordering::Acquire) + self.req_timeout <= time {
             self.requests.write().unwrap().clear();
             self.last_reset.store(time, Ordering::Release);

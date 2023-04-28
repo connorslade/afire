@@ -79,9 +79,9 @@ pub mod extension {
     pub use crate::extensions::{
         date::{self, Date},
         logger::{self, Logger},
-        ratelimit::RateLimiter,
-        real_ip::RealIp,
-        request_id::RequestId,
+        ratelimit::{self, RateLimiter},
+        real_ip::{self, RealIp},
+        request_id::{self, RequestId},
         serve_static::{self, ServeStatic},
     };
 }

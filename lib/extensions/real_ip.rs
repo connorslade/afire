@@ -1,3 +1,7 @@
+//! Methods for getting the real IP of a client through a reverse proxy.
+//!
+//! **Warning**: Make sure your reverse proxy is overwriting the specified header on the incoming requests so clients cant spoof their original Ips.
+
 use std::net::IpAddr;
 
 use crate::{HeaderType, Request};
@@ -5,7 +9,7 @@ use crate::{HeaderType, Request};
 /// Trait that adds methods for getting the real IP of a client through a reverse proxy.
 /// If you are using the "X-Forwarded-For" header you can use `req.real_ip()` but if you are using a different header you will have to use `req.real_ip_header(...)`.
 pub trait RealIp {
-    /// Uses [`RealIp::real_ip_header`] with the "X-Forwarded-For" header.
+    /// Uses [`RealIp::real_ip_header`] with the ["X-Forwarded-For"](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) header.
     /// ## Example
     /// ```rust
     /// use afire::extension::RealIp;
@@ -19,8 +23,9 @@ pub trait RealIp {
     /// # }
     /// ```
     fn real_ip(&self) -> IpAddr {
-        self.real_ip_header("X-Forwarded-For")
+        self.real_ip_header(HeaderType::XForwardedFor)
     }
+
     /// Gets the 'real IP' of a client by parsing the value of `header` into an IpAddr.
     /// If the connection is not coming from localhost, the header isn't found or the header contains an invalid IP address, the raw socket address will be returned.
     ///

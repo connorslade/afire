@@ -346,7 +346,7 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
 /// Prevents path traversals.
 /// Ex: '/hello/../../../data.db' => '/data.db'
 #[inline]
-fn safe_path<'a>(path: &'a str) -> Cow<'a, str> {
+fn safe_path(path: &str) -> Cow<'_, str> {
     if !path.contains("..") {
         return Cow::Borrowed(path);
     }
