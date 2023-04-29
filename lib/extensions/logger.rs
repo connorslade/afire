@@ -97,8 +97,10 @@ impl Logger {
     /// use afire::extension::logger::{Logger, Level};
     ///
     /// // Create a new logger and enable logging to file
+    /// # fn run() {
     /// let logger = Logger::new()
     ///     .file("nose.txt");
+    /// # }
     /// ```
     pub fn file(self, file: impl AsRef<Path>) -> io::Result<Self> {
         Ok(Self {
