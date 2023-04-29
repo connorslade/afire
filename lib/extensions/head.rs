@@ -4,8 +4,8 @@ use crate::{
     HeaderType, Method, Request, Response,
 };
 
-/// Middleware to add support for the HTTP [HEAD] method.
-/// It does this by changing the method to [GET] and adding a special header (`afire::head`).
+/// Middleware to add support for the HTTP [HEAD](https://developer.mozilla.org/en-US/docs/web/http/methods/head) method.
+/// It does this by changing the method to GET and adding a special header (`afire::head`).
 /// Once the response is processed by the normal route handler, the middleware will check if the header is present.
 /// If it is, any body data will be discarded and the [Content-Length] header will be added, if it is not already present.
 /// On static responses, the length is already known, but with streaming responses, the stream will be read to the end to get the length (by default).

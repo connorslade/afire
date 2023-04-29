@@ -1,4 +1,4 @@
-//! extension to serve static files from disk
+//! Serve Static Content from the file system.
 
 use std::{borrow::Cow, fs::File, rc::Rc};
 

@@ -12,6 +12,7 @@ Coming Soon
   This allows for using `HeaderType`s as well as strings to set the header.
 - Add a `HEAD` middleware that adds support for the HTTP HEAD method.
 - Update `ServeStatic` to send a Content-Length header when streaming a file.
+- Build extension docs on docs.rs
 
 # 2.1.0
 
