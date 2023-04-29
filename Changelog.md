@@ -10,6 +10,8 @@ Coming Soon
   Note: The highest you can can go is the data directory that you define, so there is no path traversal vulnerability
 - Accept `impl Into<HeaderType>` in `RequestId::new` instead of just `AsRef<str>`.
   This allows for using `HeaderType`s as well as strings to set the header.
+- Add a `HEAD` middleware that adds support for the HTTP HEAD method.
+- Update `ServeStatic` to send a Content-Length header when streaming a file.
 
 # 2.1.0
 

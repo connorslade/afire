@@ -68,3 +68,9 @@ impl Middleware for Head {
         MiddleResult::Continue
     }
 }
+
+impl Default for Head {
+    fn default() -> Self {
+        Self::new()
+    }
+}
