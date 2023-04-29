@@ -78,10 +78,11 @@ pub mod extension {
     //! | [`RealIp`]      | Get the real IP of a client through a reverse proxy   |
     pub use crate::extensions::{
         date::{self, Date},
+        head::Head,
         logger::{self, Logger},
-        ratelimit::{self, RateLimiter},
-        real_ip::{self, RealIp},
-        request_id::{self, RequestId},
+        ratelimit::RateLimiter,
+        real_ip::RealIp,
+        request_id::RequestId,
         serve_static::{self, ServeStatic},
     };
 }

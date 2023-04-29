@@ -334,6 +334,10 @@ impl Default for Response {
 }
 
 impl ResponseBody {
+    pub fn empty() -> Self {
+        ResponseBody::Static(Vec::new())
+    }
+
     /// Checks if the ResponseBody is static.
     fn is_static(&self) -> bool {
         matches!(self, ResponseBody::Static(_))
