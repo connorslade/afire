@@ -72,12 +72,11 @@ pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     let mut ip = [0; 4];
     let mut split_ip = raw.split('.');
 
-    for i in 0..4 {
-        let octet = split_ip
+    for i in &mut ip {
+        *i = split_ip
             .next()
             .and_then(|x| x.parse::<u8>().ok())
             .ok_or(StartupError::InvalidIp)?;
-        ip[i] = octet;
     }
 
     Ok(ip)

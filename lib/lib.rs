@@ -77,6 +77,7 @@ pub mod extension {
     //! | [`RealIp`]      | Get the real IP of a client through a reverse proxy   |
     //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
     //! | [`ServeStatic`] | Serve static files from a dir.                        |
+    //! | [`Trace`]       | Add support for the HTTP `TRACE` method.              |
     pub use crate::extensions::{
         date::{self, Date},
         head::Head,
@@ -85,6 +86,6 @@ pub mod extension {
         real_ip::RealIp,
         request_id::RequestId,
         serve_static::{self, ServeStatic},
-        trace::Trace
+        trace::Trace,
     };
 }

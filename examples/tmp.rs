@@ -10,7 +10,7 @@ use std::{
 };
 
 use afire::{
-    extension::{Date, Logger, Trace, Head},
+    extension::{Date, Head, Logger, Trace},
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
@@ -126,7 +126,7 @@ fn main() {
 
     Test.attach(&mut server);
     Date.attach(&mut server);
-    Trace.attach(&mut server);
+    Trace::new().attach(&mut server);
     Head::new().attach(&mut server);
     server.start_threaded(5).unwrap();
 }
