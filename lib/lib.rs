@@ -60,9 +60,9 @@ pub mod prelude {
 }
 
 // Extra Features
-#[cfg(feature = "extensions")]
+#[cfg(any(feature = "extensions", docsrs))]
 mod extensions;
-#[cfg(feature = "extensions")]
+#[cfg(any(feature = "extensions", docsrs))]
 pub mod extension {
     //! Useful extensions to the base afire.
     //! Includes helpful middleware like Serve Static, Rate Limit and Logger.
@@ -70,14 +70,16 @@ pub mod extension {
     //! ## All Feature
     //! | Name            | Description                                           |
     //! | --------------- | ----------------------------------------------------- |
-    //! | [`ServeStatic`] | Serve static files from a dir.                        |
     //! | [`Date`]        | Add the Date header to responses. Required by HTTP.   |
-    //! | [`RateLimiter`] | Limit how many requests can be handled from a source. |
+    //! | [`Head`]        | Add support for HTTP `HEAD` requests.                 |
     //! | [`Logger`]      | Log incoming requests to the console / file.          |
-    //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
+    //! | [`RateLimiter`] | Limit how many requests can be handled from a source. |
     //! | [`RealIp`]      | Get the real IP of a client through a reverse proxy   |
+    //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
+    //! | [`ServeStatic`] | Serve static files from a dir.                        |
     pub use crate::extensions::{
         date::{self, Date},
+        head::Head,
         logger::{self, Logger},
         ratelimit::RateLimiter,
         real_ip::RealIp,

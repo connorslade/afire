@@ -1,4 +1,4 @@
-//! Log requests to the console or a file
+//! Log requests to the console or a file.
 
 // If file logging is enabled
 use std::fs::{File, OpenOptions};
@@ -22,7 +22,7 @@ pub enum Level {
     Info,
 }
 
-/// Logger
+/// Log requests to the console or a file.
 #[derive(Debug)]
 pub struct Logger {
     /// What level of logs to show
@@ -79,7 +79,7 @@ impl Logger {
         Self { level, ..self }
     }
 
-    /// Uses the [`RealIP`] extention for log IPs.
+    /// Uses the [`crate::extension::RealIp`] extension for log IPs.
     /// You will need to supply the header that will contain the IP address, for example the [X-Forwarded-For header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) ([`HeaderType::XForwardedFor`])
     ///
     /// **Warning**: Make sure your reverse proxy is overwriting the specified header on the incoming requests so clients cant spoof their original Ips.
@@ -97,8 +97,10 @@ impl Logger {
     /// use afire::extension::logger::{Logger, Level};
     ///
     /// // Create a new logger and enable logging to file
+    /// # fn run() {
     /// let logger = Logger::new()
     ///     .file("nose.txt");
+    /// # }
     /// ```
     pub fn file(self, file: impl AsRef<Path>) -> io::Result<Self> {
         Ok(Self {

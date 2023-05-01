@@ -1,4 +1,4 @@
-//! extension to serve static files from disk
+//! Serve Static Content from the file system.
 
 use std::{borrow::Cow, fs::File, rc::Rc};
 
@@ -313,7 +313,7 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
     }
 
     // Also add '/index.html' if path dose not end with a file
-    if !path.split('/').last().unwrap_or_default().contains('.') {
+    if !path.rsplit('/').next().unwrap_or_default().contains('.') {
         path.push_str("/index.html");
     }
 
@@ -326,27 +326,27 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
 
     // Try to read File
     let ext = path.rsplit('.').next().unwrap_or_default();
-    match File::open(&path) {
-        // If its found send it as response
-        Ok(file) => (
-            Response::new().stream(file).header(
-                "Content-Type",
-                get_type(ext, &TYPES)
-                    .or_else(|| this.types.iter().find(|x| x.0 == ext).map(|x| x.1.as_str()))
-                    .unwrap_or("application/octet-stream"),
-            ),
-            true,
-        ),
+    let file = match File::open(&path) {
+        Ok(i) => i,
+        Err(_) => return ((this.not_found)(req, false), false),
+    };
 
-        // If not send the 404 route defined
-        Err(_) => ((this.not_found)(req, false), false),
+    let content_type = get_type(ext, &TYPES)
+        .or_else(|| this.types.iter().find(|x| x.0 == ext).map(|x| x.1.as_str()))
+        .unwrap_or("application/octet-stream");
+
+    let mut res = Response::new();
+    if let Ok(i) = file.metadata() {
+        res.headers.add("Content-Length", i.len().to_string());
     }
+
+    (res.stream(file).header("Content-Type", content_type), true)
 }
 
 /// Prevents path traversals.
 /// Ex: '/hello/../../../data.db' => '/data.db'
 #[inline]
-fn safe_path<'a>(path: &'a str) -> Cow<'a, str> {
+pub fn safe_path(path: &str) -> Cow<'_, str> {
     if !path.contains("..") {
         return Cow::Borrowed(path);
     }
