@@ -63,22 +63,20 @@ impl ToHostAddress for &str {
 
 /// Parse a string to an IP address.
 /// Will return a [`StartupError::InvalidIp`] if the IP has an invalid format.
+/// Note: **Only IPv4 is supported**.
 pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     if raw == "localhost" {
         return Ok([127, 0, 0, 1]);
     }
 
     let mut ip = [0; 4];
-    let split_ip = raw.split('.').collect::<Vec<&str>>();
-
-    if split_ip.len() != 4 {
-        return Err(StartupError::InvalidIp.into());
-    }
+    let mut split_ip = raw.split('.');
 
     for i in 0..4 {
-        let octet = split_ip[i]
-            .parse::<u8>()
-            .map_err(|_| StartupError::InvalidIp)?;
+        let octet = split_ip
+            .next()
+            .and_then(|x| x.parse::<u8>().ok())
+            .ok_or(StartupError::InvalidIp)?;
         ip[i] = octet;
     }
 
