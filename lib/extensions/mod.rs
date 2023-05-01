@@ -5,3 +5,4 @@ pub mod ratelimit;
 pub mod real_ip;
 pub mod request_id;
 pub mod serve_static;
+pub mod trace;

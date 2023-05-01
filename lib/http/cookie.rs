@@ -62,7 +62,7 @@ impl Cookie {
     /// Intended for making Cookie Vec from HTTP Headers.
     pub fn from_string(cookie_string: &str) -> Vec<Cookie> {
         let mut out = Vec::new();
-        for i in cookie_string.split(";") {
+        for i in cookie_string.split(';') {
             let (name, value) = match i.split_once('=') {
                 Some(i) => (i.0.trim(), i.1.trim()),
                 None => continue,
