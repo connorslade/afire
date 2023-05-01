@@ -366,7 +366,7 @@ pub fn safe_path(path: &str) -> Cow<'_, str> {
 
 /// Common MIME Types (sorted in alphabetical order by extension)
 ///
-/// Used by Serve-static extensions
+/// Used by ServeStatic extension
 pub const TYPES: [MIME; 56] = [
     MIME::new("7z", "application/x-7z-compressed"),
     MIME::new("aac", "audio/aac"),

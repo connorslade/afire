@@ -57,7 +57,6 @@ impl Path {
         let mut out = Vec::new();
 
         let path = path.split('/');
-
         for (i, j) in self.parts.iter().zip(path.clone()) {
             match i {
                 PathPart::Normal(x) => {

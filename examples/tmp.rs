@@ -10,7 +10,7 @@ use std::{
 };
 
 use afire::{
-    extension::{Date, Logger},
+    extension::{Date, Logger, Trace, Head},
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
@@ -20,7 +20,7 @@ use afire::{
 };
 
 // File to download
-const PATH: &str = r#"..."#;
+const PATH: &str = r#"/home/connorslade/Downloads/factorio_alpha_x64_1.amNH547D.1.76.tar.xz.part"#;
 
 fn main() {
     let mut server = Server::<()>::new("localhost", 8080);
@@ -126,6 +126,8 @@ fn main() {
 
     Test.attach(&mut server);
     Date.attach(&mut server);
+    Trace.attach(&mut server);
+    Head::new().attach(&mut server);
     server.start_threaded(5).unwrap();
 }
 

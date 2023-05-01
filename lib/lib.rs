@@ -85,5 +85,6 @@ pub mod extension {
         real_ip::RealIp,
         request_id::RequestId,
         serve_static::{self, ServeStatic},
+        trace::Trace
     };
 }
