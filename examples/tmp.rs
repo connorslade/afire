@@ -15,7 +15,7 @@ use afire::{
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
-    server_sent_events::{Event, ServerSentEvents},
+    server_sent_events::{Event, ServerSentEvents, ServerSentEventsExt},
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
@@ -130,8 +130,7 @@ fn main() {
         let tx = req.sse().unwrap();
 
         for i in 0..10 {
-            tx.send(Event::new("update").id(i).data("eggs, are cool"))
-                .unwrap();
+            tx.send_id("update", i, "eggs, are cool");
             thread::sleep(Duration::from_secs(1));
         }
 
