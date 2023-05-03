@@ -6,7 +6,8 @@ use std::{
     fs::{self, File},
     io::{self, Read},
     sync::Arc,
-    time::Instant,
+    thread,
+    time::{Duration, Instant},
 };
 
 use afire::{
@@ -14,13 +15,14 @@ use afire::{
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
+    server_sent_events::{Event, ServerSentEvents},
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
 };
 
 // File to download
-const PATH: &str = r#"/home/connorslade/Downloads/factorio_alpha_x64_1.amNH547D.1.76.tar.xz.part"#;
+const PATH: &str = r#"..."#;
 
 fn main() {
     let mut server = Server::<()>::new("localhost", 8080);
@@ -120,6 +122,18 @@ fn main() {
             .header("Sec-WebSocket-Accept", &accept)
             .header("Sec-WebSocket-Version", "13");
         upgrade.write(req.socket.clone(), &[]).unwrap();
+
+        Response::end()
+    });
+
+    server.route(Method::GET, "/sse", |req| {
+        let tx = req.sse().unwrap();
+
+        for i in 0..10 {
+            tx.send(Event::new("update").id(i).data("eggs, are cool"))
+                .unwrap();
+            thread::sleep(Duration::from_secs(1));
+        }
 
         Response::end()
     });

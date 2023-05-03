@@ -13,6 +13,8 @@ Coming Soon
 - Add a `HEAD` middleware that adds support for the HTTP HEAD method.
 - Update `ServeStatic` to send a Content-Length header when streaming a file.
 - Build extension docs on docs.rs
+- Add a `TRACE` middleware that adds support for the HTTP TRACE method.
+- Add support for [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) (SSE).
 
 # 2.1.0
 

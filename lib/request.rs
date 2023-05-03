@@ -4,7 +4,6 @@ use std::{
     fmt::Debug,
     io::{BufRead, BufReader, Read},
     net::{SocketAddr, TcpStream},
-    rc::Rc,
     str::FromStr,
     sync::{Arc, Mutex},
 };
@@ -51,7 +50,7 @@ pub struct Request {
     pub address: SocketAddr,
 
     /// The raw tcp socket
-    pub socket: Rc<Mutex<TcpStream>>,
+    pub socket: Arc<Mutex<TcpStream>>,
 }
 
 impl Request {
@@ -99,7 +98,7 @@ impl Request {
     }
 
     /// Read a request from a TcpStream.
-    pub(crate) fn from_socket(raw_stream: Rc<Mutex<TcpStream>>) -> Result<Self> {
+    pub(crate) fn from_socket(raw_stream: Arc<Mutex<TcpStream>>) -> Result<Self> {
         let stream = raw_stream.lock().unwrap();
 
         trace!(Level::Debug, "Reading header");

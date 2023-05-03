@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::consts;
 use crate::header::{HeaderType, Headers};
@@ -281,7 +280,7 @@ impl Response {
     /// Will take care of adding default headers and closing the connection if needed.
     pub fn write(
         &mut self,
-        stream: Rc<Mutex<TcpStream>>,
+        stream: Arc<Mutex<TcpStream>>,
         default_headers: &[Header],
     ) -> Result<()> {
         // Add default headers to response

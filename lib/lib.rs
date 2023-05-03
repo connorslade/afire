@@ -37,7 +37,7 @@ pub use self::{
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},
-    http::{cookie, header, multipart},
+    http::{cookie, header, multipart, server_sent_events},
     method::Method,
     middleware::Middleware,
     query::Query,
