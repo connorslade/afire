@@ -2,6 +2,8 @@
 //! Used in [`crate::Request`] and [`crate::Response`].
 
 /// HTTP status codes.
+/// Used in [`crate::Request`] and [`crate::Response`].
+///
 /// Used to indicate the status of an HTTP response.
 /// Note: Methods that accept a [`Status`] will also accept any [`u16`] value, converting it to a Status::Custom if it is not a valid status code.
 ///

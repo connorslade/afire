@@ -1,6 +1,7 @@
 //! Some little functions used here and there
 
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{borrow::Cow, net::IpAddr};
 
@@ -58,6 +59,20 @@ impl ToHostAddress for &String {
 impl ToHostAddress for &str {
     fn to_address(&self) -> Result<IpAddr> {
         Ok(Ipv4Addr::from(parse_ip(self)?).into())
+    }
+}
+
+/// Adds a force_lock method to Mutex, which will return the inner value even if its poisoned.
+pub(crate) trait ForceLock<T> {
+    fn force_lock(&self) -> MutexGuard<T>;
+}
+
+impl<T> ForceLock<T> for Mutex<T> {
+    fn force_lock(&self) -> MutexGuard<T> {
+        match self.lock() {
+            Ok(i) => i,
+            Err(e) => e.into_inner(),
+        }
     }
 }
 

@@ -3,6 +3,7 @@
 use std::{
     collections::HashMap,
     convert::TryFrom,
+    fmt::format,
     fs::{self, File},
     io::{self, Read},
     sync::Arc,
@@ -15,7 +16,7 @@ use afire::{
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
-    server_sent_events::{Event, ServerSentEvents, ServerSentEventsExt},
+    server_sent_events::{Event, SSEStream, ServerSentEventsExt},
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
@@ -127,10 +128,17 @@ fn main() {
     });
 
     server.route(Method::GET, "/sse", |req| {
-        let tx = req.sse().unwrap();
+        let stream = req.sse().unwrap();
+        stream.set_retry(10_000);
+
+        let mut start = 0;
+        if let Some(i) = stream.last_index {
+            stream.send_id("update", i, format!("Got last ID of `{i}`"));
+            start = i + 1;
+        }
 
         for i in 0..10 {
-            tx.send_id("update", i, "eggs, are cool");
+            stream.send_id("update", start + i, format!("eggs, are cool {}", start + i));
             thread::sleep(Duration::from_secs(1));
         }
 
