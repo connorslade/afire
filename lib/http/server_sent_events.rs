@@ -1,9 +1,10 @@
 //! [Server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) (SSE) support.
 //! ## Example
 //! ```rust
-//! # use tide::{Server, Request};
+//! # use afire::{Server, Request, Response, Method, server_sent_events::ServerSentEventsExt};
+//! # use std::{thread, time::Duration};
 //! # fn run(server: &mut Server) {
-//! server.route(tide::Method::GET, "/sse", |req| {
+//! server.route(Method::GET, "/sse", |req| {
 //!     let stream = req.sse().unwrap();
 //!
 //!     for i in 0..10 {
@@ -86,7 +87,9 @@ impl SSEStream {
         let _ = self.stream.send(EventType::Close);
     }
 
-    fn from_request(this: &Request) -> io::Result<Self> {
+    /// Creates a new SSE stream from the given request.
+    /// This is called automatically if you use the [`ServerSentEventsExt`] trait's .sse() method.
+    pub fn from_request(this: &Request) -> io::Result<Self> {
         let last_index = this
             .headers
             .get("Last-Event-ID")

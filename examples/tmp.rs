@@ -3,7 +3,6 @@
 use std::{
     collections::HashMap,
     convert::TryFrom,
-    fmt::format,
     fs::{self, File},
     io::{self, Read},
     sync::Arc,
@@ -16,7 +15,7 @@ use afire::{
     internal::encoding::{base64, sha1},
     multipart::MultipartData,
     prelude::*,
-    server_sent_events::{Event, SSEStream, ServerSentEventsExt},
+    server_sent_events::ServerSentEventsExt,
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
