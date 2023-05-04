@@ -13,7 +13,7 @@ use crate::{
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
-    Cookie, Error, Header, Method, Query,
+    Cookie, Error, Header, Method, Query, internal::common::ForceLock,
 };
 
 /// Http Request
@@ -99,7 +99,7 @@ impl Request {
 
     /// Read a request from a TcpStream.
     pub(crate) fn from_socket(raw_stream: Arc<Mutex<TcpStream>>) -> Result<Self> {
-        let stream = raw_stream.lock().unwrap();
+        let stream = raw_stream.force_lock();
 
         trace!(Level::Debug, "Reading header");
         let peer_addr = stream.peer_addr()?;

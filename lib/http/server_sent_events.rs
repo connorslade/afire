@@ -18,7 +18,7 @@
 //! ```
 //!
 //! Then in the browser you can connect to the event stream with JavaScript using the [`EventSource`](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) API:
-//! ```js
+//! ```javascript
 //! const events = new EventSource("/sse");
 //! events.addEventListener("update", (event) => {
 //!   console.log(event.data);
@@ -27,7 +27,10 @@
 use std::{
     fmt::Display,
     io::{self, Write},
-    sync::mpsc::{self, Sender},
+    sync::{
+        mpsc::{self, Sender},
+        Arc, Barrier,
+    },
     thread,
 };
 
@@ -37,6 +40,7 @@ use crate::{internal::common::ForceLock, Request};
 ///
 /// For more information and usage examples, visit the [module level documentation](index.html).
 pub struct SSEStream {
+    /// Channel to send events to the client.
     stream: Sender<EventType>,
     /// If the EventSource connection gets reset, the client will send the last received event id in the `Last-Event-ID` header.
     /// This will be available here, if applicable.
@@ -53,7 +57,7 @@ pub struct Event {
 enum EventType {
     Event(Event),
     SetRetry(u32),
-    Close,
+    Close(Arc<Barrier>),
 }
 
 impl SSEStream {
@@ -84,7 +88,9 @@ impl SSEStream {
     /// This will leave the socket open, so a new SSEStream could be created.
     /// Note: The client will likely try to reconnect automatically after a few seconds.
     pub fn close(&self) {
-        let _ = self.stream.send(EventType::Close);
+        let barrier = Arc::new(Barrier::new(2));
+        let _ = self.stream.send(EventType::Close(barrier.clone()));
+        barrier.wait();
     }
 
     /// Creates a new SSE stream from the given request.
@@ -110,9 +116,12 @@ impl SSEStream {
                         EventType::SetRetry(retry) => {
                             let _ = socket
                                 .force_lock()
-                                .write_all(format!("retry: {}\n\n", retry).as_bytes());
+                                .write_all(format!("retry: {retry}\n\n").as_bytes());
                         }
-                        EventType::Close => break,
+                        EventType::Close(b) => {
+                            b.wait();
+                            break;
+                        }
                     }
                 }
             })
@@ -153,13 +162,14 @@ impl ToString for Event {
         let mut out = String::new();
 
         if let Some(id) = self.id {
-            out.push_str(&format!("id: {}\n", id));
+            out.push_str(&format!("id: {id}\n"));
         }
 
-        out.push_str(&format!("event: {}\n", self.event));
+        let event = &self.event;
+        out.push_str(&format!("event: {event}\n"));
 
         for i in self.data.split('\n') {
-            out.push_str(&format!("data: {}\n", i));
+            out.push_str(&format!("data: {i}\n"));
         }
 
         out.push('\n');

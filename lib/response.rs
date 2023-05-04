@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use crate::consts;
 use crate::header::{HeaderType, Headers};
 use crate::http::status::Status;
+use crate::internal::common::ForceLock;
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
     SetCookie,
@@ -318,7 +319,7 @@ impl Response {
             headers_to_string(&self.headers)
         );
 
-        let mut stream = stream.lock().unwrap();
+        let mut stream = stream.force_lock();
         stream.write_all(response.as_bytes())?;
         self.data.write(&mut stream)?;
 

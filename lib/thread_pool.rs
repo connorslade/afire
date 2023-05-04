@@ -4,6 +4,8 @@
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
+use crate::internal::common::ForceLock;
+
 /// Messages that can be handled by the pool's workers.
 enum Message {
     /// Stops the worker.
@@ -63,7 +65,7 @@ impl Worker {
         let handle = thread::Builder::new()
             .name(format!("Worker {id}"))
             .spawn(move || loop {
-                let job = rx.lock().unwrap().recv().unwrap();
+                let job = rx.force_lock().recv().unwrap();
                 match job {
                     Message::Job(job) => job(),
                     Message::Kill => break,
