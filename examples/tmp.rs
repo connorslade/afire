@@ -111,6 +111,9 @@ fn main() {
     server.route(Method::GET, "/ws", |req| {
         let stream = req.ws().unwrap();
 
+        stream.send("ello world");
+        thread::park();
+
         Response::end()
     });
 
