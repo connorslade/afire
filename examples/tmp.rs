@@ -25,7 +25,7 @@ use afire::{
 const PATH: &str = r#"..."#;
 
 fn main() {
-    let mut server = Server::<()>::new("localhost", 8080);
+    let mut server = Server::<()>::new("localhost", 8081);
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
@@ -108,20 +108,8 @@ fn main() {
         Response::new().text(res)
     });
 
-    const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     server.route(Method::GET, "/ws", |req| {
-        let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap().to_owned();
-        trace!("WS Key: {}", ws_key);
-        let accept = base64::encode(&sha1::hash((ws_key + WS_GUID).as_bytes()));
-        trace!("WS Accept: {}", accept);
-
-        let mut upgrade = Response::new()
-            .status(Status::SwitchingProtocols)
-            .header(HeaderType::Upgrade, "websocket")
-            .header(HeaderType::Connection, "Upgrade")
-            .header("Sec-WebSocket-Accept", &accept)
-            .header("Sec-WebSocket-Version", "13");
-        upgrade.write(req.socket.clone(), &[]).unwrap();
+        let stream = req.ws().unwrap();
 
         Response::end()
     });

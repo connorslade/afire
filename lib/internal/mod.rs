@@ -7,4 +7,3 @@ pub mod common;
 pub mod encoding;
 pub(crate) mod handle;
 pub mod path;
-pub mod store;

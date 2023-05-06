@@ -39,7 +39,7 @@ use crate::{internal::common::ForceLock, Request};
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
 ///
 /// For more information and usage examples, visit the [module level documentation](index.html).
-pub struct SSEStream {
+pub struct ServerSentEventStream {
     /// Channel to send events to the client.
     stream: Sender<EventType>,
     /// If the EventSource connection gets reset, the client will send the last received event id in the `Last-Event-ID` header.
@@ -60,7 +60,7 @@ enum EventType {
     Close(Arc<Barrier>),
 }
 
-impl SSEStream {
+impl ServerSentEventStream {
     /// Sends a new event with the given event type and data.
     pub fn send(&self, event_type: impl AsRef<str>, data: impl Display) {
         let _ = self.stream.send(Event::new(event_type).data(data).into());
@@ -180,12 +180,12 @@ impl ToString for Event {
 /// A trait for initiating a SSE connection on a request.
 pub trait ServerSentEventsExt {
     /// Initiates a SSE connection on the request.
-    fn sse(&self) -> io::Result<SSEStream>;
+    fn sse(&self) -> io::Result<ServerSentEventStream>;
 }
 
 impl ServerSentEventsExt for Request {
-    fn sse(&self) -> io::Result<SSEStream> {
-        SSEStream::from_request(self)
+    fn sse(&self) -> io::Result<ServerSentEventStream> {
+        ServerSentEventStream::from_request(self)
     }
 }
 
