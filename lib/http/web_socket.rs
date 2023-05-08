@@ -69,14 +69,16 @@ impl WebSocketStream {
         let (s2c, rx) = mpsc::sync_channel::<TxType>(10);
         let (_tx, c2s) = mpsc::sync_channel::<TxType>(10);
         let (s2c, c2s) = (Arc::new(s2c), Arc::new(c2s));
-
-        let socket = req.socket.clone();
         let this_s2c = s2c.clone();
+
+        let socket = req.socket.force_lock();
+        let mut read_socket = socket.try_clone().unwrap();
+        let mut write_socket = socket.try_clone().unwrap();
+        drop(socket);
         thread::spawn(move || {
-            let mut socket = socket.force_lock();
             let mut buf = [0u8; 1024];
             loop {
-                let len = socket.read(&mut buf).unwrap();
+                let len = read_socket.read(&mut buf).unwrap();
                 if len == 0 {
                     break;
                 }
@@ -115,7 +117,6 @@ impl WebSocketStream {
             }
         });
 
-        let socket = req.socket.clone();
         thread::spawn(move || {
             //todo
             for i in rx {
@@ -125,7 +126,7 @@ impl WebSocketStream {
                     TxType::Text(s) => Frame::text(s),
                     TxType::Binary(b) => Frame::binary(b),
                 }
-                .write(socket.clone())
+                .write(&mut write_socket)
                 .unwrap();
                 trace!(Level::Debug, "WS: Sent :p");
             }
@@ -256,11 +257,11 @@ impl Frame {
         buf
     }
 
-    fn write(&self, socket: Arc<Mutex<TcpStream>>) -> io::Result<()> {
+    fn write(&self, socket: &mut TcpStream) -> io::Result<()> {
         let buf = self.to_bytes();
         trace!(Level::Debug, "WS: Writing: {:?}", buf);
 
-        socket.force_lock().write_all(&buf)?;
+        socket.write_all(&buf)?;
         Ok(())
     }
 

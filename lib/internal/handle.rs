@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     error::{HandleError, ParseError, Result, StreamError},
-    internal::common::{any_string, ForceLock},
+    internal::common::any_string,
     middleware::MiddleResult,
     response::ResponseFlag,
     route::RouteType,
@@ -71,7 +71,7 @@ where
 
         if !keep_alive || res.flag == ResponseFlag::Close || !this.keep_alive {
             trace!(Level::Debug, "Closing socket");
-            if let Err(e) = stream.force_lock().shutdown(Shutdown::Both) {
+            if let Err(e) = stream.lock().unwrap().shutdown(Shutdown::Both) {
                 trace!(Level::Debug, "Error closing socket: {:?}", e);
             }
             break;

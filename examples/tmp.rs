@@ -111,10 +111,13 @@ fn main() {
     server.route(Method::GET, "/ws", |req| {
         let stream = req.ws().unwrap();
 
-        stream.send("ello world");
-        thread::park();
+        loop {
+            println!("Sending...");
+            stream.send("hello world");
+            thread::sleep(Duration::from_secs(5));
+        }
 
-        Response::end()
+        // Response::end()
     });
 
     server.route(Method::GET, "/sse", |req| {
