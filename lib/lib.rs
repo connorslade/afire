@@ -62,9 +62,9 @@ pub mod prelude {
 }
 
 // Extra Features
-#[cfg(any(feature = "extensions", docsrs))]
+#[cfg(feature = "extensions")]
 mod extensions;
-#[cfg(any(feature = "extensions", docsrs))]
+#[cfg(feature = "extensions")]
 pub mod extension {
     //! Useful extensions to the base afire.
     //! Includes helpful middleware like Serve Static, Rate Limit and Logger.
