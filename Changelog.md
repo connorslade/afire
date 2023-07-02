@@ -1,3 +1,22 @@
+# 2.2.0
+
+July, 02, 2023
+
+- Use binary search on ServeStatic MMIE types (save those clock cycles)
+- Some optimizations throughout afire
+- Logger can now make use of the `RealIp` extension and log the real ip of the client
+- Logger now holds a persistent file handle instead of opening and closing it every time
+- In ServeStatic, when paths have the '..', they will now go up a directory instead of being ignored
+  Note: The highest you can can go is the data directory that you define, so there is no path traversal vulnerability
+- Accept `impl Into<HeaderType>` in `RequestId::new` instead of just `AsRef<str>`.
+  This allows for using `HeaderType`s as well as strings to set the header.
+- Add a `HEAD` middleware that adds support for the HTTP HEAD method.
+- Update `ServeStatic` to send a Content-Length header when streaming a file.
+- Build extension docs on docs.rs
+- Add a `TRACE` middleware that adds support for the HTTP TRACE method.
+- Add support for [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) (SSE).
+- Progress on Websocket support
+
 # 2.1.0
 
 April 24, 2023

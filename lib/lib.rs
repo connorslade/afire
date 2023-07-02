@@ -37,7 +37,7 @@ pub use self::{
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},
-    http::{cookie, header, multipart},
+    http::{cookie, header, multipart, server_sent_events},
     method::Method,
     middleware::Middleware,
     query::Query,
@@ -54,15 +54,16 @@ pub mod prelude {
     pub use crate::{
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
+        server_sent_events::ServerSentEventsExt,
         Content, Cookie, Header, HeaderType, Method, Query, Request, Response, Server, SetCookie,
         Status,
     };
 }
 
 // Extra Features
-#[cfg(feature = "extensions")]
+#[cfg(any(feature = "extensions", docsrs))]
 mod extensions;
-#[cfg(feature = "extensions")]
+#[cfg(any(feature = "extensions", docsrs))]
 pub mod extension {
     //! Useful extensions to the base afire.
     //! Includes helpful middleware like Serve Static, Rate Limit and Logger.
@@ -70,18 +71,22 @@ pub mod extension {
     //! ## All Feature
     //! | Name            | Description                                           |
     //! | --------------- | ----------------------------------------------------- |
-    //! | [`ServeStatic`] | Serve static files from a dir.                        |
     //! | [`Date`]        | Add the Date header to responses. Required by HTTP.   |
-    //! | [`RateLimiter`] | Limit how many requests can be handled from a source. |
+    //! | [`Head`]        | Add support for HTTP `HEAD` requests.                 |
     //! | [`Logger`]      | Log incoming requests to the console / file.          |
-    //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
+    //! | [`RateLimiter`] | Limit how many requests can be handled from a source. |
     //! | [`RealIp`]      | Get the real IP of a client through a reverse proxy   |
+    //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
+    //! | [`ServeStatic`] | Serve static files from a dir.                        |
+    //! | [`Trace`]       | Add support for the HTTP `TRACE` method.              |
     pub use crate::extensions::{
         date::{self, Date},
+        head::Head,
         logger::{self, Logger},
         ratelimit::RateLimiter,
         real_ip::RealIp,
         request_id::RequestId,
         serve_static::{self, ServeStatic},
+        trace::Trace,
     };
 }

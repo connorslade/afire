@@ -1,6 +1,7 @@
 //! Some little functions used here and there
 
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::sync::{Mutex, MutexGuard};
 use std::{borrow::Cow, net::IpAddr};
 
 use crate::error::{Result, StartupError};
@@ -60,25 +61,36 @@ impl ToHostAddress for &str {
     }
 }
 
+/// Adds a force_lock method to Mutex, which will return the inner value even if its poisoned.
+pub(crate) trait ForceLock<T> {
+    fn force_lock(&self) -> MutexGuard<T>;
+}
+
+impl<T> ForceLock<T> for Mutex<T> {
+    fn force_lock(&self) -> MutexGuard<T> {
+        match self.lock() {
+            Ok(i) => i,
+            Err(e) => e.into_inner(),
+        }
+    }
+}
+
 /// Parse a string to an IP address.
 /// Will return a [`StartupError::InvalidIp`] if the IP has an invalid format.
+/// Note: **Only IPv4 is supported**.
 pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     if raw == "localhost" {
         return Ok([127, 0, 0, 1]);
     }
 
     let mut ip = [0; 4];
-    let split_ip = raw.split('.').collect::<Vec<&str>>();
+    let mut split_ip = raw.split('.');
 
-    if split_ip.len() != 4 {
-        return Err(StartupError::InvalidIp.into());
-    }
-
-    for i in 0..4 {
-        let octet = split_ip[i]
-            .parse::<u8>()
-            .map_err(|_| StartupError::InvalidIp)?;
-        ip[i] = octet;
+    for i in &mut ip {
+        *i = split_ip
+            .next()
+            .and_then(|x| x.parse::<u8>().ok())
+            .ok_or(StartupError::InvalidIp)?;
     }
 
     Ok(ip)
@@ -98,11 +110,23 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
     Cow::Borrowed("")
 }
 
+/// Get the current time since the Unix Epoch.
+/// Will panic if the system time is before the Unix Epoch.
+#[cfg(any(feature = "extensions", docsrs))]
+pub(crate) fn epoch() -> std::time::Duration {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("System time is before the Unix Epoch. Make sure your date is set correctly.")
+}
+
 #[cfg(test)]
 mod test {
-    use crate::error::StartupError;
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-    use super::parse_ip;
+    use super::{parse_ip, ToHostAddress};
+    use crate::error::StartupError;
 
     #[test]
     fn test_parse_ip() {
@@ -111,6 +135,74 @@ mod test {
         assert_eq!(
             parse_ip("256.231.43.3"),
             Err(StartupError::InvalidIp.into())
+        );
+    }
+
+    #[test]
+    fn test_from_ipv4_addr() {
+        assert_eq!(
+            Ipv4Addr::new(127, 0, 0, 1).to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_ipv6_addr() {
+        assert_eq!(
+            Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1).to_address().unwrap(),
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_u8x4_addr() {
+        assert_eq!(
+            [127, 0, 0, 1].to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_u16x8_addr() {
+        assert_eq!(
+            [0, 0, 0, 0, 0, 0, 0, 1].to_address().unwrap(),
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_u8x16_addr() {
+        assert_eq!(
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+                .to_address()
+                .unwrap(),
+            IpAddr::V6(Ipv6Addr::from([
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+            ]))
+        );
+    }
+
+    #[test]
+    fn test_from_string_addr() {
+        assert_eq!(
+            "127.0.0.1".to_owned().to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_ref_string_addr() {
+        assert_eq!(
+            (&"127.0.0.1".to_owned()).to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+        );
+    }
+
+    #[test]
+    fn test_from_ref_str_addr() {
+        assert_eq!(
+            "127.0.0.1".to_address().unwrap(),
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
         );
     }
 }

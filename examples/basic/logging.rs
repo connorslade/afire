@@ -1,6 +1,6 @@
 use afire::{
     extension::logger::{Level, Logger},
-    Content, Method, Middleware, Response, Server,
+    Content, HeaderType, Method, Middleware, Response, Server,
 };
 
 use crate::Example;
@@ -35,10 +35,14 @@ impl Example for Logging {
             // The level of logging this can be Debug or Info
             // Debug will give a lot more information about the request
             .level(Level::Info)
+            // This will have Logger make use of the RealIp extention,
+            // which will allow logging the correct IP when using a reverse proxy.
+            .real_ip(HeaderType::XForwardedFor)
             // The file argument tells the logger if it should save to a file
             // Only one file can be defined per logger
             // With logging to file it will write to the file on every request... (for now)
             .file("example.log")
+            .unwrap()
             // Tells the Logger it should log to the console as well
             .console(true)
             // This must be put at the end of your Logger Construction

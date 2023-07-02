@@ -2,7 +2,7 @@
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 name = "afire"
-version = "2.1.0"
+version = "2.2.0"
 
 categories = ["network-programming", "web-programming::http-server"]
 description = "🔥 A blazing fast web framework for Rust"
@@ -27,3 +27,6 @@ tracing = []
 
 [dev-dependencies]
 afire = { path = ".", features = ["extensions"] }
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]

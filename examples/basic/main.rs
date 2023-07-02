@@ -25,7 +25,7 @@ pub trait Example {
 }
 
 fn main() {
-    set_log_level(Level::Debug);
+    set_log_level(Level::Trace);
     let examples: Vec<Box<dyn Example>> = vec![
         Box::new(basic::Basic),
         Box::new(serve_file::ServeFile),

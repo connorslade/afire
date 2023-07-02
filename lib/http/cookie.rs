@@ -60,30 +60,20 @@ impl Cookie {
 
     /// Make a Vec of Cookies from a String.
     /// Intended for making Cookie Vec from HTTP Headers.
-    /// Will only return None of the cookie string does not start with "Cookie:".
-    /// If there are any invalid cookies, they will be ignored.
-    pub(crate) fn from_string(cookie_string: &str) -> Vec<Cookie> {
-        let cookies = cookie_string.trim().split("; ").collect::<Vec<&str>>();
-        let mut final_cookies = Vec::new();
-        for i in cookies {
-            let mut cookie_parts = i.splitn(2, '=');
-            let name = match cookie_parts.next() {
-                Some(i) => i.trim(),
+    pub fn from_string(cookie_string: &str) -> Vec<Cookie> {
+        let mut out = Vec::new();
+        for i in cookie_string.split(';') {
+            let (name, value) = match i.split_once('=') {
+                Some(i) => (i.0.trim(), i.1.trim()),
                 None => continue,
             };
 
-            let value = match &cookie_parts.next() {
-                Some(i) => i.trim(),
-                None => continue,
-            }
-            .trim_end_matches(';');
-
             let name = url::decode(name).unwrap_or_else(|| name.to_owned());
             let value = url::decode(value).unwrap_or_else(|| value.to_owned());
-            final_cookies.push(Cookie::new(name, value));
+            out.push(Cookie::new(name, value));
         }
 
-        final_cookies
+        out
     }
 }
 

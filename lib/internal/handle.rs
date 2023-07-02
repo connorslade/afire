@@ -5,7 +5,7 @@ use std::{
     ops::Deref,
     panic,
     rc::Rc,
-    sync::Mutex,
+    sync::{Arc, Mutex},
 };
 
 use crate::{
@@ -33,7 +33,7 @@ where
     trace!(Level::Debug, "Opening socket {:?}", stream.peer_addr());
     stream.set_read_timeout(this.socket_timeout).unwrap();
     stream.set_write_timeout(this.socket_timeout).unwrap();
-    let stream = Rc::new(Mutex::new(stream));
+    let stream = Arc::new(Mutex::new(stream));
     loop {
         let mut keep_alive = false;
         let req = Request::from_socket(stream.clone());
