@@ -2,7 +2,6 @@
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Mutex, MutexGuard};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{borrow::Cow, net::IpAddr};
 
 use crate::error::{Result, StartupError};
@@ -113,7 +112,10 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
 
 /// Get the current time since the Unix Epoch.
 /// Will panic if the system time is before the Unix Epoch.
-pub(crate) fn epoch() -> Duration {
+#[cfg(any(feature = "extensions", docsrs))]
+pub(crate) fn epoch() -> std::time::Duration {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("System time is before the Unix Epoch. Make sure your date is set correctly.")
