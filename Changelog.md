@@ -5,6 +5,8 @@ August 20, 2023
 - Properly support `ErrorKind::Interrupted` on streaming responses.
   Previously if a Reader returned any error, afire would just print an error and close the socket.
 
+- Build extension docs on docs.rs
+
 # 2.2.0
 
 July 02, 2023
@@ -19,7 +21,6 @@ July 02, 2023
   This allows for using `HeaderType`s as well as strings to set the header.
 - Add a `HEAD` middleware that adds support for the HTTP HEAD method.
 - Update `ServeStatic` to send a Content-Length header when streaming a file.
-- Build extension docs on docs.rs
 - Add a `TRACE` middleware that adds support for the HTTP TRACE method.
 - Add support for [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) (SSE).
 - Progress on Websocket support
