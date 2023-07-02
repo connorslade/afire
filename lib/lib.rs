@@ -37,7 +37,7 @@ pub use self::{
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},
-    http::{cookie, header, multipart, server_sent_events, web_socket},
+    http::{cookie, header, multipart, server_sent_events},
     method::Method,
     middleware::Middleware,
     query::Query,
@@ -55,7 +55,6 @@ pub mod prelude {
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
         server_sent_events::ServerSentEventsExt,
-        web_socket::WebSocketExt,
         Content, Cookie, Header, HeaderType, Method, Query, Request, Response, Server, SetCookie,
         Status,
     };

@@ -5,7 +5,7 @@ use std::{
     net::TcpStream,
     sync::{
         mpsc::{self, Iter, Receiver, SyncSender},
-        Arc, Mutex,
+        Arc,
     },
     thread,
 };

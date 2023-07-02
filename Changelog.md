@@ -1,6 +1,6 @@
 # 2.2.0
 
-Coming Soon
+July, 02, 2023
 
 - Use binary search on ServeStatic MMIE types (save those clock cycles)
 - Some optimizations throughout afire
@@ -15,6 +15,7 @@ Coming Soon
 - Build extension docs on docs.rs
 - Add a `TRACE` middleware that adds support for the HTTP TRACE method.
 - Add support for [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) (SSE).
+- Progress on Websocket support
 
 # 2.1.0
 
