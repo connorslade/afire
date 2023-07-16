@@ -25,6 +25,7 @@ use internal::{encoding, handle, path};
 
 #[macro_use]
 pub mod trace;
+mod context;
 pub mod error;
 mod http;
 pub mod middleware;
@@ -34,6 +35,7 @@ mod route;
 mod server;
 pub use self::{
     content_type::Content,
+    context::Context,
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},

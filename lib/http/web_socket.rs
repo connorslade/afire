@@ -1,3 +1,6 @@
+//! WebSocket support.
+//! Work in progress.
+
 use std::{
     convert::TryInto,
     fmt::Display,

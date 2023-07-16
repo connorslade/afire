@@ -1,22 +1,24 @@
-// Import STD libraries
-use std::any::type_name;
-use std::net::{IpAddr, SocketAddr, TcpListener};
-use std::rc::Rc;
-use std::str;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    any::type_name,
+    error::Error,
+    net::{IpAddr, SocketAddr, TcpListener},
+    rc::Rc,
+    result, str,
+    sync::Arc,
+    time::Duration,
+};
 
-// Import local files
 use crate::{
     error::Result, error::StartupError, handle::handle, header::Headers,
-    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Header,
-    HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
+    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Context,
+    Header, HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
 };
 
 type ErrorHandler<State> =
     Box<dyn Fn(Option<Arc<State>>, &Box<Result<Rc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
+// todo: make not all this public
 pub struct Server<State: 'static + Send + Sync = ()> {
     /// Port to listen on.
     pub port: u16,
@@ -47,6 +49,10 @@ pub struct Server<State: 'static + Send + Sync = ()> {
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
+
+    /// The threadpool used for handling requests.
+    /// You can also run your own tasks and resizes the threadpool.
+    pub thread_pool: Arc<ThreadPool>,
 }
 
 /// Implementations for Server
@@ -80,6 +86,7 @@ impl<State: Send + Sync> Server<State> {
             keep_alive: true,
             socket_timeout: None,
             state: None,
+            thread_pool: Arc::new(ThreadPool::new(1)),
         }
     }
 
@@ -99,14 +106,25 @@ impl<State: Send + Sync> Server<State> {
     /// // This is blocking
     /// server.start().unwrap();
     /// ```
-    pub fn start(&self) -> Result<()> {
-        trace!("{}Starting Server [{}:{}]", emoji("✨"), self.ip, self.port);
+    pub fn start(self) -> Result<()> {
+        let threads = self.thread_pool.threads();
+        trace!(
+            "{}Starting Server [{}:{}] ({} thread{})",
+            emoji("✨"),
+            self.ip,
+            self.port,
+            threads,
+            if threads == 1 { "" } else { "s" }
+        );
         self.check()?;
 
         let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
+        let this = Arc::new(self);
 
         for event in listener.incoming() {
-            handle(event?, self);
+            let this2 = this.clone();
+            this.thread_pool
+                .execute(move || handle(event.unwrap(), this2));
         }
 
         // We should never get Here
@@ -132,26 +150,8 @@ impl<State: Send + Sync> Server<State> {
     /// server.start_threaded(4).unwrap();
     /// ```
     pub fn start_threaded(self, threads: usize) -> Result<()> {
-        trace!(
-            "{}Starting Server [{}:{}] ({} threads)",
-            emoji("✨"),
-            self.ip,
-            self.port,
-            threads
-        );
-        self.check()?;
-
-        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
-        let pool = ThreadPool::new(threads);
-        let this = Arc::new(self);
-
-        for event in listener.incoming() {
-            let this = this.clone();
-            pool.execute(move || handle(event.unwrap(), &this));
-        }
-
-        // We should never get Here
-        unreachable!()
+        self.thread_pool.resize(threads);
+        self.start()
     }
 
     /// Add a new default header to the server.
@@ -301,44 +301,13 @@ impl<State: Send + Sync> Server<State> {
         &mut self,
         method: Method,
         path: impl AsRef<str>,
-        handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
+        handler: impl Fn(&Context<State>) -> result::Result<(), Box<dyn Error>> + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
         trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
-        self
-    }
-
-    /// Create a new stateful route.
-    /// Is the same as [`Server::route`], but the state is passed as the first parameter.
-    /// (See [`Server::state`])
-    ///
-    /// Note: If you add a stateful route, you must also set the state or starting the sever will return an error.
-    /// ## Example
-    /// ```rust
-    /// # use afire::{Server, Response, Header, Method};
-    /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<u32>::new("localhost", 8080)
-    ///    .state(101);
-    ///
-    /// // Define a route
-    /// server.stateful_route(Method::GET, "/nose", |sta, req| {
-    ///     Response::new().text(sta.to_string())
-    /// });
-    /// ```
-    pub fn stateful_route(
-        &mut self,
-        method: Method,
-        path: impl AsRef<str>,
-        handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
-    ) -> &mut Self {
-        let path = path.as_ref().to_owned();
-        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
-
-        self.routes
-            .push(Route::new_stateful(method, path, Box::new(handler)));
         self
     }
 
@@ -358,9 +327,9 @@ impl<State: Send + Sync> Server<State> {
     }
 
     fn check(&self) -> Result<()> {
-        if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
-            return Err(StartupError::NoState.into());
-        }
+        // if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
+        //     return Err(StartupError::NoState.into());
+        // }
 
         if self.socket_timeout == Some(Duration::ZERO) {
             return Err(StartupError::InvalidSocketTimeout.into());
@@ -369,3 +338,18 @@ impl<State: Send + Sync> Server<State> {
         Ok(())
     }
 }
+
+/*
+app.route(|ctx| {
+    ctx.res()
+        .text("Hello World!")
+        .send()?;
+    Ok(())
+});
+*/
+
+// fn test() -> ::std::result::Result<(), Box<dyn ::std::error::Error>> {
+//     let mut server = Server::<()>::new("localhost", 8080);
+//     server.start()?;
+//     Ok(())
+// }

@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     cell::RefCell,
     io::Read,
     net::{Shutdown, TcpStream},
@@ -13,8 +14,7 @@ use crate::{
     internal::common::any_string,
     middleware::MiddleResult,
     response::ResponseFlag,
-    route::RouteType,
-    trace, Content, Error, Request, Response, Server, Status,
+    server, trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
@@ -26,7 +26,7 @@ pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 /// - Lets Response::write write the response to the socket
 /// - Runs End Middleware
 /// - Optionally closes the socket
-pub(crate) fn handle<State>(stream: TcpStream, this: &Server<State>)
+pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
 {
@@ -49,16 +49,18 @@ where
             );
         }
 
-        let (req, mut res) = get_response(req, this);
+        let ctx = Context::new(this.clone(), Rc::new(req));
+
+        let (req, mut res) = get_response(ctx);
 
         if res.flag == ResponseFlag::End {
             trace!(Level::Debug, "Ending socket");
             break;
         }
 
-        if let Err(e) = res.write(stream.clone(), &this.default_headers) {
-            trace!(Level::Debug, "Error writing to socket: {:?}", e);
-        }
+        // if let Err(e) = res.write(stream.clone(), &this.default_headers) {
+        //     trace!(Level::Debug, "Error writing to socket: {:?}", e);
+        // }
 
         // End Middleware
         if let Some(req) = req {
@@ -83,7 +85,7 @@ where
 /// Will call middleware, route handlers and error handlers if needed.
 fn get_response<State>(
     mut req: Result<Request>,
-    server: &Server<State>,
+    server: Arc<Server<State>>,
 ) -> (Option<Rc<Request>>, Response)
 where
     State: 'static + Send + Sync,
@@ -103,14 +105,14 @@ where
             }
             Ok(MiddleResult::Abort) => break,
             Ok(MiddleResult::Continue) => {}
-            Err(e) => return handle_error(e, req.map(Rc::new), server),
+            Err(e) => return handle_error(e, req.map(Rc::new), &server),
         }
     }
 
     let req = req.map(Rc::new);
     if res.is_err() {
         if let Ok(req) = req.clone() {
-            res = handle_route(req, server);
+            res = handle_route(req, server.clone());
         }
     }
 
@@ -122,7 +124,7 @@ where
             Ok(MiddleResult::Send(res)) => return (req.ok(), res),
             Ok(MiddleResult::Abort) => break,
             Ok(MiddleResult::Continue) => {}
-            Err(e) => return handle_error(e, req, server),
+            Err(e) => return handle_error(e, req, &server),
         }
     }
 
@@ -134,7 +136,7 @@ where
                 Ok(_) => &e,
             };
 
-            return (None, error_response(error, server));
+            return (None, error_response(error, &server));
         }
     };
 
@@ -144,24 +146,29 @@ where
 /// Tries to find a route that matches the request.
 /// If it finds one, it will call the handler and return the result (assuming it doesn't panic).
 /// If it doesn't find one, it will return an Error of HandleError::NotFound.
-fn handle_route<State>(req: Rc<Request>, this: &Server<State>) -> Result<Response>
+fn handle_route<State>(req: Rc<Request>, this: Arc<Server<State>>) -> Result<Response>
 where
     State: 'static + Send + Sync,
 {
     // Handle Route
+    let ctx = Context::new(this.clone(), req.clone());
     let path = req.path.to_owned();
     for route in this.routes.iter().rev() {
         if let Some(params) = route.matches(req.clone()) {
             *req.path_params.borrow_mut() = params;
-            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
-                RouteType::Stateless(i) => (i)(&req),
-                RouteType::Stateful(i) => {
-                    (i)(this.state.clone().expect("State not initialized"), &req)
-                }
-            }));
+            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| (route.handler)(&ctx)));
 
             let err = match result {
-                Ok(i) => return Ok(i),
+                Ok(i) => match i {
+                    Ok(_) => {
+                        let has_response = ctx.response.borrow().is_some();
+                        if !has_response {
+                            return Ok(Response::new().text("no response"));
+                        }
+                        return Ok(ctx.response.borrow_mut().take().unwrap());
+                    }
+                    Err(e) => Cow::Owned(format!("{e}")),
+                },
                 Err(e) => any_string(e),
             };
 
