@@ -3,8 +3,7 @@ use std::{
     io::Read,
     net::{Shutdown, TcpStream},
     ops::Deref,
-    rc::Rc,
-    sync::{Arc, Condvar, Mutex},
+    sync::{Arc, Mutex},
 };
 
 use crate::{
@@ -12,6 +11,7 @@ use crate::{
     error::{HandleError, ParseError, StreamError},
     internal::sync::{ForceLockMutex, ForceLockRwLock},
     response::ResponseFlag,
+    socket::Socket,
     trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
@@ -26,7 +26,7 @@ where
     trace!(Level::Debug, "Opening socket {:?}", stream.peer_addr());
     stream.set_read_timeout(this.socket_timeout).unwrap();
     stream.set_write_timeout(this.socket_timeout).unwrap();
-    let stream = Arc::new(Mutex::new(stream));
+    let stream = Arc::new(Socket::new(stream));
     loop {
         let mut keep_alive = false;
         let req = Request::from_socket(stream.clone());
@@ -76,7 +76,8 @@ where
                 }
 
                 if ctx.flags.get(ContextFlag::GuaranteedSend) {
-                    ctx.barrier.wait();
+                    let barrier = ctx.req.socket.barrier.clone();
+                    barrier.force_read().as_ref().unwrap().wait();
                     break;
                 }
 

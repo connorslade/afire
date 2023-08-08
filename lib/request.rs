@@ -14,6 +14,7 @@ use crate::{
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
     internal::sync::{ForceLockMutex, ForceLockRwLock},
+    socket::Socket,
     Cookie, Error, Header, Method, Query,
 };
 
@@ -51,7 +52,7 @@ pub struct Request {
     pub address: SocketAddr,
 
     /// The raw tcp socket
-    pub socket: Arc<Mutex<TcpStream>>,
+    pub socket: Arc<Socket>,
 }
 
 impl Request {
@@ -99,12 +100,12 @@ impl Request {
     }
 
     /// Read a request from a TcpStream.
-    pub(crate) fn from_socket(raw_stream: Arc<Mutex<TcpStream>>) -> Result<Self> {
-        let stream = raw_stream.force_lock();
+    pub(crate) fn from_socket(raw_stream: Arc<Socket>) -> Result<Self> {
+        let mut stream = raw_stream.force_lock();
 
         trace!(Level::Debug, "Reading header");
         let peer_addr = stream.peer_addr()?;
-        let mut reader = BufReader::new(&*stream);
+        let mut reader = BufReader::new(&mut *stream);
         let mut request_line = Vec::with_capacity(BUFF_SIZE);
         reader
             .read_until(10, &mut request_line)

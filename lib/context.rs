@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     error::Result,
-    internal::sync::{ForceLockMutex, SingleBarrier},
+    internal::sync::{ForceLockMutex, ForceLockRwLock, SingleBarrier},
     response::ResponseBody,
     Header, HeaderType, Request, Response, Server, Status,
 };
@@ -25,9 +25,6 @@ pub struct Context<State: 'static + Send + Sync> {
     pub(crate) response: Mutex<Response>,
     /// Various bit-packed flags.
     pub(crate) flags: ContextFlags,
-    /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
-    /// This allows for sending a response from another thread, not sure why you would want to do that though.
-    pub(crate) barrier: SingleBarrier,
 }
 
 pub(crate) struct ContextFlags(AtomicU8);
@@ -47,12 +44,12 @@ pub(crate) enum ContextFlag {
 
 impl<State: 'static + Send + Sync> Context<State> {
     pub(crate) fn new(server: Arc<Server<State>>, req: Arc<Request>) -> Self {
+        *req.socket.barrier.force_write() = Some(SingleBarrier::new());
         Self {
             server,
             req,
             response: Mutex::new(Response::new()),
             flags: ContextFlags::new(),
-            barrier: SingleBarrier::new(),
         }
     }
 
@@ -68,13 +65,13 @@ impl<State: 'static + Send + Sync> Context<State> {
         self.flags.set(ContextFlag::ResponseSent);
 
         if self.flags.get(ContextFlag::GuaranteedSend) {
-            self.barrier.unlock();
+            self.req.socket.unlock();
         }
 
         Ok(())
     }
 
-    pub fn guarantee_send(&self) -> &Self {
+    pub fn guarantee_will_send(&self) -> &Self {
         self.flags.set(ContextFlag::GuaranteedSend);
         self
     }

@@ -10,8 +10,9 @@ use std::{
 
 use crate::{
     error::Result, error::StartupError, handle::handle, header::Headers,
-    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Context,
-    Header, HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
+    internal::common::ToHostAddress, socket::Socket, thread_pool::ThreadPool, trace::emoji,
+    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,
+    VERSION,
 };
 
 type ErrorHandler<State> =
@@ -123,8 +124,17 @@ impl<State: Send + Sync> Server<State> {
 
         for event in listener.incoming() {
             let this2 = this.clone();
-            this.thread_pool
-                .execute(move || handle(event.unwrap(), this2));
+            this.thread_pool.execute(move || {
+                let event = match event {
+                    Ok(event) => event,
+                    Err(err) => {
+                        trace!("Error accepting connection: {err}");
+                        return;
+                    }
+                };
+
+                handle(event, this2)
+            });
         }
 
         // We should never get Here

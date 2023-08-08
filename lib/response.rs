@@ -8,6 +8,7 @@ use crate::consts;
 use crate::header::{HeaderType, Headers};
 use crate::http::status::Status;
 use crate::internal::sync::ForceLockMutex;
+use crate::socket::Socket;
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
     SetCookie,
@@ -280,11 +281,7 @@ impl Response {
     // TODO: figure out what ^ that means
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
-    pub fn write(
-        &mut self,
-        stream: Arc<Mutex<TcpStream>>,
-        default_headers: &[Header],
-    ) -> Result<()> {
+    pub fn write(&mut self, raw_stream: Arc<Socket>, default_headers: &[Header]) -> Result<()> {
         // Add default headers to response
         // Only the ones that aren't already in the response
         for i in default_headers {
@@ -322,11 +319,18 @@ impl Response {
             headers_to_string(&self.headers)
         );
 
-        let mut stream = stream.force_lock();
-        stream.write_all(response.as_bytes())?;
-        self.data.write(&mut stream)?;
+        trace!("Locking stream");
+        let mut stream = raw_stream.force_lock();
+        trace!("Writing response");
+        let error = match stream.write_all(response.as_bytes()) {
+            Ok(_) => self.data.write(&mut stream),
+            Err(e) => Err(e.into()),
+        };
+        drop(stream);
+        trace!("Unlocking stream");
+        raw_stream.unlock();
 
-        Ok(())
+        error
     }
 }
 

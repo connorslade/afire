@@ -17,6 +17,7 @@ use afire::{
     server_sent_events::ServerSentEventsExt,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
+    trace, internal::sync::ForceLockMutex
 };
 
 // File to download
@@ -143,13 +144,20 @@ fn main() {
         Ok(())
     });
 
-    // server.route(Method::GET, "/nil", |ctx| {
-    //     thread::spawn(move || {
-    //         ctx.text("Hello from another thread").send().unwrap();
-    //     });
+    server.route(Method::GET, "/nil", |ctx| {
+        ctx.guarantee_will_send();
+        let socket = ctx.req.socket.clone();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_secs(3));
+            trace!("Sending from another thread");
+            Response::new()
+                .text("Hello from another thread")
+                .write(socket, &[])
+                .unwrap();
+        });
 
-    //     Ok(())
-    // });
+        Ok(())
+    });
     server.route(Method::GET, "/panic", |_ctx| panic!());
 
     server.thread_pool.resize(10);
