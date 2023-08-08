@@ -36,7 +36,7 @@ pub struct Response {
     pub flag: ResponseFlag,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResponseFlag {
     /// No Flag
     None,

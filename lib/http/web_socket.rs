@@ -15,7 +15,7 @@ use std::{
 
 use crate::{
     internal::{
-        common::ForceLock,
+        common::ForceLockMutex,
         encoding::{base64, sha1},
     },
     HeaderType, Request, Response, Status,

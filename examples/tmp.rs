@@ -137,11 +137,9 @@ fn main() {
     // });
 
     server.route(Method::GET, "/", |ctx| {
-        let _ = File::open("index.html")?;
-        /*
-                Response::new()
-            .text("OK!")
-            .write(ctx.req.socket.clone(), &[])?; */
+        // let file = File::open("index.html")?;
+        let threads = ctx.server.thread_pool.threads();
+        ctx.text(format!("Ok!\nThreads: {threads}")).send()?;
         Ok(())
     });
 

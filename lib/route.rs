@@ -1,10 +1,8 @@
-use std::error::Error;
 use std::rc::Rc;
 
-use crate::{path::Path, Context, Method, Request};
+use crate::{path::Path, Context, Method, Request, error::AnyResult};
 
-type Handler<State> =
-    Box<dyn Fn(&Context<State>) -> Result<(), Box<dyn Error>> + 'static + Send + Sync>;
+type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
 
 /// Defines a route.
 ///

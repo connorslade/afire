@@ -13,7 +13,7 @@ use crate::{
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
-    internal::common::ForceLock,
+    internal::common::ForceLockMutex,
     Cookie, Error, Header, Method, Query,
 };
 
