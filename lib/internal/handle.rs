@@ -1,20 +1,18 @@
 use std::{
-    borrow::Cow,
     cell::RefCell,
     io::Read,
     net::{Shutdown, TcpStream},
     ops::Deref,
-    panic,
     rc::Rc,
-    sync::{atomic::Ordering, Arc, Mutex},
+    sync::{Arc, Mutex},
 };
 
 use crate::{
-    error::{HandleError, ParseError, Result, StreamError},
-    internal::common::{any_string, ForceLockMutex},
-    middleware::MiddleResult,
+    context::ContextFlag,
+    error::{HandleError, ParseError, StreamError},
+    internal::common::ForceLockMutex,
     response::ResponseFlag,
-    server, trace, Content, Context, Error, Request, Response, Server, Status,
+    trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
@@ -36,7 +34,7 @@ where
     let stream = Arc::new(Mutex::new(stream));
     loop {
         let mut keep_alive = false;
-        let mut req = Request::from_socket(stream.clone());
+        let req = Request::from_socket(stream.clone());
 
         if let Ok(req) = &req {
             keep_alive = req.keep_alive();
@@ -49,32 +47,61 @@ where
             );
         }
 
-        let req = req.map(Rc::new).expect("Error with getting request");
+        let req = match req.map(Rc::new) {
+            Ok(req) => req,
+            Err(e) => {
+                if let Err(e) =
+                    error_response(&e, this.clone()).write(stream, &this.default_headers)
+                {
+                    trace!(Level::Debug, "Error writing error response: {:?}", e);
+                }
+                return;
+            }
+        };
 
         // Handle Route
         let ctx = Context::new(this.clone(), req.clone());
         let mut flag = ResponseFlag::None;
+        let mut matched = false;
+
         for route in this.routes.iter().rev() {
             if let Some(params) = route.matches(req.clone()) {
+                matched = true;
                 *req.path_params.borrow_mut() = params;
                 let result = (route.handler)(&ctx);
 
-                match result {
-                    Ok(_) => {
-                        flag = ctx.response.force_lock().flag;
-                        let has_response = ctx.response_dirty.load(Ordering::Relaxed);
-                        if !has_response {
-                            unimplemented!("No response");
-                        }
+                if let Err(e) = result {
+                    unimplemented!("Route error {e:?}");
+                }
 
-                        break;
+                flag = ctx.response.force_lock().flag;
+                let has_response = ctx.flags.get(ContextFlag::ResponseSent);
+                if !has_response {
+                    let mut res = Response::new()
+                        .status(Status::NotImplemented)
+                        .text("No response was sent");
+                    if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
+                        trace!(
+                            Level::Debug,
+                            "Error writing 'No Response' response: {:?}",
+                            e
+                        );
                     }
-                    Err(_) => unimplemented!("Route error"),
-                };
+                }
+
+                break;
             }
         }
 
-        // unimplemented!("Route not found")
+        if !matched {
+            let mut res = Response::new()
+                .status(Status::NotFound)
+                .text(format!("Cannot {} {}", req.method, req.path))
+                .content(Content::TXT);
+            if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
+                trace!(Level::Debug, "Error writing 'Not Found' response: {:?}", e);
+            }
+        }
 
         if flag == ResponseFlag::End {
             trace!(Level::Debug, "Ending socket");
@@ -93,7 +120,7 @@ where
 
 /// Gets a response if there is an error.
 /// Can handle Parse, Handle and IO errors.
-pub fn error_response<State>(err: &Error, server: &Server<State>) -> Response
+pub fn error_response<State>(err: &Error, server: Arc<Server<State>>) -> Response
 where
     State: 'static + Send + Sync,
 {

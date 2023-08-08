@@ -143,6 +143,8 @@ fn main() {
         Ok(())
     });
 
+    server.route(Method::GET, "/nil", |ctx| Ok(()));
+
     server.thread_pool.resize(10);
 
     Test.attach(&mut server);

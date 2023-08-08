@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use crate::consts;
 use crate::header::{HeaderType, Headers};
 use crate::http::status::Status;
+use crate::internal::common::ForceLockMutex;
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
     SetCookie,
@@ -276,6 +277,7 @@ impl Response {
     }
 
     // TODO: Make crate local
+    // TODO: figure out what ^ that means
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
     pub fn write(
@@ -300,12 +302,13 @@ impl Response {
 
         // Add Connection: close if response is set to close
         if self.flag == ResponseFlag::Close && !self.headers.has(HeaderType::Connection) {
-            self.headers.push(Header::new("Connection", "close"));
+            self.headers
+                .push(Header::new(HeaderType::Connection, "close"));
         }
 
         if !static_body && !self.headers.has(HeaderType::TransferEncoding) {
             self.headers
-                .push(Header::new("Transfer-Encoding", "chunked"));
+                .push(Header::new(HeaderType::TransferEncoding, "chunked"));
         }
 
         // Convert the response to a string
@@ -313,12 +316,13 @@ impl Response {
             "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
             self.status.code(),
             self.reason
-                .to_owned()
-                .unwrap_or_else(|| self.status.reason_phrase().to_owned()),
+                .as_ref()
+                .map(|x| x.as_str())
+                .unwrap_or_else(|| self.status.reason_phrase()),
             headers_to_string(&self.headers)
         );
 
-        let mut stream = stream.lock().unwrap();
+        let mut stream = stream.force_lock();
         stream.write_all(response.as_bytes())?;
         self.data.write(&mut stream)?;
 
