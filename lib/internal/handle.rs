@@ -4,13 +4,13 @@ use std::{
     net::{Shutdown, TcpStream},
     ops::Deref,
     rc::Rc,
-    sync::{Arc, Mutex},
+    sync::{Arc, Condvar, Mutex},
 };
 
 use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
-    internal::common::ForceLockMutex,
+    internal::sync::{ForceLockMutex, ForceLockRwLock},
     response::ResponseFlag,
     trace, Content, Context, Error, Request, Response, Server, Status,
 };
@@ -19,11 +19,6 @@ pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
 // https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D
 
-/// - Manages keep-alive sockets
-/// - Lets Request::from_socket read the request
-/// - Lets Response::write write the response to the socket
-/// - Runs End Middleware
-/// - Optionally closes the socket
 pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
@@ -47,7 +42,7 @@ where
             );
         }
 
-        let req = match req.map(Rc::new) {
+        let req = match req.map(Arc::new) {
             Ok(req) => req,
             Err(e) => {
                 if let Err(e) =
@@ -67,7 +62,7 @@ where
         for route in this.routes.iter().rev() {
             if let Some(params) = route.matches(req.clone()) {
                 matched = true;
-                *req.path_params.borrow_mut() = params;
+                *req.path_params.force_write() = params;
                 let result = (route.handler)(&ctx);
 
                 if let Err(e) = result {
@@ -76,22 +71,34 @@ where
 
                 flag = ctx.response.force_lock().flag;
                 let has_response = ctx.flags.get(ContextFlag::ResponseSent);
-                if !has_response {
-                    let mut res = Response::new()
-                        .status(Status::NotImplemented)
-                        .text("No response was sent");
-                    if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
-                        trace!(
-                            Level::Debug,
-                            "Error writing 'No Response' response: {:?}",
-                            e
-                        );
-                    }
+                if has_response {
+                    break;
                 }
 
+                if ctx.flags.get(ContextFlag::GuaranteedSend) {
+                    ctx.barrier.wait();
+                    break;
+                }
+
+                let mut res = Response::new()
+                    .status(Status::NotImplemented)
+                    .text("No response was sent");
+                if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
+                    trace!(
+                        Level::Debug,
+                        "Error writing 'No Response' response: {:?}",
+                        e
+                    );
+                }
                 break;
             }
         }
+
+        // let route = this
+        //     .routes
+        //     .iter()
+        //     .rev()
+        //     .find_map(|route| route.matches(req.clone()).map(|x| (route, x)));
 
         if !matched {
             let mut res = Response::new()

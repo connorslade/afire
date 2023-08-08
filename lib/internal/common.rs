@@ -61,48 +61,6 @@ impl ToHostAddress for &str {
     }
 }
 
-/// Allows locking a mutex even if it's poisoned.
-pub trait ForceLockMutex<T> {
-    /// Referer to [`Mutex::lock`] documentation.
-    /// This function will return the inner value of the mutex if it's poisoned.
-    fn force_lock(&self) -> MutexGuard<T>;
-}
-
-impl<T> ForceLockMutex<T> for Mutex<T> {
-    fn force_lock(&self) -> MutexGuard<T> {
-        match self.lock() {
-            Ok(i) => i,
-            Err(e) => e.into_inner(),
-        }
-    }
-}
-
-/// Allows reading or writing a RwLock even if it's poisoned.
-pub trait ForceLockRwLock<T> {
-    /// Referer to [`RwLock::read`] documentation.
-    /// This function will return the inner value of the RwLock if it's poisoned.
-    fn force_read(&self) -> RwLockReadGuard<'_, T>;
-    /// Referer to [`RwLock::write`] documentation.
-    /// This function will return the inner value of the RwLock if it's poisoned.
-    fn force_write(&self) -> RwLockWriteGuard<'_, T>;
-}
-
-impl<T> ForceLockRwLock<T> for RwLock<T> {
-    fn force_read(&self) -> RwLockReadGuard<'_, T> {
-        match self.read() {
-            Ok(i) => i,
-            Err(e) => e.into_inner(),
-        }
-    }
-
-    fn force_write(&self) -> RwLockWriteGuard<'_, T> {
-        match self.write() {
-            Ok(i) => i,
-            Err(e) => e.into_inner(),
-        }
-    }
-}
-
 /// Parse a string to an IP address.
 /// Will return a [`StartupError::InvalidIp`] if the IP has an invalid format.
 /// Note: **Only IPv4 is supported**.

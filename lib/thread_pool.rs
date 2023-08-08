@@ -9,7 +9,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use crate::{internal::common::ForceLockMutex, trace};
+use crate::{internal::sync::ForceLockMutex, trace};
 
 /// Messages that can be handled by the pool's workers.
 enum Message {

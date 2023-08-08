@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use crate::consts;
 use crate::header::{HeaderType, Headers};
 use crate::http::status::Status;
-use crate::internal::common::ForceLockMutex;
+use crate::internal::sync::ForceLockMutex;
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
     SetCookie,

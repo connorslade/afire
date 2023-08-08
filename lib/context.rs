@@ -10,19 +10,24 @@ use std::{
 };
 
 use crate::{
-    error::Result, internal::common::ForceLockMutex, response::ResponseBody, Header, HeaderType,
-    Request, Response, Server, Status,
+    error::Result,
+    internal::sync::{ForceLockMutex, SingleBarrier},
+    response::ResponseBody,
+    Header, HeaderType, Request, Response, Server, Status,
 };
 
 pub struct Context<State: 'static + Send + Sync> {
     /// Reference to the server.
     pub server: Arc<Server<State>>,
     /// The request you are handling.
-    pub req: Rc<Request>,
+    pub req: Arc<Request>,
     /// The response you are building.
     pub(crate) response: Mutex<Response>,
     /// Various bit-packed flags.
     pub(crate) flags: ContextFlags,
+    /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
+    /// This allows for sending a response from another thread, not sure why you would want to do that though.
+    pub(crate) barrier: SingleBarrier,
 }
 
 pub(crate) struct ContextFlags(AtomicU8);
@@ -31,6 +36,7 @@ pub(crate) struct ContextFlags(AtomicU8);
 pub(crate) enum ContextFlag {
     /// The response has already been sent.
     ResponseSent = 1 << 1,
+    // todo: autosend on dirty?
     /// The response has been modified.
     ResponseDirty = 1 << 2,
     /// The user has guaranteed that the response will be sent.
@@ -40,13 +46,19 @@ pub(crate) enum ContextFlag {
 }
 
 impl<State: 'static + Send + Sync> Context<State> {
-    pub(crate) fn new(server: Arc<Server<State>>, req: Rc<Request>) -> Self {
+    pub(crate) fn new(server: Arc<Server<State>>, req: Arc<Request>) -> Self {
         Self {
             server,
             req,
             response: Mutex::new(Response::new()),
             flags: ContextFlags::new(),
+            barrier: SingleBarrier::new(),
         }
+    }
+
+    pub(crate) fn reset(&self) {
+        self.flags.reset();
+        *self.response.force_lock() = Response::new();
     }
 
     pub fn send(&self) -> Result<()> {
@@ -54,7 +66,17 @@ impl<State: 'static + Send + Sync> Context<State> {
             .force_lock()
             .write(self.req.socket.clone(), &self.server.default_headers)?;
         self.flags.set(ContextFlag::ResponseSent);
+
+        if self.flags.get(ContextFlag::GuaranteedSend) {
+            self.barrier.unlock();
+        }
+
         Ok(())
+    }
+
+    pub fn guarantee_send(&self) -> &Self {
+        self.flags.set(ContextFlag::GuaranteedSend);
+        self
     }
 }
 
@@ -110,5 +132,9 @@ impl ContextFlags {
 
     fn set(&self, flag: ContextFlag) {
         self.0.fetch_or(flag as u8, Ordering::Relaxed);
+    }
+
+    fn reset(&self) {
+        self.0.store(0, Ordering::Relaxed);
     }
 }

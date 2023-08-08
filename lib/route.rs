@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use crate::{path::Path, Context, Method, Request, error::AnyResult};
 
@@ -31,7 +31,7 @@ impl<State: 'static + Send + Sync> Route<State> {
 
     /// Checks if a Request matches the route.
     /// Returns the path parameters if it does.
-    pub(crate) fn matches(&self, req: Rc<Request>) -> Option<Vec<(String, String)>> {
+    pub(crate) fn matches(&self, req: Arc<Request>) -> Option<Vec<(String, String)>> {
         if self.method != Method::ANY && self.method != req.method {
             return None;
         }

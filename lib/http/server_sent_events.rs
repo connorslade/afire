@@ -34,7 +34,7 @@ use std::{
     thread,
 };
 
-use crate::{internal::common::ForceLockMutex, Request};
+use crate::{internal::sync::ForceLockMutex, Request};
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
 ///

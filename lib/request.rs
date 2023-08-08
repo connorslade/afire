@@ -5,7 +5,7 @@ use std::{
     io::{BufRead, BufReader, Read},
     net::{SocketAddr, TcpStream},
     str::FromStr,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
-    internal::common::ForceLockMutex,
+    internal::sync::{ForceLockMutex, ForceLockRwLock},
     Cookie, Error, Header, Method, Query,
 };
 
@@ -31,7 +31,7 @@ pub struct Request {
     pub version: String,
 
     /// Path Params, filled by the router
-    pub(crate) path_params: RefCell<Vec<(String, String)>>,
+    pub(crate) path_params: RwLock<Vec<(String, String)>>,
 
     /// Request Query.
     pub query: Query,
@@ -85,7 +85,7 @@ impl Request {
     pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
         let name = name.as_ref().to_owned();
         self.path_params
-            .borrow()
+            .force_read()
             .iter()
             .find(|x| x.0 == name)
             .map(|i| i.1.to_owned())
@@ -151,7 +151,7 @@ impl Request {
             method,
             path,
             version,
-            path_params: RefCell::new(Vec::new()),
+            path_params: RwLock::new(Vec::new()),
             query,
             headers: Headers(headers),
             cookies: CookieJar(cookies),
@@ -168,7 +168,7 @@ impl Debug for Request {
             .field("method", &self.method)
             .field("path", &self.path)
             .field("version", &self.version)
-            .field("path_params", &self.path_params.borrow())
+            .field("path_params", &self.path_params.force_read())
             .field("query", &self.query)
             .field("headers", &self.headers)
             .field("cookies", &*self.cookies)

@@ -143,7 +143,14 @@ fn main() {
         Ok(())
     });
 
-    server.route(Method::GET, "/nil", |ctx| Ok(()));
+    // server.route(Method::GET, "/nil", |ctx| {
+    //     thread::spawn(move || {
+    //         ctx.text("Hello from another thread").send().unwrap();
+    //     });
+
+    //     Ok(())
+    // });
+    server.route(Method::GET, "/panic", |_ctx| panic!());
 
     server.thread_pool.resize(10);
 
