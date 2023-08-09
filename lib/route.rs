@@ -1,5 +1,4 @@
 use std::{
-    any,
     error::Error,
     fmt::{self, Debug, Display},
     panic,
@@ -37,18 +36,28 @@ pub struct RouteError {
     headers: Vec<Header>,
 }
 
+/// Convert any Result<T, E> into a Result<T, RouteError>.
+/// This allows you to set the status code and message of the error.
 pub trait RouteContext<T> {
+    /// Adds additional context to an error.
     #[track_caller]
     fn context(self, body: impl Display) -> Result<T, RouteError>;
+    /// Adds additional context to an error with a lazy-evaluated message.
     #[track_caller]
     fn with_context<D: Display>(self, body: impl Fn() -> D) -> Result<T, RouteError>;
 }
 
+/// Add additional context to a RouteError.
+/// This can be the status code or headers.
 pub trait AdditionalRouteContext<T> {
+    /// Set the status code of a `Result<T, RouteError>`.
     fn status(self, status: Status) -> Result<T, RouteError>;
+    /// Set the status code of a `Result<T, RouteError>` with a lazy-evaluated status code.
     fn with_status(self, status: impl Fn() -> Status) -> Result<T, RouteError>;
 
+    /// Add a header to a `Result<T, RouteError>`.
     fn header(self, name: impl Into<HeaderType>, value: impl AsRef<str>) -> Result<T, RouteError>;
+    /// Add a header to a `Result<T, RouteError>` with a lazy-evaluated value.
     fn with_header(
         self,
         name: impl Into<HeaderType>,
@@ -77,17 +86,28 @@ impl<State: 'static + Send + Sync> Route<State> {
 }
 
 impl RouteError {
+    /// Convert a RouteError into a Response.
+    /// It will have the defined status code, message, and headers.
+    /// If none is supplied, the content type will be text/plain.
     pub fn as_response(&self) -> Response {
-        Response::new()
+        let mut res = Response::new()
             .status(self.status)
-            .text(self.message.clone())
-            .content(Content::TXT)
+            .text(&self.message)
+            .headers(&self.headers);
+
+        if !res.headers.has(HeaderType::ContentType) {
+            res = res.content(Content::TXT);
+        }
+
+        res
     }
 
+    /// Tries to downcast a Box<dyn Error> into a RouteError.
     pub fn downcast_error(e: &Box<dyn Error>) -> Option<RouteError> {
         e.downcast_ref::<RouteError>().cloned()
     }
 
+    /// Converts any error type (Box<dyn Error>) into a RouteError.
     pub fn from_error(e: &Box<dyn Error>) -> Self {
         Self {
             status: Status::InternalServerError,
