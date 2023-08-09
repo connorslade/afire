@@ -23,11 +23,14 @@ pub struct Header {
 /// ```rust
 /// # use afire::{Method, Server, Response, HeaderType};
 /// # fn test(server: &mut Server) {
-/// server.route(Method::GET, "/", |req| {
-///     let header = req.headers.get_header(HeaderType::ContentType).unwrap();
+/// server.route(Method::GET, "/", |ctx| {
+///     let header = ctx.req.headers.get_header(HeaderType::ContentType).unwrap();
 ///     let params = header.params();
 ///     let charset = params.get("charset").unwrap();
-///     Response::new().text(format!("Charset: {}", charset))
+///     
+///     ctx.text(format!("Charset: {}", charset))
+///         .send()?;
+///     Ok(())
 /// });
 /// # }
 /// ```

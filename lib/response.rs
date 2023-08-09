@@ -160,9 +160,10 @@ impl Response {
     /// const PATH: &str = "path/to/file.txt";
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// server.route(Method::GET, "/download-stream", |_| {
-    ///     let stream = File::open(PATH).unwrap();
-    ///     Response::new().stream(stream)
+    /// server.route(Method::GET, "/download-stream", |ctx| {
+    ///     let stream = File::open(PATH)?;
+    ///     ctx.stream(stream).send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn stream(self, stream: impl Read + Send + 'static) -> Self {

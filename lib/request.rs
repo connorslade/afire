@@ -69,18 +69,19 @@ impl Request {
     /// ```rust
     /// # use afire::{Request, Response, Header, Method, Server, Content};
     /// # let mut server = Server::<()>::new("localhost", 8080);
-    /// server.route(Method::GET, "/greet/{name}", |req| {
+    /// server.route(Method::GET, "/greet/{name}", |ctx| {
     ///     // Get name Path param
     ///     // This is safe to unwrap because the router will only call this handler if the path param exists
-    ///     let name = req.param("name").unwrap();
+    ///     let name = ctx.req.param("name").unwrap();
     ///
     ///     // Format a nice message
     ///     let message = format!("Hello, {}", name);
     ///
     ///     // Send Response
-    ///     Response::new()
-    ///         .text(message)
+    ///     ctx.text(message)
     ///         .content(Content::TXT)
+    ///         .send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn param(&self, name: impl AsRef<str>) -> Option<String> {

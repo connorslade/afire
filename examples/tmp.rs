@@ -141,7 +141,9 @@ fn main() {
     server.route(Method::GET, "/", |ctx| {
         // let file = File::open("index.html")?;
         let threads = ctx.server.thread_pool.threads();
-        ctx.text(format!("Ok!\nThreads: {threads}")).send()?;
+        ctx.text(format!("Ok!\nThreads: {threads}"))
+            .header(HeaderType::ContentType, "text/plain")
+            .send()?;
         Ok(())
     });
 

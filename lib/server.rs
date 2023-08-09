@@ -247,8 +247,9 @@ impl<State: Send + Sync> Server<State> {
     ///     .state(AtomicU32::new(0));
     ///
     /// // Add a stateful route to increment the state
-    /// server.stateful_route(Method::GET, "/", |state, _req| {
-    ///     Response::new().text(state.fetch_add(1, Ordering::Relaxed))
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     ctx.text(ctx.app().fetch_add(1, Ordering::Relaxed)).send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn state(self, state: State) -> Self {
@@ -296,15 +297,16 @@ impl<State: Send + Sync> Server<State> {
     /// (`**` lets you math anything after the wildcard, including `/`)
     /// ## Example
     /// ```rust
-    /// # use afire::{Server, Response, Header, Method, Content};
+    /// # use afire::{Server, Header, Method, Content};
     /// # let mut server = Server::<()>::new("localhost", 8080);
     /// // Define a route
-    /// server.route(Method::GET, "/greet/{name}", |req| {
-    ///     let name = req.param("name").unwrap();
+    /// server.route(Method::GET, "/greet/{name}", |ctx| {
+    ///     let name = ctx.req.param("name").unwrap();
     ///
-    ///     Response::new()
-    ///         .text(format!("Hello, {}!", name))
+    ///     ctx.text(format!("Hello, {}!", name))
     ///         .content(Content::TXT)
+    ///         .send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn route(

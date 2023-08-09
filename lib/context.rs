@@ -13,7 +13,7 @@ use crate::{
     error::Result,
     internal::sync::{ForceLockMutex, ForceLockRwLock, SingleBarrier},
     response::ResponseBody,
-    Header, HeaderType, Request, Response, Server, Status,
+    Content, Header, HeaderType, Request, Response, Server, Status,
 };
 
 pub struct Context<State: 'static + Send + Sync> {
@@ -56,6 +56,10 @@ impl<State: 'static + Send + Sync> Context<State> {
     pub(crate) fn reset(&self) {
         self.flags.reset();
         *self.response.force_lock() = Response::new();
+    }
+
+    pub fn app(&self) -> &State {
+        self.server.state.as_ref().unwrap()
     }
 
     pub fn send(&self) -> Result<()> {
@@ -114,6 +118,11 @@ impl<State: 'static + Send + Sync> Context<State> {
             .headers
             .push(Header::new(key, value));
         self.flags.set(ContextFlag::ResponseDirty);
+        self
+    }
+
+    pub fn content(&self, content_type: Content) -> &Self {
+        self.response.force_lock().headers.push(content_type.into());
         self
     }
 }
