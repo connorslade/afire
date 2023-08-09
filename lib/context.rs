@@ -33,7 +33,7 @@ pub(crate) struct ContextFlags(AtomicU8);
 pub(crate) enum ContextFlag {
     /// The response has already been sent.
     ResponseSent = 1 << 1,
-    // todo: autosend on dirty?
+    // TODO: autosend on dirty?
     /// The response has been modified.
     ResponseDirty = 1 << 2,
     /// The user has guaranteed that the response will be sent.
@@ -44,7 +44,7 @@ pub(crate) enum ContextFlag {
 
 impl<State: 'static + Send + Sync> Context<State> {
     pub(crate) fn new(server: Arc<Server<State>>, req: Arc<Request>) -> Self {
-        *req.socket.barrier.force_write() = Some(SingleBarrier::new());
+        req.socket.add_barrier();
         Self {
             server,
             req,

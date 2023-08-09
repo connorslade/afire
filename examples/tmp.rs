@@ -12,12 +12,13 @@ use std::{
 
 use afire::{
     extension::{Date, Head, Logger, Trace},
+    internal::sync::ForceLockMutex,
     multipart::MultipartData,
     prelude::*,
     server_sent_events::ServerSentEventsExt,
+    trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
-    trace, internal::sync::ForceLockMutex
 };
 
 // File to download
@@ -155,6 +156,8 @@ fn main() {
                 .write(socket, &[])
                 .unwrap();
         });
+
+        // thread::sleep(Duration::from_secs(4));
 
         Ok(())
     });

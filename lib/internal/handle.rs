@@ -76,8 +76,12 @@ where
                 }
 
                 if ctx.flags.get(ContextFlag::GuaranteedSend) {
-                    let barrier = ctx.req.socket.barrier.clone();
-                    barrier.force_read().as_ref().unwrap().wait();
+                    let barrier = ctx.req.socket.barrier.force_read().clone();
+                    if let Some(i) = &*barrier {
+                        trace!(Level::Debug, "Waiting for response to be sent");
+                        i.wait();
+                        trace!(Level::Debug, "Response sent");
+                    }
                     break;
                 }
 

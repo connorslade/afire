@@ -13,21 +13,26 @@ pub struct Socket {
     pub socket: Mutex<TcpStream>,
     /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
     /// This allows for sending a response from another thread, not sure why you would want to do that though.
-    pub(crate) barrier: Arc<RwLock<Option<SingleBarrier>>>,
+    pub(crate) barrier: RwLock<Arc<Option<SingleBarrier>>>,
 }
 
 impl Socket {
     pub(crate) fn new(socket: TcpStream) -> Self {
         Self {
             socket: Mutex::new(socket),
-            barrier: Arc::new(RwLock::new(None)),
+            barrier: RwLock::new(Arc::new(None)),
         }
     }
 
     pub(crate) fn unlock(&self) {
-        if let Some(barrier) = &*self.barrier.force_read() {
-            barrier.unlock();
+        let barrier = self.barrier.force_read().clone();
+        if let Some(i) = &*barrier {
+            i.unlock();
         }
+    }
+
+    pub(crate) fn add_barrier(&self) {
+        *self.barrier.force_write() = Arc::new(Some(SingleBarrier::new()));
     }
 }
 
