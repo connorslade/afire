@@ -3,7 +3,7 @@ use std::{
     io::Read,
     net::{Shutdown, TcpStream},
     ops::Deref,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use crate::{

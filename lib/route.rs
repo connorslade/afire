@@ -1,6 +1,6 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
-use crate::{path::Path, Context, Method, Request, error::AnyResult};
+use crate::{error::AnyResult, path::Path, Context, Method, Request};
 
 type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
 

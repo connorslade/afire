@@ -2,18 +2,15 @@ use std::{
     cell::RefCell,
     fmt::Display,
     io::Read,
-    rc::Rc,
     sync::{
         atomic::{AtomicU8, Ordering},
-        Arc, Barrier, Mutex,
+        Arc, Mutex,
     },
 };
 
 use crate::{
-    error::Result,
-    internal::sync::{ForceLockMutex, ForceLockRwLock, SingleBarrier},
-    response::ResponseBody,
-    Content, Header, HeaderType, Request, Response, Server, Status,
+    error::Result, internal::sync::ForceLockMutex, response::ResponseBody, Content, Header,
+    HeaderType, Request, Response, Server, Status,
 };
 
 pub struct Context<State: 'static + Send + Sync> {

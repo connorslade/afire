@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::consts;
 use crate::header::{HeaderType, Headers};

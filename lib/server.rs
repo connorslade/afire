@@ -10,9 +10,8 @@ use std::{
 
 use crate::{
     error::Result, error::StartupError, handle::handle, header::Headers,
-    internal::common::ToHostAddress, socket::Socket, thread_pool::ThreadPool, trace::emoji,
-    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,
-    VERSION,
+    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Context,
+    Header, HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
 };
 
 type ErrorHandler<State> =

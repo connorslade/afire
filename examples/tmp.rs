@@ -1,21 +1,15 @@
 // Note: This module is intended for internal testing only
 
 use std::{
-    collections::HashMap,
-    convert::TryFrom,
-    fs::{self, File},
     io::{self, Read},
     sync::Arc,
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use afire::{
     extension::{Date, Head, Logger, Trace},
-    internal::sync::ForceLockMutex,
-    multipart::MultipartData,
     prelude::*,
-    server_sent_events::ServerSentEventsExt,
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},

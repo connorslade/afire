@@ -1,11 +1,10 @@
 use std::{
     borrow::Cow,
-    cell::RefCell,
     fmt::Debug,
     io::{BufRead, BufReader, Read},
-    net::{SocketAddr, TcpStream},
+    net::SocketAddr,
     str::FromStr,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
 };
 
 use crate::{

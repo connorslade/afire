@@ -1,7 +1,7 @@
 //! Some little functions used here and there
 
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::sync::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+
 use std::{borrow::Cow, net::IpAddr};
 
 use crate::error::{Result, StartupError};

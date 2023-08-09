@@ -1,11 +1,10 @@
 use std::{
-    io::{self, Read},
     net::TcpStream,
-    ops::{Deref, DerefMut},
-    sync::{Arc, Mutex, RwLock},
+    ops::Deref,
+    sync::{Arc, Mutex},
 };
 
-use crate::internal::sync::{ForceLockMutex, ForceLockRwLock, SingleBarrier};
+use crate::internal::sync::SingleBarrier;
 
 /// Socket is a wrapper around TcpStream that allows for sending a response from another thread.
 pub struct Socket {
@@ -13,7 +12,7 @@ pub struct Socket {
     pub socket: Mutex<TcpStream>,
     /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
     /// This allows for sending a response from another thread, not sure why you would want to do that though.
-    pub/*(crate)*/ barrier: Arc<SingleBarrier>,
+    pub barrier: Arc<SingleBarrier>,
 }
 
 impl Socket {
