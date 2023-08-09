@@ -41,9 +41,6 @@ pub enum StartupError {
     /// The IP address specified is invalid
     InvalidIp,
 
-    /// No state was specified, but a route requires it
-    NoState,
-
     /// The socket timeout specified is invalid (must be greater than 0)
     InvalidSocketTimeout,
 }
@@ -124,7 +121,6 @@ impl Display for StartupError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             StartupError::InvalidIp => "The IP address specified is invalid",
-            StartupError::NoState => "No state was specified, but a route requires it",
             StartupError::InvalidSocketTimeout => {
                 "The socket timeout specified is invalid (must be greater than 0)"
             }

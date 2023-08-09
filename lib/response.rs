@@ -320,15 +320,12 @@ impl Response {
             headers_to_string(&self.headers)
         );
 
-        trace!("Locking stream");
         let mut stream = raw_stream.force_lock();
-        trace!("Writing response");
         let error = match stream.write_all(response.as_bytes()) {
             Ok(_) => self.data.write(&mut stream),
             Err(e) => Err(e.into()),
         };
         drop(stream);
-        trace!("Unlocking stream");
         raw_stream.unlock();
 
         error

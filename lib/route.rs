@@ -19,10 +19,8 @@ type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + S
 pub struct Route<State: 'static + Send + Sync> {
     /// Route Method (GET, POST, ANY, etc.)
     method: Method,
-
     /// Route path, in its tokenized form.
     path: Path,
-
     /// Route Handler, either stateless or stateful.
     pub(crate) handler: Handler<State>,
 }
@@ -135,6 +133,30 @@ impl<T, E: Debug> RouteContext<T> for Result<T, E> {
             Err(e) => Err(RouteError {
                 status: Status::InternalServerError,
                 message: format!("{}\n[{}]: {e:?}", body(), panic::Location::caller()),
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+impl<T> RouteContext<T> for Option<T> {
+    fn context(self, body: impl Display) -> Result<T, RouteError> {
+        match self {
+            Some(x) => Ok(x),
+            None => Err(RouteError {
+                status: Status::InternalServerError,
+                message: format!("{body}\n[{}]", panic::Location::caller()),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn with_context<D: Display>(self, body: impl Fn() -> D) -> Result<T, RouteError> {
+        match self {
+            Some(x) => Ok(x),
+            None => Err(RouteError {
+                status: Status::InternalServerError,
+                message: format!("{}\n[{}]", body(), panic::Location::caller()),
                 ..Default::default()
             }),
         }

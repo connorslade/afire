@@ -66,6 +66,17 @@ impl ThreadPool {
         }
     }
 
+    pub(crate) fn new_empty() -> Self {
+        let (sender, rx) = mpsc::channel();
+        Self {
+            threads: AtomicUsize::new(0),
+            worker_id: AtomicUsize::new(0),
+            sender: Mutex::new(sender),
+            workers: Mutex::new(Vec::new()),
+            receiver: Arc::new(Mutex::new(rx)),
+        }
+    }
+
     /// Executes a job on the thread pool.
     pub fn execute(&self, f: impl FnOnce() + 'static + Send) {
         let job = Message::Job(Box::new(f));
@@ -151,6 +162,7 @@ impl Worker {
 impl Drop for ThreadPool {
     /// Stops all workers with a [`Message::Kill`] message, and waits for them to finish.
     fn drop(&mut self) {
+        trace!(Level::Debug, "Shutting down thread pool. (On Drop)");
         let sender = self.sender.force_lock();
         for _ in 0..self.threads() {
             sender.send(Message::Kill).unwrap();
@@ -161,5 +173,6 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
+        trace!(Level::Debug, "Thread pool shut down");
     }
 }

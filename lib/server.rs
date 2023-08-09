@@ -1,10 +1,12 @@
 use std::{
     any::type_name,
-    error::Error,
     net::{IpAddr, SocketAddr, TcpListener},
     rc::Rc,
-    result, str,
-    sync::Arc,
+    str,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 
@@ -14,7 +16,6 @@ use crate::{
     handle::handle,
     header::Headers,
     internal::common::ToHostAddress,
-    route::RouteError,
     thread_pool::ThreadPool,
     trace::emoji,
     Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,
@@ -60,6 +61,8 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     /// The threadpool used for handling requests.
     /// You can also run your own tasks and resizes the threadpool.
     pub thread_pool: Arc<ThreadPool>,
+
+    pub running: AtomicBool,
 }
 
 /// Implementations for Server
@@ -93,7 +96,8 @@ impl<State: Send + Sync> Server<State> {
             keep_alive: true,
             socket_timeout: None,
             state: None,
-            thread_pool: Arc::new(ThreadPool::new(1)),
+            thread_pool: Arc::new(ThreadPool::new_empty()),
+            running: AtomicBool::new(true),
         }
     }
 
@@ -115,6 +119,10 @@ impl<State: Send + Sync> Server<State> {
     /// ```
     pub fn start(self) -> Result<()> {
         let threads = self.thread_pool.threads();
+        if threads == 0 {
+            self.thread_pool.resize(1);
+        }
+
         trace!(
             "{}Starting Server [{}:{}] ({} thread{})",
             emoji("✨"),
@@ -123,18 +131,29 @@ impl<State: Send + Sync> Server<State> {
             threads,
             if threads == 1 { "" } else { "s" }
         );
-        self.check()?;
+
+        if self.socket_timeout == Some(Duration::ZERO) {
+            return Err(StartupError::InvalidSocketTimeout.into());
+        }
 
         let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
         let this = Arc::new(self);
 
         for event in listener.incoming() {
+            if !this.running.load(Ordering::Relaxed) {
+                trace!(
+                    Level::Debug,
+                    "Stopping event loop. No more connections will be accepted."
+                );
+                break;
+            }
+
             let this2 = this.clone();
             this.thread_pool.execute(move || {
                 let event = match event {
                     Ok(event) => event,
                     Err(err) => {
-                        trace!("Error accepting connection: {err}");
+                        trace!(Level::Error, "Error accepting connection: {err}");
                         return;
                     }
                 };
@@ -143,31 +162,23 @@ impl<State: Send + Sync> Server<State> {
             });
         }
 
-        // We should never get Here
-        unreachable!()
+        trace!("{}Server Stopped", emoji("🛑"));
+        Ok(())
     }
 
-    /// Start the server with a threadpool of `threads` threads.
-    /// Just like [`Server::start`], this is blocking.
-    /// Will return an error if the server cant bind to the specified address, or of you are using stateful routes and have not set the state. (See [`Server::state`])
-    ///
+    /// Sets the number of worker threads to use, it will resize the threadpool immediately.
+    /// The more threads you have, the more concurrent requests you can handle.
+    /// The default is 1, which is probably too few for most use cases.
     /// ## Example
-    /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, Response, Header, Method};
-    ///
-    /// // Creates a server on localhost (127.0.0.1) port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
-    /// /* Define Routes, Attach Middleware, etc. */
-    ///
-    /// // Starts the server with 4 threads
-    /// // This is blocking
-    /// server.start_threaded(4).unwrap();
-    /// ```
-    pub fn start_threaded(self, threads: usize) -> Result<()> {
+    /// ```rust
+    /// # use afire::Server;
+    /// let mut server = Server::<()>::new("localhost", 8080)
+    ///     // Set the number of worker threads to 4
+    ///     .workers(4);
+    pub fn workers(self, threads: usize) -> Self {
+        // TODO: only resize on start?
         self.thread_pool.resize(threads);
-        self.start()
+        self
     }
 
     /// Add a new default header to the server.
@@ -344,30 +355,8 @@ impl<State: Send + Sync> Server<State> {
         self.state.as_ref().unwrap().clone()
     }
 
-    fn check(&self) -> Result<()> {
-        // if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
-        //     return Err(StartupError::NoState.into());
-        // }
-
-        if self.socket_timeout == Some(Duration::ZERO) {
-            return Err(StartupError::InvalidSocketTimeout.into());
-        }
-
-        Ok(())
+    pub fn shutdown(&self) {
+        // TODO: Notify event loop to shutdown somehow?
+        self.running.store(false, Ordering::Relaxed);
     }
 }
-
-/*
-app.route(|ctx| {
-    ctx.res()
-        .text("Hello World!")
-        .send()?;
-    Ok(())
-});
-*/
-
-// fn test() -> ::std::result::Result<(), Box<dyn ::std::error::Error>> {
-//     let mut server = Server::<()>::new("localhost", 8080);
-//     server.start()?;
-//     Ok(())
-// }

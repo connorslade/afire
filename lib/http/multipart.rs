@@ -2,6 +2,8 @@
 
 use std::{
     convert::TryFrom,
+    error::Error,
+    fmt::Display,
     io::BufRead,
     ops::{Deref, DerefMut},
 };
@@ -175,6 +177,19 @@ fn split_boundary<'a>(data: &'a [u8], boundary: &[u8]) -> Vec<&'a [u8]> {
     out.push(&data[start..]);
     out
 }
+
+impl Display for MultipartError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MultipartError::InvalidContentType => write!(f, "Invalid content type"),
+            MultipartError::InvalidBoundary => write!(f, "Invalid boundary"),
+            MultipartError::InvalidData => write!(f, "Invalid data"),
+            MultipartError::InvalidEntry => write!(f, "Invalid entry"),
+        }
+    }
+}
+
+impl Error for MultipartError {}
 
 #[cfg(test)]
 mod tests {

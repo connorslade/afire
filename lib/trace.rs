@@ -106,6 +106,7 @@ pub fn _trace(level: Level, fmt: Arguments) {
     DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), msg);
 }
 
+// TODO: convert to macro for compile time concat!
 // this is a totally normal and necessary function
 pub(crate) fn emoji(emoji: &str) -> String {
     #[cfg(feature = "emoji-logging")]
