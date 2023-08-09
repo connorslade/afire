@@ -56,62 +56,52 @@ where
 
         // Handle Route
         let ctx = Context::new(this.clone(), req.clone());
-        let mut flag = ResponseFlag::None;
-        let mut matched = false;
 
-        for route in this.routes.iter().rev() {
-            if let Some(params) = route.matches(req.clone()) {
-                matched = true;
-                *req.path_params.force_write() = params;
-                let result = (route.handler)(&ctx);
-
-                if let Err(e) = result {
-                    unimplemented!("Route error {e:?}");
-                }
-
-                flag = ctx.response.force_lock().flag;
-                let has_response = ctx.flags.get(ContextFlag::ResponseSent);
-                if has_response {
-                    break;
-                }
-
-                if ctx.flags.get(ContextFlag::GuaranteedSend) {
-                    let barrier = ctx.req.socket.barrier.force_read().clone();
-                    if let Some(i) = &*barrier {
-                        trace!(Level::Debug, "Waiting for response to be sent");
-                        i.wait();
-                        trace!(Level::Debug, "Response sent");
-                    }
-                    break;
-                }
-
+        let (route, params) = match this
+            .routes
+            .iter()
+            .rev()
+            .find_map(|route| route.matches(req.clone()).map(|x| (route, x)))
+        {
+            Some(x) => x,
+            None => {
                 let mut res = Response::new()
-                    .status(Status::NotImplemented)
-                    .text("No response was sent");
+                    .status(Status::NotFound)
+                    .text(format!("Cannot {} {}", req.method, req.path))
+                    .content(Content::TXT);
                 if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
-                    trace!(
-                        Level::Debug,
-                        "Error writing 'No Response' response: {:?}",
-                        e
-                    );
+                    trace!(Level::Debug, "Error writing 'Not Found' response: {:?}", e);
                 }
-                break;
+                continue;
             }
+        };
+
+        *req.path_params.force_write() = params;
+        let result = (route.handler)(&ctx);
+
+        if let Err(e) = result {
+            unimplemented!("Route error {e:?}");
         }
 
-        // let route = this
-        //     .routes
-        //     .iter()
-        //     .rev()
-        //     .find_map(|route| route.matches(req.clone()).map(|x| (route, x)));
+        let flag = ctx.response.force_lock().flag;
+        let sent_response = ctx.flags.get(ContextFlag::ResponseSent);
 
-        if !matched {
+        if sent_response {
+        } else if ctx.flags.get(ContextFlag::GuaranteedSend) {
+            let barrier = ctx.req.socket.barrier.clone();
+            trace!(Level::Debug, "Waiting for response to be sent");
+            barrier.wait();
+            trace!(Level::Debug, "Response sent");
+        } else {
             let mut res = Response::new()
-                .status(Status::NotFound)
-                .text(format!("Cannot {} {}", req.method, req.path))
-                .content(Content::TXT);
+                .status(Status::NotImplemented)
+                .text("No response was sent");
             if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
-                trace!(Level::Debug, "Error writing 'Not Found' response: {:?}", e);
+                trace!(
+                    Level::Debug,
+                    "Error writing 'No Response' response: {:?}",
+                    e
+                );
             }
         }
 

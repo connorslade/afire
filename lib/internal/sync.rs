@@ -53,7 +53,7 @@ impl SingleBarrier {
     /// Create a new `SingleBarrier`.
     pub fn new() -> Self {
         Self {
-            locked: Mutex::new(false),
+            locked: Mutex::new(true),
             condvar: Condvar::new(),
         }
     }
@@ -72,6 +72,11 @@ impl SingleBarrier {
     pub fn unlock(&self) {
         let mut locked = self.locked.force_lock();
         *locked = false;
-        self.condvar.notify_one();
+        self.condvar.notify_all();
+    }
+
+    pub fn reset(&self) {
+        let mut locked = self.locked.force_lock();
+        *locked = true;
     }
 }

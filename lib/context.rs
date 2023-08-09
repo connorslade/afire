@@ -44,7 +44,7 @@ pub(crate) enum ContextFlag {
 
 impl<State: 'static + Send + Sync> Context<State> {
     pub(crate) fn new(server: Arc<Server<State>>, req: Arc<Request>) -> Self {
-        req.socket.add_barrier();
+        req.socket.reset_barrier();
         Self {
             server,
             req,
