@@ -31,7 +31,7 @@ mod http;
 pub mod middleware;
 mod request;
 mod response;
-mod route;
+pub mod route;
 mod server;
 pub mod socket;
 pub use self::{

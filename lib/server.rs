@@ -9,9 +9,16 @@ use std::{
 };
 
 use crate::{
-    error::Result, error::StartupError, handle::handle, header::Headers,
-    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Context,
-    Header, HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
+    error::Result,
+    error::{AnyResult, StartupError},
+    handle::handle,
+    header::Headers,
+    internal::common::ToHostAddress,
+    route::RouteError,
+    thread_pool::ThreadPool,
+    trace::emoji,
+    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,
+    VERSION,
 };
 
 type ErrorHandler<State> =
@@ -312,7 +319,7 @@ impl<State: Send + Sync> Server<State> {
         &mut self,
         method: Method,
         path: impl AsRef<str>,
-        handler: impl Fn(&Context<State>) -> result::Result<(), Box<dyn Error>> + Send + Sync + 'static,
+        handler: impl Fn(&Context<State>) -> AnyResult<()> + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
         trace!("{}Adding Route {} {}", emoji("🚗"), method, path);

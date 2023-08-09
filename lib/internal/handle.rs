@@ -11,6 +11,7 @@ use crate::{
     error::{HandleError, ParseError, StreamError},
     internal::sync::{ForceLockMutex, ForceLockRwLock},
     response::ResponseFlag,
+    route::RouteError,
     socket::Socket,
     trace, Content, Context, Error, Request, Response, Server, Status,
 };
@@ -79,14 +80,20 @@ where
         *req.path_params.force_write() = params;
         let result = (route.handler)(&ctx);
 
-        if let Err(e) = result {
-            unimplemented!("Route error {e:?}");
-        }
-
         let flag = ctx.response.force_lock().flag;
         let sent_response = ctx.flags.get(ContextFlag::ResponseSent);
 
-        if sent_response {
+        if let Err(e) = result {
+            // TODO: account for guarenteed send
+            let error =
+                RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(&e));
+            if let Err(e) = error
+                .as_response()
+                .write(req.socket.clone(), &this.default_headers)
+            {
+                trace!(Level::Debug, "Error writing error response: {:?}", e);
+            }
+        } else if sent_response {
         } else if ctx.flags.get(ContextFlag::GuaranteedSend) {
             let barrier = ctx.req.socket.barrier.clone();
             trace!(Level::Debug, "Waiting for response to be sent");

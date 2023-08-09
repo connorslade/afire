@@ -1,6 +1,7 @@
 // Note: This module is intended for internal testing only
 
 use std::{
+    fs::File,
     io::{self, Read},
     sync::Arc,
     thread,
@@ -10,6 +11,7 @@ use std::{
 use afire::{
     extension::{Date, Head, Logger, Trace},
     prelude::*,
+    route::{AdditionalRouteContext, RouteContext},
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
@@ -133,11 +135,15 @@ fn main() {
     // });
 
     server.route(Method::GET, "/", |ctx| {
-        // let file = File::open("index.html")?;
+        let _ = File::open("index.html")
+            .context("Failed to open file")
+            .status(Status::InternalServerError)?;
+
         let threads = ctx.server.thread_pool.threads();
         ctx.text(format!("Ok!\nThreads: {threads}"))
             .header(HeaderType::ContentType, "text/plain")
             .send()?;
+
         Ok(())
     });
 
