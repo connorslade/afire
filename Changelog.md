@@ -3,6 +3,27 @@
 Coming Soon
 
 - Build extension docs on docs.rs
+- The thread pool can now be resized at runtime.
+- `Server::start_threaded` has been replaced with `Server::workers` to set the number of worker threads and the normal `Server::start`.
+- Supply a context to all route handlers.
+  The context contains a reference to the server, request, and acts as a response builder.
+  Note: This also allows access to the thread_pool for both executing tasks and resizing it.
+- Remove the `stateful_route` method, use normal routes with `ctx.app()` instead.
+- You can now send responses before the route handler ends.
+  This allows you to easily send a response and then do some work after the response is sent as to not block the client.
+- Responses can be sent from other threads.
+  You will have to notify the handler that you will be sending a response after the handler function returns with `ctx.guarantee_will_send()`.
+- Allow returning any error type from route handlers.
+  This is done with a return type of `Result<(), Box<dyn Error>>`.
+- Allow attaching extra context to an error with [anyhow](https://crates.io/crates/anyhow) like functions: `context`, `with_context`, `status`, `with_status`, `header`, `with_header`.
+- Remove `StartupError::NoState` error.
+- Make `ForceLockMutex`, `ForceLockRwLock`, and `SingleBarrier` public through the `internal::sync` module.
+  - The force lock traits are used to lock a `Mutex` or `RwLock` even if it is poisoned.
+  - The `SingleBarrier` is used to have a thread wait until another thread unlocks the barrier.
+    The difference from a normal Barrier is that it does not block on both sides, only the waiting side.
+- Replace the `TcpStream` in `Request` with `Socket`, a wrapper struct.
+  Its used to allow automatically the barrier with a response is sent.
+  In the future it might also be used for optional TLS support.
 
 # 2.2.0
 
