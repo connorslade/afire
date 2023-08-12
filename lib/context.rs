@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    collections::HashMap,
     fmt::Display,
     io::Read,
     sync::{
@@ -18,6 +19,8 @@ pub struct Context<State: 'static + Send + Sync> {
     pub server: Arc<Server<State>>,
     /// The request you are handling.
     pub req: Arc<Request>,
+    /// The path parameters.
+    pub(crate) path_params: HashMap<String, String>,
     /// The response you are building.
     pub(crate) response: Mutex<Response>,
     /// Various bit-packed flags.
@@ -40,11 +43,16 @@ pub(crate) enum ContextFlag {
 }
 
 impl<State: 'static + Send + Sync> Context<State> {
-    pub(crate) fn new(server: Arc<Server<State>>, req: Arc<Request>) -> Self {
+    pub(crate) fn new(
+        server: Arc<Server<State>>,
+        req: Arc<Request>,
+        path_params: HashMap<String, String>,
+    ) -> Self {
         req.socket.reset_barrier();
         Self {
             server,
             req,
+            path_params,
             response: Mutex::new(Response::new()),
             flags: ContextFlags::new(),
         }
@@ -57,6 +65,10 @@ impl<State: 'static + Send + Sync> Context<State> {
 
     pub fn app(&self) -> &State {
         self.server.state.as_ref().unwrap()
+    }
+
+    pub fn param(&self, name: impl AsRef<str>) -> Option<&String> {
+        self.path_params.get(name.as_ref())
     }
 
     pub fn send(&self) -> Result<()> {

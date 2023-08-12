@@ -9,7 +9,7 @@ use std::{
 use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
-    internal::sync::{ForceLockMutex, ForceLockRwLock},
+    internal::sync::ForceLockMutex,
     response::ResponseFlag,
     route::RouteError,
     socket::Socket,
@@ -56,8 +56,6 @@ where
         };
 
         // Handle Route
-        let ctx = Context::new(this.clone(), req.clone());
-
         let (route, params) = match this
             .routes
             .iter()
@@ -77,7 +75,7 @@ where
             }
         };
 
-        *req.path_params.force_write() = params;
+        let ctx = Context::new(this.clone(), req.clone(), params);
         let result = (route.handler)(&ctx);
 
         let flag = ctx.response.force_lock().flag;

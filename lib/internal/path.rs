@@ -1,5 +1,7 @@
 //! HTTP Path stuff
 
+use std::collections::HashMap;
+
 use super::encoding::url;
 
 /// Http Path
@@ -48,13 +50,13 @@ impl Path {
     }
 
     /// Match Path, returns None if it doesn't match and the path params if it does
-    pub fn match_path(&self, path: String) -> Option<Vec<(String, String)>> {
+    pub fn match_path(&self, path: String) -> Option<HashMap<String, String>> {
         if self.parts == [PathPart::AnyAfter] {
-            return Some(Vec::new());
+            return Some(HashMap::new());
         }
 
         let path = normalize_path(path);
-        let mut out = Vec::new();
+        let mut out = HashMap::new();
 
         let path = path.split('/');
         for (i, j) in self.parts.iter().zip(path.clone()) {
@@ -65,7 +67,7 @@ impl Path {
                     }
                 }
                 PathPart::Param(x) => {
-                    out.push((x.to_owned(), url::decode(j).unwrap_or_else(|| j.to_owned())))
+                    out.insert(x.to_owned(), url::decode(j).unwrap_or_else(|| j.to_owned()));
                 }
                 PathPart::AnyAfter => return Some(out),
                 PathPart::Any => {}
@@ -115,6 +117,8 @@ pub fn normalize_path(mut path: String) -> String {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use super::{normalize_path, Path, PathPart};
 
     #[test]
@@ -151,12 +155,12 @@ mod test {
     fn test_match_path_normal() {
         assert_eq!(
             Path::new("/".to_owned()).match_path("/".to_owned()),
-            Some(vec![])
+            Some(HashMap::new())
         );
 
         assert_eq!(
             Path::new("/".to_owned()).match_path("".to_owned()),
-            Some(vec![])
+            Some(HashMap::new())
         );
     }
 
@@ -167,9 +171,11 @@ mod test {
             None
         );
 
+        let mut params = HashMap::new();
+        params.insert("bean".to_owned(), "Bean".to_owned());
         assert_eq!(
             Path::new("/cool/{bean}".to_owned()).match_path("/cool/Bean".to_owned()),
-            Some(vec![("bean".to_owned(), "Bean".to_owned())])
+            Some(params)
         );
     }
 
@@ -177,7 +183,7 @@ mod test {
     fn test_match_path_any() {
         assert_eq!(
             Path::new("idk/*".to_owned()).match_path("/idk/Cool Beans".to_owned()),
-            Some(vec![])
+            Some(HashMap::new())
         );
 
         assert_eq!(

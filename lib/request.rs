@@ -30,9 +30,6 @@ pub struct Request {
     /// Should usually be "HTTP/1.1".
     pub version: String,
 
-    /// Path Params, filled by the router
-    pub(crate) path_params: RwLock<Vec<(String, String)>>,
-
     /// Request Query.
     pub query: Query,
 
@@ -60,36 +57,6 @@ impl Request {
             .get(HeaderType::Connection)
             .map(|i| i.to_lowercase() == "keep-alive")
             .unwrap_or(false)
-    }
-
-    /// Get a path parameter by its name.
-    ///
-    /// ## Example
-    /// ```rust
-    /// # use afire::{Request, Response, Header, Method, Server, Content};
-    /// # let mut server = Server::<()>::new("localhost", 8080);
-    /// server.route(Method::GET, "/greet/{name}", |ctx| {
-    ///     // Get name Path param
-    ///     // This is safe to unwrap because the router will only call this handler if the path param exists
-    ///     let name = ctx.req.param("name").unwrap();
-    ///
-    ///     // Format a nice message
-    ///     let message = format!("Hello, {}", name);
-    ///
-    ///     // Send Response
-    ///     ctx.text(message)
-    ///         .content(Content::TXT)
-    ///         .send()?;
-    ///     Ok(())
-    /// });
-    /// ```
-    pub fn param(&self, name: impl AsRef<str>) -> Option<String> {
-        let name = name.as_ref().to_owned();
-        self.path_params
-            .force_read()
-            .iter()
-            .find(|x| x.0 == name)
-            .map(|i| i.1.to_owned())
     }
 
     /// Gets the body of the request as a string.
@@ -152,7 +119,6 @@ impl Request {
             method,
             path,
             version,
-            path_params: RwLock::new(Vec::new()),
             query,
             headers: Headers(headers),
             cookies: CookieJar(cookies),
@@ -169,7 +135,6 @@ impl Debug for Request {
             .field("method", &self.method)
             .field("path", &self.path)
             .field("version", &self.version)
-            .field("path_params", &self.path_params.force_read())
             .field("query", &self.query)
             .field("headers", &self.headers)
             .field("cookies", &*self.cookies)

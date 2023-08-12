@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     error::Error,
     fmt::{self, Debug, Display},
     panic,
@@ -75,7 +76,7 @@ impl<State: 'static + Send + Sync> Route<State> {
 
     /// Checks if a Request matches the route.
     /// Returns the path parameters if it does.
-    pub(crate) fn matches(&self, req: Arc<Request>) -> Option<Vec<(String, String)>> {
+    pub(crate) fn matches(&self, req: Arc<Request>) -> Option<HashMap<String, String>> {
         if self.method != Method::ANY && self.method != req.method {
             return None;
         }
