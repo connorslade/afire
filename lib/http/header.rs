@@ -5,7 +5,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::error::{ParseError, Result};
+use crate::{
+    error::{ParseError, Result},
+    internal::common::filter_crlf,
+};
 
 /// Http header.
 /// Has a name and a value.
@@ -50,6 +53,9 @@ impl Header {
     /// Make a new header from a name and a value.
     /// The name must implement `Into<HeaderType>`, so it can be a string or a [`HeaderType`].
     /// The value can be anything that implements `AsRef<str>`, including a String, or &str.
+    ///
+    /// Note: Neither the name nor the value may contain CRLF characters.
+    /// They will be filtered out automatically.
     /// ## Example
     /// ```rust
     /// # use afire::Header;
@@ -59,7 +65,7 @@ impl Header {
     pub fn new(name: impl Into<HeaderType>, value: impl AsRef<str>) -> Header {
         Header {
             name: name.into(),
-            value: value.as_ref().to_owned(),
+            value: filter_crlf(value.as_ref()),
         }
     }
 
@@ -396,7 +402,7 @@ impl HeaderType {
             "user-agent"        => HeaderType::UserAgent,
             "via"               => HeaderType::Via,
             "x-forwarded-for"   => HeaderType::XForwardedFor,
-            _                   => HeaderType::Custom(s.to_string()),
+            _                   => HeaderType::Custom(filter_crlf(s)),
         }
     }
 }

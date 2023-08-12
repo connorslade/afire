@@ -81,6 +81,14 @@ pub enum ParseError {
 
     /// Invalid Header in Request HTTP
     InvalidHeader,
+
+    /// Invalid HTTP Version in Request HTTP.
+    /// The only supported versions are 1.0 and 1.1.
+    InvalidHttpVersion,
+
+    /// The HOST header was not found in the request.
+    /// It is required by HTTP/1.1.
+    NoHostHeader,
 }
 
 /// Error that can occur while reading or writing to a stream
@@ -149,6 +157,8 @@ impl Display for ParseError {
             ParseError::InvalidQuery => "Invalid Query in Path",
             ParseError::InvalidMethod => "Invalid Method in Request HTTP",
             ParseError::InvalidHeader => "Invalid Header in Request HTTP",
+            ParseError::InvalidHttpVersion => "Request HTTP Version is not supported",
+            ParseError::NoHostHeader => "The Host header was not found in the request",
         })
     }
 }

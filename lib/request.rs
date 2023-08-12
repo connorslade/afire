@@ -1,10 +1,10 @@
 use std::{
     borrow::Cow,
-    fmt::Debug,
+    fmt::{self, Debug, Display},
     io::{BufRead, BufReader, Read},
     net::SocketAddr,
     str::FromStr,
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderType, Headers},
-    internal::sync::{ForceLockMutex, ForceLockRwLock},
+    internal::sync::ForceLockMutex,
     socket::Socket,
     Cookie, Error, Header, Method, Query,
 };
@@ -26,9 +26,9 @@ pub struct Request {
     /// The query string is not included, its in the `query` field.
     pub path: String,
 
-    /// HTTP version string.
-    /// Should usually be "HTTP/1.1".
-    pub version: String,
+    /// HTTP version of the current connection.
+    /// Will typically be HTTP/1.1.
+    pub version: HttpVersion,
 
     /// Request Query.
     pub query: Query,
@@ -51,12 +51,28 @@ pub struct Request {
     pub socket: Arc<Socket>,
 }
 
+/// HTTP Version of the current connection.
+/// Will typically be HTTP/1.1 but can also be HTTP/1.0.
+/// Other versions are not supported, and will abort the connection.
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum HttpVersion {
+    Http10,
+    Http11,
+}
+
 impl Request {
     pub(crate) fn keep_alive(&self) -> bool {
-        self.headers
-            .get(HeaderType::Connection)
-            .map(|i| i.to_lowercase() == "keep-alive")
-            .unwrap_or(false)
+        let connection = self.headers.get(HeaderType::Connection);
+        match self.version {
+            // Only keep-alive if the connection header specifies
+            HttpVersion::Http10 => connection
+                .map(|i| i.to_lowercase() == "keep-alive")
+                .unwrap_or(false),
+            // Keep-alive unless the connection header specifies close
+            HttpVersion::Http11 => connection
+                .map(|i| i.to_lowercase() != "close")
+                .unwrap_or(true),
+        }
     }
 
     /// Gets the body of the request as a string.
@@ -115,6 +131,7 @@ impl Request {
         }
 
         drop(stream);
+
         Ok(Self {
             method,
             path,
@@ -129,36 +146,18 @@ impl Request {
     }
 }
 
-impl Debug for Request {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Request")
-            .field("method", &self.method)
-            .field("path", &self.path)
-            .field("version", &self.version)
-            .field("query", &self.query)
-            .field("headers", &self.headers)
-            .field("cookies", &*self.cookies)
-            .field("body", &self.body)
-            .field("address", &self.address)
-            .finish()
-    }
-}
-
 /// Parse a request line into a method, path, query, and version
-pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query, String)> {
+pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query, HttpVersion)> {
     let request_line = String::from_utf8_lossy(bytes);
     let mut parts = request_line.split_whitespace();
 
-    let raw_method = match parts.next() {
-        Some(i) => i,
-        None => return Err(Error::Parse(ParseError::NoMethod)),
-    };
+    let raw_method = parts.next().ok_or(Error::Parse(ParseError::NoMethod))?;
     let method =
         Method::from_str(raw_method).map_err(|_| Error::Parse(ParseError::InvalidMethod))?;
-    let mut raw_path = match parts.next() {
-        Some(i) => i.chars(),
-        None => return Err(Error::Parse(ParseError::NoVersion)),
-    };
+    let mut raw_path = parts
+        .next()
+        .ok_or(Error::Parse(ParseError::NoPath))?
+        .chars();
 
     let mut final_path = String::new();
     let mut final_query = String::new();
@@ -185,10 +184,71 @@ pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query,
     }
 
     let query = Query::from_body(&final_query);
-    let version = match parts.next() {
-        Some(i) => i.to_owned(),
-        None => return Err(Error::Parse(ParseError::NoVersion)),
-    };
+    let version = parts
+        .next()
+        .ok_or(Error::Parse(ParseError::NoVersion))?
+        .parse()?;
 
     Ok((method, final_path, query, version))
+}
+
+impl Debug for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Request")
+            .field("method", &self.method)
+            .field("path", &self.path)
+            .field("version", &self.version)
+            .field("query", &self.query)
+            .field("headers", &self.headers)
+            .field("cookies", &*self.cookies)
+            .field("body", &self.body)
+            .field("address", &self.address)
+            .finish()
+    }
+}
+
+impl FromStr for HttpVersion {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "HTTP/1.0" => Ok(Self::Http10),
+            "HTTP/1.1" => Ok(Self::Http11),
+            _ => Err(Error::Parse(ParseError::InvalidHttpVersion)),
+        }
+    }
+}
+
+impl Display for HttpVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Http10 => write!(f, "HTTP/1.0"),
+            Self::Http11 => write!(f, "HTTP/1.1"),
+        }
+    }
+}
+
+impl Debug for HttpVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Http10 => write!(f, "HTTP/1.0"),
+            Self::Http11 => write!(f, "HTTP/1.1"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::request::HttpVersion;
+
+    #[test]
+    fn test_http_ordering() {
+        assert_eq!(HttpVersion::Http10, HttpVersion::Http10);
+        assert_eq!(HttpVersion::Http11, HttpVersion::Http11);
+
+        assert!(HttpVersion::Http10 < HttpVersion::Http11);
+        assert!(HttpVersion::Http11 > HttpVersion::Http10);
+        assert!(HttpVersion::Http10 <= HttpVersion::Http11);
+        assert!(HttpVersion::Http11 >= HttpVersion::Http10);
+    }
 }

@@ -26,9 +26,9 @@ const PATH: &str = r#"..."#;
 const FILE_TYPE: &str = "...";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::<()>::new("localhost", 8081).workers(5);
-    set_log_level(Level::Debug);
-    set_log_formatter(LogFormatter);
+    let mut server = Server::<()>::new("localhost", 8081).workers(50);
+    // set_log_level(Level::Debug);
+    // set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
 
     server.route(Method::POST, "/upload", |ctx| {
@@ -172,6 +172,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     server.route(Method::GET, "/panic", |_ctx| panic!());
+
+    server.route(Method::GET, "/echo-headers", |ctx| {
+        let header = ctx
+            .req
+            .headers
+            .get("Header")
+            .context("No `Header` header")?;
+
+        ctx.header("Header", header.replace(r"\n", "\n"))
+            .text("Ok!")
+            .send()?;
+        Ok(())
+    });
 
     Test.attach(&mut server);
     Date.attach(&mut server);

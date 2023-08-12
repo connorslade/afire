@@ -24,6 +24,14 @@ Coming Soon
 - Replace the `TcpStream` in `Request` with `Socket`, a wrapper struct.
   Its used to allow automatically the barrier with a response is sent.
   In the future it might also be used for optional TLS support.
+- Move path parameters into Context and use a HashMap instead of a Vec.
+- Parse the HTTP version into an enum instead of a string.
+- Properly determine weather to use keep-alive or not.
+  In HTTP/1.1 keep-alive is opt-out, but previous versions of afire assumed it was opt-in.
+  Fixing this produced a 2x performance increase in the benchmarks I ran.
+  Now, this is still only a ~500us improvement but hey.
+- Filter CLRF characters from headers. This prevents a potential [response splitting attack](https://datatracker.ietf.org/doc/html/rfc7230#section-9.4).
+- Properly disallow HTTP/1.1 requests with no Host header.
 
 # 2.2.0
 

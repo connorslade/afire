@@ -10,10 +10,11 @@ use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
     internal::sync::ForceLockMutex,
+    request::HttpVersion,
     response::ResponseFlag,
     route::RouteError,
     socket::Socket,
-    trace, Content, Context, Error, Request, Response, Server, Status,
+    trace, Content, Context, Error, HeaderType, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
@@ -54,6 +55,10 @@ where
                 return;
             }
         };
+
+        if req.version >= HttpVersion::Http11 && !req.headers.has(HeaderType::Host) {
+            todo!("Handle missing host header");
+        }
 
         // Handle Route
         let (route, params) = match this
@@ -147,6 +152,8 @@ where
             ParseError::InvalidQuery => "Invalid query",
             ParseError::InvalidHeader => "Invalid header",
             ParseError::InvalidMethod => "Invalid method",
+            ParseError::InvalidHttpVersion => "Invalid HTTP version",
+            ParseError::NoHostHeader => "No Host header",
         }),
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()

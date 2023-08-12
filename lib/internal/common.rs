@@ -82,6 +82,12 @@ pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     Ok(ip)
 }
 
+/// Filter out all `\r` and `\n` from a string.
+/// This is to prevent [CRLF injection](https://datatracker.ietf.org/doc/html/rfc7230#section-9.4).
+pub fn filter_crlf(value: &str) -> String {
+    value.replace(['\r', '\n'], "")
+}
+
 /// Attempt to downcast a `Box<dyn Any>` to a `String` or `&str`.
 /// Will return an empty string if the downcast fails.
 pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str> {
