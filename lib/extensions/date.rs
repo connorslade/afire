@@ -2,7 +2,7 @@
 //! This is technically required for all servers that have a clock, so I may move it to the core library at some point.
 
 use crate::{
-    internal::common::epoch,
+    internal::misc::epoch,
     middleware::{MiddleResult, Middleware},
     HeaderType, Request, Response,
 };

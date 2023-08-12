@@ -8,7 +8,7 @@ use std::sync::{
     RwLock,
 };
 
-use crate::internal::common::epoch;
+use crate::internal::misc::epoch;
 use crate::Status;
 use crate::{
     middleware::{MiddleResult, Middleware},

@@ -15,7 +15,7 @@ use crate::{
     error::{AnyResult, StartupError},
     handle::handle,
     header::Headers,
-    internal::common::ToHostAddress,
+    internal::misc::ToHostAddress,
     thread_pool::ThreadPool,
     trace::emoji,
     Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,

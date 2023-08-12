@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     error::{ParseError, Result},
-    internal::common::filter_crlf,
+    internal::misc::filter_crlf,
 };
 
 /// Http header.
