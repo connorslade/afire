@@ -72,7 +72,7 @@ impl Response {
     pub fn new() -> Self {
         Self {
             status: Status::Ok,
-            data: vec![79, 75].into(),
+            data: ResponseBody::Empty,
             headers: Default::default(),
             reason: None,
             flag: ResponseFlag::None,

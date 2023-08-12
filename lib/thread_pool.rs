@@ -87,6 +87,19 @@ impl ThreadPool {
         self.threads.load(Ordering::Relaxed)
     }
 
+    /// Returns the index of the thread calling this function.
+    /// Returns `None` if the thread is not a worker thread.
+    pub fn current_thread(&self) -> Option<usize> {
+        let thread = thread::current();
+        self.workers.force_lock().iter().position(|worker| {
+            worker
+                .handle
+                .as_ref()
+                .map(|x| x.thread().id() == thread.id())
+                .unwrap_or(false)
+        })
+    }
+
     pub fn resize(&self, size: usize) {
         assert!(size > 0);
         trace!(Level::Debug, "Resizing thread pool to {}", size);

@@ -56,6 +56,8 @@ where
             }
         };
 
+        let mut ctx = Context::new(this.clone(), req.clone());
+
         // Handle Route
         let (route, params) = match this
             .routes
@@ -76,7 +78,7 @@ where
             }
         };
 
-        let ctx = Context::new(this.clone(), req.clone(), params);
+        ctx.path_params = params;
         let result = (route.handler)(&ctx);
 
         let flag = ctx.response.force_lock().flag;

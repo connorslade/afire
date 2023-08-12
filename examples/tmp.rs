@@ -129,12 +129,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // });
 
     server.route(Method::GET, "/", |ctx| {
-        let _ = File::open("index.html")
-            .context("Failed to open file")
-            .status(Status::InternalServerError)?;
+        // let _ = File::open("index.html")
+        //     .context("Failed to open file")
+        //     .status(Status::InternalServerError)?;
 
         let threads = ctx.server.thread_pool.threads();
-        ctx.text(format!("Ok!\nThreads: {threads}"))
+        let thread = ctx.server.thread_pool.current_thread().unwrap();
+        ctx.text(format!("Ok!\nThreads: {threads}\nCurrent Thread: {thread}"))
             .header(HeaderType::ContentType, "text/plain")
             .send()?;
 

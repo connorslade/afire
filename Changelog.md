@@ -32,6 +32,8 @@ Coming Soon
   Now, this is still only a ~500us improvement but hey.
 - Filter CLRF characters from headers. This prevents a potential [response splitting attack](https://datatracker.ietf.org/doc/html/rfc7230#section-9.4).
 - Properly disallow HTTP/1.1 requests with no Host header.
+- Added a new ResponseBody type of Empty.
+- Added a `current_thread` function to the threadpool.
 
 # 2.2.0
 

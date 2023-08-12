@@ -42,16 +42,12 @@ pub(crate) enum ContextFlag {
 }
 
 impl<State: 'static + Send + Sync> Context<State> {
-    pub(crate) fn new(
-        server: Arc<Server<State>>,
-        req: Arc<Request>,
-        path_params: HashMap<String, String>,
-    ) -> Self {
+    pub(crate) fn new(server: Arc<Server<State>>, req: Arc<Request>) -> Self {
         req.socket.reset_barrier();
         Self {
             server,
             req,
-            path_params,
+            path_params: HashMap::new(),
             response: Mutex::new(Response::new()),
             flags: ContextFlags::new(),
         }
