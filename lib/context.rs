@@ -33,7 +33,6 @@ pub(crate) struct ContextFlags(AtomicU8);
 pub(crate) enum ContextFlag {
     /// The response has already been sent.
     ResponseSent = 1 << 1,
-    // TODO: autosend on dirty?
     /// The response has been modified.
     ResponseDirty = 1 << 2,
     /// The user has guaranteed that the response will be sent.

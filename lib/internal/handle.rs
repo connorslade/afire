@@ -34,7 +34,7 @@ where
         let req = Request::from_socket(stream.clone());
 
         if let Ok(req) = &req {
-            keep_alive = req.keep_alive();
+            keep_alive = req.keep_alive() && this.keep_alive;
             trace!(
                 Level::Debug,
                 "{} {} {{ keep_alive: {} }}",
@@ -55,10 +55,6 @@ where
                 return;
             }
         };
-
-        if req.version >= HttpVersion::Http11 && !req.headers.has(HeaderType::Host) {
-            todo!("Handle missing host header");
-        }
 
         // Handle Route
         let (route, params) = match this
@@ -143,6 +139,9 @@ where
         Error::Stream(e) => match e {
             StreamError::UnexpectedEof => Response::new().status(400).text("Unexpected EOF"),
         },
+        Error::Parse(ParseError::InvalidHttpVersion) => Response::new()
+            .status(Status::HTTPVersionNotSupported)
+            .text("HTTP version not supported. Only HTTP/1.0 and HTTP/1.1 are supported."),
         Error::Parse(e) => Response::new().status(400).text(match e {
             ParseError::NoSeparator => "No separator",
             ParseError::NoMethod => "No method",
@@ -152,8 +151,8 @@ where
             ParseError::InvalidQuery => "Invalid query",
             ParseError::InvalidHeader => "Invalid header",
             ParseError::InvalidMethod => "Invalid method",
-            ParseError::InvalidHttpVersion => "Invalid HTTP version",
             ParseError::NoHostHeader => "No Host header",
+            ParseError::InvalidHttpVersion => unreachable!(),
         }),
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()

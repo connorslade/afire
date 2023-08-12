@@ -27,8 +27,8 @@ const FILE_TYPE: &str = "...";
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut server = Server::<()>::new("localhost", 8081).workers(50);
-    // set_log_level(Level::Debug);
-    // set_log_formatter(LogFormatter);
+    set_log_level(Level::Debug);
+    set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
 
     server.route(Method::POST, "/upload", |ctx| {
@@ -183,6 +183,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         ctx.header("Header", header.replace(r"\n", "\n"))
             .text("Ok!")
             .send()?;
+        Ok(())
+    });
+
+    server.route(Method::GET, "/slow", |ctx| {
+        thread::sleep(Duration::from_secs(5));
+        ctx.text("Waited 5 seconds.").send()?;
         Ok(())
     });
 

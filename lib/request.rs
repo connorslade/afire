@@ -132,12 +132,17 @@ impl Request {
 
         drop(stream);
 
+        let headers = Headers(headers);
+        if version >= HttpVersion::Http11 && !headers.has(HeaderType::Host) {
+            return Err(Error::Parse(ParseError::NoHostHeader));
+        }
+
         Ok(Self {
             method,
             path,
             version,
             query,
-            headers: Headers(headers),
+            headers,
             cookies: CookieJar(cookies),
             body: Arc::new(body),
             address: peer_addr,

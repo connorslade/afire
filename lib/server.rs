@@ -1,6 +1,6 @@
 use std::{
     any::type_name,
-    net::{IpAddr, SocketAddr, TcpListener},
+    net::{IpAddr, SocketAddr, TcpListener, TcpStream},
     rc::Rc,
     str,
     sync::{
@@ -355,8 +355,11 @@ impl<State: Send + Sync> Server<State> {
         self.state.as_ref().unwrap().clone()
     }
 
+    /// Schedule a shutdown of the server.
+    /// Will complete all current requests before shutting down.
     pub fn shutdown(&self) {
-        // TODO: Notify event loop to shutdown somehow?
         self.running.store(false, Ordering::Relaxed);
+        let addr = SocketAddr::new(self.ip, self.port);
+        let _ = TcpStream::connect(addr);
     }
 }

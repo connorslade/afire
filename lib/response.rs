@@ -52,6 +52,7 @@ pub enum ResponseFlag {
 /// Can be either a Static Vec<u8> or a Stream (impl [`Read`]).
 /// Static responses are sent in one go, while streams are sent in chunks (chunked transfer encoding).
 pub enum ResponseBody {
+    Empty,
     Static(Vec<u8>),
     Stream(Writeable),
 }
@@ -278,8 +279,6 @@ impl Response {
         modifier(self)
     }
 
-    // TODO: Make crate local
-    // TODO: figure out what ^ that means
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
     pub fn write(&mut self, raw_stream: Arc<Socket>, default_headers: &[Header]) -> Result<()> {
@@ -339,10 +338,6 @@ impl Default for Response {
 }
 
 impl ResponseBody {
-    pub fn empty() -> Self {
-        ResponseBody::Static(Vec::new())
-    }
-
     /// Checks if the ResponseBody is static.
     fn is_static(&self) -> bool {
         matches!(self, ResponseBody::Static(_))
@@ -362,6 +357,7 @@ impl ResponseBody {
     /// Either in one go if it is static or in chunks if it is a stream.
     fn write(&mut self, stream: &mut TcpStream) -> Result<()> {
         match self {
+            ResponseBody::Empty => {}
             ResponseBody::Static(data) => stream.write_all(data)?,
             ResponseBody::Stream(data) => {
                 let data = data.get_mut();
@@ -402,6 +398,7 @@ impl From<Writeable> for ResponseBody {
 impl Debug for ResponseBody {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Empty => f.debug_tuple("Empty").finish(),
             Self::Static(arg) => f.debug_tuple("Static").field(arg).finish(),
             Self::Stream(_arg) => f.debug_tuple("Stream").finish(),
         }
