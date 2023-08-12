@@ -318,7 +318,7 @@ impl<State: Send + Sync> Server<State> {
     /// # let mut server = Server::<()>::new("localhost", 8080);
     /// // Define a route
     /// server.route(Method::GET, "/greet/{name}", |ctx| {
-    ///     let name = ctx.req.param("name").unwrap();
+    ///     let name = ctx.param("name").unwrap();
     ///
     ///     ctx.text(format!("Hello, {}!", name))
     ///         .content(Content::TXT)
