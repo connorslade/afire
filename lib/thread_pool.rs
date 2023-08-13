@@ -2,6 +2,7 @@
 //! Used for handling multiple connections at once.
 
 use std::{
+    panic,
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         mpsc, Arc, Barrier, Mutex,
@@ -9,7 +10,10 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use crate::{internal::sync::ForceLockMutex, trace};
+use crate::{
+    internal::{misc::any_string, sync::ForceLockMutex},
+    trace,
+};
 
 /// Messages that can be handled by the pool's workers.
 enum Message {
@@ -38,7 +42,7 @@ pub struct ThreadPool {
 /// A worker thread.
 /// Contains a handle to the thread, and an id.
 struct Worker {
-    _id: usize,
+    id: usize,
     handle: Option<JoinHandle<()>>,
     dead: Arc<AtomicBool>,
 }
@@ -91,13 +95,12 @@ impl ThreadPool {
     /// Returns `None` if the thread is not a worker thread.
     pub fn current_thread(&self) -> Option<usize> {
         let thread = thread::current();
-        self.workers.force_lock().iter().position(|worker| {
-            worker
-                .handle
-                .as_ref()
-                .map(|x| x.thread().id() == thread.id())
-                .unwrap_or(false)
-        })
+        let workers = self.workers.force_lock();
+        let worker = workers
+            .iter()
+            .find(|worker| worker.handle.as_ref().unwrap().thread().id() == thread.id());
+
+        worker.map(|worker| worker.id)
     }
 
     pub fn resize(&self, size: usize) {
@@ -146,7 +149,17 @@ impl Worker {
             .spawn(move || loop {
                 let job = rx.force_lock().recv().unwrap();
                 match job {
-                    Message::Job(job) => job(),
+                    Message::Job(job) => {
+                        let result = panic::catch_unwind(panic::AssertUnwindSafe(job));
+                        if let Err(err) = result {
+                            trace!(
+                                Level::Error,
+                                "Worker thread #{} panicked: '{}'",
+                                id,
+                                any_string(err)
+                            );
+                        }
+                    }
                     Message::KillWait(barrier) => {
                         this_dead.store(true, Ordering::Relaxed);
                         barrier.wait();
@@ -161,7 +174,7 @@ impl Worker {
             .expect("Error creating worker thread");
 
         Self {
-            _id: id,
+            id: id,
             handle: Some(handle),
             dead,
         }

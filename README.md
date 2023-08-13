@@ -43,6 +43,7 @@ server.route(Method::GET, "/greet/{name}", |ctx| {
   ctx.text(format!("Hello, {}", name))
       .content(Content::TXT)
       .send()?;
+
   Ok(())
 });
 

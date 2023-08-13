@@ -26,7 +26,7 @@ const PATH: &str = r#"..."#;
 const FILE_TYPE: &str = "...";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::<()>::new("localhost", 8081).workers(50);
+    let mut server = Server::<()>::new("localhost", 8081).workers(4);
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
@@ -172,7 +172,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
-    server.route(Method::GET, "/panic", |_ctx| panic!());
+    server.route(Method::GET, "/panic", |_ctx| panic!("slayyyter"));
 
     server.route(Method::GET, "/echo-headers", |ctx| {
         let header = ctx
