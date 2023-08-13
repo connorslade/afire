@@ -10,11 +10,10 @@ use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
     internal::sync::ForceLockMutex,
-    request::HttpVersion,
     response::ResponseFlag,
     route::RouteError,
     socket::Socket,
-    trace, Content, Context, Error, HeaderType, Request, Response, Server, Status,
+    trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;

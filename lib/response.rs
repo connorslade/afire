@@ -313,8 +313,7 @@ impl Response {
             "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
             self.status.code(),
             self.reason
-                .as_ref()
-                .map(|x| x.as_str())
+                .as_deref()
                 .unwrap_or_else(|| self.status.reason_phrase()),
             headers_to_string(&self.headers)
         );

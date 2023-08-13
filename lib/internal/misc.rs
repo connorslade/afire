@@ -1,6 +1,5 @@
 //! Some little functions used here and there
 
-use std::fmt::{self, Debug};
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use std::{borrow::Cow, net::IpAddr};

@@ -80,3 +80,9 @@ impl SingleBarrier {
         *locked = true;
     }
 }
+
+impl Default for SingleBarrier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
