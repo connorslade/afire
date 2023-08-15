@@ -99,7 +99,7 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
         return Cow::Borrowed(i);
     }
 
-    Cow::Borrowed("")
+    Cow::Borrowed("Box<dyn Any>")
 }
 
 /// Get the current time since the Unix Epoch.
@@ -110,7 +110,7 @@ pub(crate) fn epoch() -> std::time::Duration {
 
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("System time is before the Unix Epoch. Make sure your date is set correctly.")
+        .expect("System time is before the Unix Epoch (1970-01-01 00:00:00 UTC). Make sure your date is set correctly.")
 }
 
 #[cfg(test)]

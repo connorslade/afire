@@ -34,6 +34,8 @@ Coming Soon
 - Properly disallow HTTP/1.1 requests with no Host header.
 - Added a new ResponseBody type of Empty.
 - Added a `current_thread` function to the threadpool.
+- Catch panics at the thread-pool level, not the route handler level.
+  This will ensure that a worker will not die, even if internal afire code panics.
 
 # 2.2.0
 
