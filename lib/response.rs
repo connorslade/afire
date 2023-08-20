@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
-use std::io::{Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 
@@ -361,10 +361,12 @@ impl ResponseBody {
                 let data = data.get_mut();
                 loop {
                     let mut chunk = vec![0; consts::CHUNK_SIZE];
-                    let read = data.read(&mut chunk)?;
-                    if read == 0 {
-                        break;
-                    }
+                    let read = match data.read(&mut chunk) {
+                        Ok(0) => break,
+                        Ok(n) => n,
+                        Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                        Err(e) => return Err(e.into()),
+                    };
 
                     let mut section = format!("{read:X}\r\n").as_bytes().to_vec();
                     section.extend(&chunk[..read]);

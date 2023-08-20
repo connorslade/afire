@@ -1,6 +1,13 @@
+# 2.2.1
+
+August 20, 2023
+
+- Properly support `ErrorKind::Interrupted` on streaming responses.
+  Previously if a Reader returned any error, afire would just print an error and close the socket.
+
 # 2.2.0
 
-July, 02, 2023
+July 02, 2023
 
 - Use binary search on ServeStatic MMIE types (save those clock cycles)
 - Some optimizations throughout afire
