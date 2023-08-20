@@ -2,7 +2,6 @@
 
 Coming Soon
 
-- Build extension docs on docs.rs
 - The thread pool can now be resized at runtime.
 - `Server::start_threaded` has been replaced with `Server::workers` to set the number of worker threads and the normal `Server::start`.
 - Supply a context to all route handlers.
@@ -37,9 +36,17 @@ Coming Soon
 - Catch panics at the thread-pool level, not the route handler level.
   This will ensure that a worker will not die, even if internal afire code panics.
 
+# 2.2.1
+
+August 20, 2023
+
+- Properly support `ErrorKind::Interrupted` on streaming responses.
+  Previously if a Reader returned any error, afire would just print an error and close the socket.
+- Build extension docs on docs.rs
+
 # 2.2.0
 
-July, 02, 2023
+July 02, 2023
 
 - Use binary search on ServeStatic MMIE types (save those clock cycles)
 - Some optimizations throughout afire
