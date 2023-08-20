@@ -4,7 +4,6 @@ August 20, 2023
 
 - Properly support `ErrorKind::Interrupted` on streaming responses.
   Previously if a Reader returned any error, afire would just print an error and close the socket.
-
 - Build extension docs on docs.rs
 
 # 2.2.0
