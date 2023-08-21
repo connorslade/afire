@@ -174,7 +174,7 @@ impl Worker {
             .expect("Error creating worker thread");
 
         Self {
-            id: id,
+            id,
             handle: Some(handle),
             dead,
         }

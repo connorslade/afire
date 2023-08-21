@@ -2,7 +2,7 @@
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
 //! For more information, see the [Middleware Example](https://github.com/Basicprogrammer10/afire/blob/main/examples/basic/middleware.rs).
 
-use std::{any::type_name, rc::Rc, sync::Arc};
+use std::{any::type_name, sync::Arc};
 
 use crate::{error::Result, trace::emoji, Request, Response, Server};
 
@@ -67,7 +67,7 @@ pub trait Middleware {
     /// The default implementation calls [`Middleware::end`] if the [`Result`] is [`Ok`].
     fn end_raw(&self, req: Result<Arc<Request>>, res: &Response) {
         if let Ok(req) = req {
-            return self.end(req, res);
+            self.end(req, res)
         }
     }
 

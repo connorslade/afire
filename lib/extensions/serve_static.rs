@@ -333,7 +333,8 @@ fn process_req(req: Arc<Request>, this: &ServeStatic) -> (Response, bool) {
 
     let mut res = Response::new();
     if let Ok(i) = file.metadata() {
-        res.headers.add("Content-Length", i.len().to_string());
+        res.headers
+            .add(HeaderType::ContentLength, i.len().to_string());
     }
 
     (res.stream(file).header("Content-Type", content_type), true)

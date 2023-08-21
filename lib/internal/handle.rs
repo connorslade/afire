@@ -17,8 +17,6 @@ use crate::{
     trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
-use super::sync::ForceLockRwLock;
-
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
 // https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D
@@ -95,8 +93,7 @@ where
         if let Err(e) = result {
             // TODO: account for guaranteed send
             // TODO: Run through `write` for middleware
-            let error =
-                RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(&e));
+            let error = RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(e));
             if let Err(e) = error
                 .as_response()
                 .write(req.socket.clone(), &this.default_headers)

@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    error::{self, Error},
+    error::Error,
     fmt::{self, Debug, Display},
     panic,
     sync::Arc,
@@ -107,7 +107,7 @@ impl RouteError {
     }
 
     /// Converts any error type (Box<dyn Error>) into a RouteError.
-    pub fn from_error(e: &Box<dyn Error>) -> Self {
+    pub fn from_error(e: Box<dyn Error>) -> Self {
         Self {
             status: Status::InternalServerError,
             message: format!("{:?}", e),

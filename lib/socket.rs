@@ -4,7 +4,10 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-use crate::{internal::sync::{SingleBarrier, ForceLockRwLock}, response::ResponseFlag};
+use crate::{
+    internal::sync::{ForceLockRwLock, SingleBarrier},
+    response::ResponseFlag,
+};
 
 /// Socket is a wrapper around TcpStream that allows for sending a response from another thread.
 pub struct Socket {

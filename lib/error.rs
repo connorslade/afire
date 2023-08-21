@@ -7,7 +7,7 @@ use std::{
     result,
 };
 
-use crate::{Method, Request, Response};
+use crate::{Method, Request};
 
 /// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
