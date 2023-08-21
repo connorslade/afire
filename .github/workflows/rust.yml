@@ -1,15 +1,16 @@
-name: CI
+name: Build
 on: [push, pull_request]
-jobs:
-  buildAndTest:
-      strategy:
-        fail-fast: false
-        matrix:
-          os: [ubuntu-latest, macos-latest, windows-latest]
-      runs-on: ${{ matrix.os }}
-      if: "!contains(github.event.head_commit.message, '[CI_SKIP]')"
 
-      steps:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    if: "!contains(github.event.head_commit.message, '[CI_SKIP]')"
+
+    steps:
       - uses: actions/checkout@v2
 
       - name: Build
