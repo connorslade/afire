@@ -1,7 +1,6 @@
 use std::{
     any::type_name,
     net::{IpAddr, SocketAddr, TcpListener, TcpStream},
-    rc::Rc,
     str,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -23,7 +22,7 @@ use crate::{
 };
 
 type ErrorHandler<State> =
-    Box<dyn Fn(Option<Arc<State>>, &Box<Result<Rc<Request>>>, String) -> Response + Send + Sync>;
+    Box<dyn Fn(Option<Arc<State>>, &Box<Result<Arc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
 // todo: make not all this public
@@ -299,7 +298,7 @@ impl<State: Send + Sync> Server<State> {
     /// ```
     pub fn error_handler(
         &mut self,
-        res: impl Fn(Option<Arc<State>>, &Box<Result<Rc<Request>>>, String) -> Response
+        res: impl Fn(Option<Arc<State>>, &Box<Result<Arc<Request>>>, String) -> Response
             + Send
             + Sync
             + 'static,

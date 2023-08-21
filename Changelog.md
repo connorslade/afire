@@ -35,12 +35,13 @@ Coming Soon
 - Added a `current_thread` function to the threadpool.
 - Catch panics at the thread-pool level, not the route handler level.
   This will ensure that a worker will not die, even if internal afire code panics.
+- Use an Arc instead of a Rc for `HandleError::Panic`
 
 # 2.2.1
 
 August 20, 2023
 
-- Properly support `ErrorKind::Interrupted` on streaming responses.
+- Properly support `ErrorKind::Interrupted` on streaming responses (#46).
   Previously if a Reader returned any error, afire would just print an error and close the socket.
 - Build extension docs on docs.rs
 

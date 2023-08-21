@@ -3,8 +3,8 @@
 use std::{
     error,
     fmt::{self, Display, Formatter},
-    rc::Rc,
     result,
+    sync::Arc,
 };
 
 use crate::{Method, Request};
@@ -52,7 +52,7 @@ pub enum HandleError {
     NotFound(Method, String),
 
     /// A route or middleware panicked while running
-    Panic(Box<Result<Rc<Request>>>, String),
+    Panic(Box<Result<Arc<Request>>>, String),
 }
 
 /// Error that can occur while parsing the HTTP of a request
