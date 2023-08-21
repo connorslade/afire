@@ -2,7 +2,7 @@
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
 //! For more information, see the [Middleware Example](https://github.com/Basicprogrammer10/afire/blob/main/examples/basic/middleware.rs).
 
-use std::{any::type_name, rc::Rc};
+use std::{any::type_name, rc::Rc, sync::Arc};
 
 use crate::{error::Result, trace::emoji, Request, Response, Server};
 
@@ -50,7 +50,7 @@ pub trait Middleware {
     /// Middleware to run after routes.
     /// Because this is the `raw` version of [`Middleware::post`], it is passed a [`Result`].
     /// The default implementation calls [`Middleware::post`] if the [`Result`] is [`Ok`].
-    fn post_raw(&self, req: Result<Rc<Request>>, res: &mut Result<Response>) -> MiddleResult {
+    fn post_raw(&self, req: Result<Arc<Request>>, res: &mut Result<Response>) -> MiddleResult {
         if let (Ok(req), Ok(res)) = (req, res) {
             return self.post(&req, res);
         }

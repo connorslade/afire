@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    error::Error,
+    error::{self, Error},
     fmt::{self, Debug, Display},
     panic,
     sync::Arc,

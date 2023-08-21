@@ -3,6 +3,7 @@ use std::{
     io::Read,
     net::{Shutdown, TcpStream},
     ops::Deref,
+    rc::Rc,
     sync::Arc,
 };
 
@@ -10,11 +11,14 @@ use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
     internal::sync::ForceLockMutex,
+    prelude::MiddleResult,
     response::ResponseFlag,
     route::RouteError,
-    socket::Socket,
+    socket::{self, Socket},
     trace, Content, Context, Error, Request, Response, Server, Status,
 };
+
+use super::sync::ForceLockRwLock;
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
@@ -28,9 +32,20 @@ where
     stream.set_read_timeout(this.socket_timeout).unwrap();
     stream.set_write_timeout(this.socket_timeout).unwrap();
     let stream = Arc::new(Socket::new(stream));
-    loop {
+    'outer: loop {
         let mut keep_alive = false;
-        let req = Request::from_socket(stream.clone());
+        let mut req = Request::from_socket(stream.clone());
+
+        for i in &this.middleware {
+            match i.pre_raw(&mut req) {
+                MiddleResult::Abort => break,
+                MiddleResult::Continue => (),
+                MiddleResult::Send(res) => {
+                    write(stream.clone(), this.clone(), req.map(Arc::new), Ok(res));
+                    continue 'outer;
+                }
+            }
+        }
 
         if let Ok(req) = &req {
             keep_alive = req.keep_alive() && this.keep_alive;
@@ -46,12 +61,8 @@ where
         let req = match req.map(Arc::new) {
             Ok(req) => req,
             Err(e) => {
-                if let Err(e) =
-                    error_response(&e, this.clone()).write(stream, &this.default_headers)
-                {
-                    trace!(Level::Debug, "Error writing error response: {:?}", e);
-                }
-                return;
+                write(stream.clone(), this.clone(), Err(e), Err(Error::None));
+                continue 'outer;
             }
         };
 
@@ -66,25 +77,19 @@ where
         {
             Some(x) => x,
             None => {
-                let mut res = Response::new()
-                    .status(Status::NotFound)
-                    .text(format!("Cannot {} {}", req.method, req.path))
-                    .content(Content::TXT);
-                if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
-                    trace!(Level::Debug, "Error writing 'Not Found' response: {:?}", e);
-                }
-                continue;
+                let err = HandleError::NotFound(req.method, req.path.to_owned()).into();
+                write(stream.clone(), this.clone(), Ok(req), Err(err));
+                continue 'outer;
             }
         };
 
         ctx.path_params = params;
         let result = (route.handler)(&ctx);
-
-        let flag = ctx.response.force_lock().flag;
         let sent_response = ctx.flags.get(ContextFlag::ResponseSent);
 
         if let Err(e) = result {
-            // TODO: account for guarenteed send
+            // TODO: account for guaranteed send
+            // TODO: Run through `write` for middleware
             let error =
                 RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(&e));
             if let Err(e) = error
@@ -100,18 +105,14 @@ where
             barrier.wait();
             trace!(Level::Debug, "Response sent");
         } else {
-            let mut res = Response::new()
+            // TODO: Impl NotImplemented as an error
+            let res = Response::new()
                 .status(Status::NotImplemented)
                 .text("No response was sent");
-            if let Err(e) = res.write(req.socket.clone(), &this.default_headers) {
-                trace!(
-                    Level::Debug,
-                    "Error writing 'No Response' response: {:?}",
-                    e
-                );
-            }
+            write(stream.clone(), this.clone(), Ok(req), Ok(res));
         }
 
+        let flag = *stream.flag.force_read();
         if flag == ResponseFlag::End {
             trace!(Level::Debug, "Ending socket");
             break;
@@ -124,6 +125,41 @@ where
             }
             break;
         }
+    }
+}
+
+fn write<State: 'static + Send + Sync>(
+    socket: Arc<Socket>,
+    server: Arc<Server<State>>,
+    request: Result<Arc<Request>, Error>,
+    mut response: Result<Response, Error>,
+) {
+    for i in &server.middleware {
+        // TODO: Remove clone
+        match i.post_raw(request.clone(), &mut response) {
+            MiddleResult::Abort => break,
+            MiddleResult::Continue => (),
+            MiddleResult::Send(res) => {
+                response = Ok(res);
+                break;
+            }
+        }
+    }
+
+    let mut response = match response {
+        Ok(i) => i,
+        Err(e) => {
+            if let Err(r) = request {
+                error_response(&r, server.clone())
+            } else {
+                error_response(&e, server.clone())
+            }
+        }
+    };
+
+    *socket.flag.force_write() = response.flag;
+    if let Err(e) = response.write(socket, &server.default_headers) {
+        trace!(Level::Debug, "Error writing response: {:?}", e);
     }
 }
 

@@ -15,7 +15,7 @@ use afire::{
     internal::sync::ForceLockMutex,
     multipart::MultipartData,
     prelude::*,
-    route::{AdditionalRouteContext, RouteContext},
+    route::RouteContext,
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
