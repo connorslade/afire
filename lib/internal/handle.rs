@@ -141,10 +141,12 @@ fn write<State: 'static + Send + Sync>(
         }
     }
 
+    // let mut response = if let Err(e) = req
+
     let mut response = match response {
         Ok(i) => i,
         Err(e) => {
-            if let Err(r) = request {
+            if let Err(ref r) = request {
                 error_response(&r, server.clone())
             } else {
                 error_response(&e, server.clone())
@@ -156,6 +158,10 @@ fn write<State: 'static + Send + Sync>(
     if let Err(e) = response.write(socket.clone(), &server.default_headers) {
         trace!(Level::Debug, "Error writing response: {:?}", e);
         socket.set_flag(ResponseFlag::End);
+    }
+
+    for i in &server.middleware {
+        i.end_raw(request.clone(), &response);
     }
 }
 

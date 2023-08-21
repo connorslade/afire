@@ -11,7 +11,7 @@ use std::{
 };
 
 use afire::{
-    extension::{Date, Head, Logger, Trace},
+    extension::{Date, Head, Logger, ServeStatic, Trace},
     internal::sync::ForceLockMutex,
     multipart::MultipartData,
     prelude::*,
@@ -197,6 +197,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Date.attach(&mut server);
     Trace::new().attach(&mut server);
     Head::new().attach(&mut server);
+    ServeStatic::new("../misc/scripts/ayesha").attach(&mut server);
+    Logger::new().attach(&mut server);
     server.start()?;
 
     Ok(())
@@ -222,7 +224,7 @@ impl Middleware for Test {
         MiddleResult::Continue
     }
 
-    fn end(&self, req: &Request, _res: &Response) {
+    fn end(&self, req: Arc<Request>, _res: &Response) {
         if req.path.contains("hello") {
             println!("End: {}", req.path);
         }

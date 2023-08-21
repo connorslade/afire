@@ -65,14 +65,14 @@ pub trait Middleware {
     /// Middleware to run after the response has been handled.
     /// Because this is the `raw` version of [`Middleware::end`], it is passed a [`Result`].
     /// The default implementation calls [`Middleware::end`] if the [`Result`] is [`Ok`].
-    fn end_raw(&self, req: &Result<Request>, res: &Result<Response>) {
-        if let (Ok(req), Ok(res)) = (req, res) {
-            self.end(req, res);
+    fn end_raw(&self, req: Result<Arc<Request>>, res: &Response) {
+        if let Ok(req) = req {
+            return self.end(req, res);
         }
     }
 
     /// Middleware ot run after the response has been handled
-    fn end(&self, _req: &Request, _res: &Response) {}
+    fn end(&self, _req: Arc<Request>, _res: &Response) {}
 
     /// Attach Middleware to a Server.
     /// If you want to get a reference to the server's state in your middleware state, you should override this method.

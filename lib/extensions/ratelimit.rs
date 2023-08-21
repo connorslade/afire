@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::net::IpAddr;
+use std::sync::Arc;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     RwLock,
@@ -172,7 +173,7 @@ impl Middleware for RateLimiter {
         MiddleResult::Continue
     }
 
-    fn end(&self, req: &Request, _res: &Response) {
+    fn end(&self, req: Arc<Request>, _res: &Response) {
         self.check_reset();
         self.add_request(req.address.ip());
     }
