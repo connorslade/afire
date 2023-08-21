@@ -86,6 +86,12 @@ impl<State: 'static + Send + Sync> Context<State> {
 }
 
 impl<State: 'static + Send + Sync> Context<State> {
+    // TODO: Maybe rename this?
+    pub fn with_response(&self, res: Response) -> &Self {
+        self.response.force_lock().data = res.data;
+        self
+    }
+
     pub fn status(&self, code: impl Into<Status>) -> &Self {
         self.response.force_lock().status = code.into();
         self.flags.set(ContextFlag::ResponseDirty);
