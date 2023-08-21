@@ -3,7 +3,6 @@ use std::{
     io::Read,
     net::{Shutdown, TcpStream},
     ops::Deref,
-    rc::Rc,
     sync::Arc,
 };
 
@@ -14,7 +13,7 @@ use crate::{
     prelude::MiddleResult,
     response::ResponseFlag,
     route::RouteError,
-    socket::{self, Socket},
+    socket::Socket,
     trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
@@ -42,6 +41,9 @@ where
                 MiddleResult::Continue => (),
                 MiddleResult::Send(res) => {
                     write(stream.clone(), this.clone(), req.map(Arc::new), Ok(res));
+                    if close(stream.clone(), keep_alive, this.clone()) {
+                        break 'outer;
+                    }
                     continue 'outer;
                 }
             }
@@ -62,6 +64,9 @@ where
             Ok(req) => req,
             Err(e) => {
                 write(stream.clone(), this.clone(), Err(e), Err(Error::None));
+                if close(stream.clone(), keep_alive, this.clone()) {
+                    break 'outer;
+                }
                 continue 'outer;
             }
         };
@@ -112,18 +117,8 @@ where
             write(stream.clone(), this.clone(), Ok(req), Ok(res));
         }
 
-        let flag = *stream.flag.force_read();
-        if flag == ResponseFlag::End {
-            trace!(Level::Debug, "Ending socket");
-            break;
-        }
-
-        if !keep_alive || flag == ResponseFlag::Close || !this.keep_alive {
-            trace!(Level::Debug, "Closing socket");
-            if let Err(e) = stream.lock().unwrap().shutdown(Shutdown::Both) {
-                trace!(Level::Debug, "Error closing socket: {:?}", e);
-            }
-            break;
+        if close(stream.clone(), keep_alive, this.clone()) {
+            break 'outer;
         }
     }
 }
@@ -157,10 +152,33 @@ fn write<State: 'static + Send + Sync>(
         }
     };
 
-    *socket.flag.force_write() = response.flag;
-    if let Err(e) = response.write(socket, &server.default_headers) {
+    socket.set_flag(response.flag);
+    if let Err(e) = response.write(socket.clone(), &server.default_headers) {
         trace!(Level::Debug, "Error writing response: {:?}", e);
+        socket.set_flag(ResponseFlag::End);
     }
+}
+
+fn close<State: 'static + Send + Sync>(
+    stream: Arc<Socket>,
+    keep_alive: bool,
+    this: Arc<Server<State>>,
+) -> bool {
+    let flag = stream.flag();
+    if flag == ResponseFlag::End {
+        trace!(Level::Debug, "Ending socket");
+        return true;
+    }
+
+    if !keep_alive || flag == ResponseFlag::Close || !this.keep_alive {
+        trace!(Level::Debug, "Closing socket");
+        if let Err(e) = stream.force_lock().shutdown(Shutdown::Both) {
+            trace!(Level::Debug, "Error closing socket: {:?}", e);
+        }
+        return true;
+    }
+
+    false
 }
 
 /// Gets a response if there is an error.

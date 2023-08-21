@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex, RwLock},
 };
 
-use crate::{internal::sync::SingleBarrier, response::ResponseFlag};
+use crate::{internal::sync::{SingleBarrier, ForceLockRwLock}, response::ResponseFlag};
 
 /// Socket is a wrapper around TcpStream that allows for sending a response from another thread.
 pub struct Socket {
@@ -12,8 +12,8 @@ pub struct Socket {
     pub socket: Mutex<TcpStream>,
     /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
     /// This allows for sending a response from another thread, not sure why you would want to do that though.
-    pub barrier: Arc<SingleBarrier>,
-    pub flag: RwLock<ResponseFlag>,
+    pub(crate) barrier: Arc<SingleBarrier>,
+    pub(crate) flag: RwLock<ResponseFlag>,
 }
 
 impl Socket {
@@ -31,6 +31,14 @@ impl Socket {
 
     pub(crate) fn reset_barrier(&self) {
         self.barrier.reset();
+    }
+
+    pub(crate) fn flag(&self) -> ResponseFlag {
+        *self.flag.force_read()
+    }
+
+    pub(crate) fn set_flag(&self, flag: ResponseFlag) {
+        *self.flag.force_write() = flag;
     }
 }
 
