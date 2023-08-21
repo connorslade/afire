@@ -1,5 +1,7 @@
 # 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://github.com/Basicprogrammer10/afire/actions/workflows/rust.yml/badge.svg"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"></a> <a href="https://crates.io/crates/afire"><img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
 
+# **THIS IS AN ALPHA RELEASE FOR `v3.0.0`** &ndash; Its probably not the best idea to use this in production and it will definitely have a lot of breaking changes in the future.
+
 afire is a _blazingly fast_ web server micro framework for rust.
 
 ## 💠 Install
@@ -8,7 +10,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "2.2.1"
+afire = "3.0.0-alpha.1"
 ```
 
 ## 📄 Info
@@ -37,16 +39,17 @@ use afire::{Server, Method, Response, Header, Content};
 let mut server = Server::<()>::new("localhost", 8080);
 
 // Add a route
-server.route(Method::GET, "/greet/{name}", |req| {
-  let name = req.param("name").unwrap();
+server.route(Method::GET, "/greet/{name}", |ctx| {
+  let name = ctx.param("name").unwrap();
 
-  Response::new()
-    .text(format!("Hello, {}", name))
-    .content(Content::TXT)
+  ctx.text(format!("Hello, {}", name))
+      .content(Content::TXT)
+      .send()?;
+
+  Ok(())
 });
 
 // Start the server
-// This is blocking
 server.start().unwrap();
 ```
 

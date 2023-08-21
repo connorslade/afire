@@ -2,11 +2,13 @@ use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::consts;
 use crate::header::{HeaderType, Headers};
 use crate::http::status::Status;
+use crate::internal::sync::ForceLockMutex;
+use crate::socket::Socket;
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
     SetCookie,
@@ -36,7 +38,7 @@ pub struct Response {
     pub flag: ResponseFlag,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResponseFlag {
     /// No Flag
     None,
@@ -50,6 +52,7 @@ pub enum ResponseFlag {
 /// Can be either a Static Vec<u8> or a Stream (impl [`Read`]).
 /// Static responses are sent in one go, while streams are sent in chunks (chunked transfer encoding).
 pub enum ResponseBody {
+    Empty,
     Static(Vec<u8>),
     Stream(Writeable),
 }
@@ -69,7 +72,7 @@ impl Response {
     pub fn new() -> Self {
         Self {
             status: Status::Ok,
-            data: vec![79, 75].into(),
+            data: ResponseBody::Empty,
             headers: Default::default(),
             reason: None,
             flag: ResponseFlag::None,
@@ -158,9 +161,10 @@ impl Response {
     /// const PATH: &str = "path/to/file.txt";
     /// let mut server = Server::<()>::new("localhost", 8080);
     ///
-    /// server.route(Method::GET, "/download-stream", |_| {
-    ///     let stream = File::open(PATH).unwrap();
-    ///     Response::new().stream(stream)
+    /// server.route(Method::GET, "/download-stream", |ctx| {
+    ///     let stream = File::open(PATH)?;
+    ///     ctx.stream(stream).send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn stream(self, stream: impl Read + Send + 'static) -> Self {
@@ -275,14 +279,9 @@ impl Response {
         modifier(self)
     }
 
-    // TODO: Make crate local
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
-    pub fn write(
-        &mut self,
-        stream: Arc<Mutex<TcpStream>>,
-        default_headers: &[Header],
-    ) -> Result<()> {
+    pub fn write(&mut self, raw_stream: Arc<Socket>, default_headers: &[Header]) -> Result<()> {
         // Add default headers to response
         // Only the ones that aren't already in the response
         for i in default_headers {
@@ -300,12 +299,13 @@ impl Response {
 
         // Add Connection: close if response is set to close
         if self.flag == ResponseFlag::Close && !self.headers.has(HeaderType::Connection) {
-            self.headers.push(Header::new("Connection", "close"));
+            self.headers
+                .push(Header::new(HeaderType::Connection, "close"));
         }
 
         if !static_body && !self.headers.has(HeaderType::TransferEncoding) {
             self.headers
-                .push(Header::new("Transfer-Encoding", "chunked"));
+                .push(Header::new(HeaderType::TransferEncoding, "chunked"));
         }
 
         // Convert the response to a string
@@ -313,16 +313,20 @@ impl Response {
             "HTTP/1.1 {} {}\r\n{}\r\n\r\n",
             self.status.code(),
             self.reason
-                .to_owned()
-                .unwrap_or_else(|| self.status.reason_phrase().to_owned()),
+                .as_deref()
+                .unwrap_or_else(|| self.status.reason_phrase()),
             headers_to_string(&self.headers)
         );
 
-        let mut stream = stream.lock().unwrap();
-        stream.write_all(response.as_bytes())?;
-        self.data.write(&mut stream)?;
+        let mut stream = raw_stream.force_lock();
+        let error = match stream.write_all(response.as_bytes()) {
+            Ok(_) => self.data.write(&mut stream),
+            Err(e) => Err(e.into()),
+        };
+        drop(stream);
+        raw_stream.unlock();
 
-        Ok(())
+        error
     }
 }
 
@@ -333,10 +337,6 @@ impl Default for Response {
 }
 
 impl ResponseBody {
-    pub fn empty() -> Self {
-        ResponseBody::Static(Vec::new())
-    }
-
     /// Checks if the ResponseBody is static.
     fn is_static(&self) -> bool {
         matches!(self, ResponseBody::Static(_))
@@ -356,6 +356,7 @@ impl ResponseBody {
     /// Either in one go if it is static or in chunks if it is a stream.
     fn write(&mut self, stream: &mut TcpStream) -> Result<()> {
         match self {
+            ResponseBody::Empty => {}
             ResponseBody::Static(data) => stream.write_all(data)?,
             ResponseBody::Stream(data) => {
                 let data = data.get_mut();
@@ -398,6 +399,7 @@ impl From<Writeable> for ResponseBody {
 impl Debug for ResponseBody {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Empty => f.debug_tuple("Empty").finish(),
             Self::Static(arg) => f.debug_tuple("Static").field(arg).finish(),
             Self::Stream(_arg) => f.debug_tuple("Stream").finish(),
         }

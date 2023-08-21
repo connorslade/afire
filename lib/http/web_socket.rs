@@ -1,3 +1,6 @@
+//! WebSocket support.
+//! Work in progress.
+
 use std::{
     convert::TryInto,
     fmt::Display,
@@ -12,8 +15,8 @@ use std::{
 
 use crate::{
     internal::{
-        common::ForceLock,
         encoding::{base64, sha1},
+        sync::ForceLockMutex,
     },
     HeaderType, Request, Response, Status,
 };

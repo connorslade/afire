@@ -1,22 +1,32 @@
-// Import STD libraries
-use std::any::type_name;
-use std::net::{IpAddr, SocketAddr, TcpListener};
-use std::rc::Rc;
-use std::str;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    any::type_name,
+    net::{IpAddr, SocketAddr, TcpListener, TcpStream},
+    rc::Rc,
+    str,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
-// Import local files
 use crate::{
-    error::Result, error::StartupError, handle::handle, header::Headers,
-    internal::common::ToHostAddress, thread_pool::ThreadPool, trace::emoji, Content, Header,
-    HeaderType, Method, Middleware, Request, Response, Route, Status, VERSION,
+    error::Result,
+    error::{AnyResult, StartupError},
+    handle::handle,
+    header::Headers,
+    internal::misc::ToHostAddress,
+    thread_pool::ThreadPool,
+    trace::emoji,
+    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,
+    VERSION,
 };
 
 type ErrorHandler<State> =
     Box<dyn Fn(Option<Arc<State>>, &Box<Result<Rc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
+// todo: make not all this public
 pub struct Server<State: 'static + Send + Sync = ()> {
     /// Port to listen on.
     pub port: u16,
@@ -47,6 +57,12 @@ pub struct Server<State: 'static + Send + Sync = ()> {
 
     /// Socket Timeout
     pub socket_timeout: Option<Duration>,
+
+    /// The threadpool used for handling requests.
+    /// You can also run your own tasks and resizes the threadpool.
+    pub thread_pool: Arc<ThreadPool>,
+
+    pub running: AtomicBool,
 }
 
 /// Implementations for Server
@@ -80,6 +96,8 @@ impl<State: Send + Sync> Server<State> {
             keep_alive: true,
             socket_timeout: None,
             state: None,
+            thread_pool: Arc::new(ThreadPool::new_empty()),
+            running: AtomicBool::new(true),
         }
     }
 
@@ -99,59 +117,68 @@ impl<State: Send + Sync> Server<State> {
     /// // This is blocking
     /// server.start().unwrap();
     /// ```
-    pub fn start(&self) -> Result<()> {
-        trace!("{}Starting Server [{}:{}]", emoji("✨"), self.ip, self.port);
-        self.check()?;
-
-        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
-
-        for event in listener.incoming() {
-            handle(event?, self);
+    pub fn start(self) -> Result<()> {
+        let threads = self.thread_pool.threads();
+        if threads == 0 {
+            self.thread_pool.resize(1);
         }
 
-        // We should never get Here
-        unreachable!()
-    }
-
-    /// Start the server with a threadpool of `threads` threads.
-    /// Just like [`Server::start`], this is blocking.
-    /// Will return an error if the server cant bind to the specified address, or of you are using stateful routes and have not set the state. (See [`Server::state`])
-    ///
-    /// ## Example
-    /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, Response, Header, Method};
-    ///
-    /// // Creates a server on localhost (127.0.0.1) port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
-    /// /* Define Routes, Attach Middleware, etc. */
-    ///
-    /// // Starts the server with 4 threads
-    /// // This is blocking
-    /// server.start_threaded(4).unwrap();
-    /// ```
-    pub fn start_threaded(self, threads: usize) -> Result<()> {
         trace!(
-            "{}Starting Server [{}:{}] ({} threads)",
+            "{}Starting Server [{}:{}] ({} thread{})",
             emoji("✨"),
             self.ip,
             self.port,
-            threads
+            threads,
+            if threads == 1 { "" } else { "s" }
         );
-        self.check()?;
+
+        if self.socket_timeout == Some(Duration::ZERO) {
+            return Err(StartupError::InvalidSocketTimeout.into());
+        }
 
         let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
-        let pool = ThreadPool::new(threads);
         let this = Arc::new(self);
 
         for event in listener.incoming() {
-            let this = this.clone();
-            pool.execute(move || handle(event.unwrap(), &this));
+            if !this.running.load(Ordering::Relaxed) {
+                trace!(
+                    Level::Debug,
+                    "Stopping event loop. No more connections will be accepted."
+                );
+                break;
+            }
+
+            let this2 = this.clone();
+            this.thread_pool.execute(move || {
+                let event = match event {
+                    Ok(event) => event,
+                    Err(err) => {
+                        trace!(Level::Error, "Error accepting connection: {err}");
+                        return;
+                    }
+                };
+
+                handle(event, this2)
+            });
         }
 
-        // We should never get Here
-        unreachable!()
+        trace!("{}Server Stopped", emoji("🛑"));
+        Ok(())
+    }
+
+    /// Sets the number of worker threads to use, it will resize the threadpool immediately.
+    /// The more threads you have, the more concurrent requests you can handle.
+    /// The default is 1, which is probably too few for most use cases.
+    /// ## Example
+    /// ```rust
+    /// # use afire::Server;
+    /// let mut server = Server::<()>::new("localhost", 8080)
+    ///     // Set the number of worker threads to 4
+    ///     .workers(4);
+    pub fn workers(self, threads: usize) -> Self {
+        // TODO: only resize on start?
+        self.thread_pool.resize(threads);
+        self
     }
 
     /// Add a new default header to the server.
@@ -237,8 +264,9 @@ impl<State: Send + Sync> Server<State> {
     ///     .state(AtomicU32::new(0));
     ///
     /// // Add a stateful route to increment the state
-    /// server.stateful_route(Method::GET, "/", |state, _req| {
-    ///     Response::new().text(state.fetch_add(1, Ordering::Relaxed))
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     ctx.text(ctx.app().fetch_add(1, Ordering::Relaxed)).send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn state(self, state: State) -> Self {
@@ -286,59 +314,29 @@ impl<State: Send + Sync> Server<State> {
     /// (`**` lets you math anything after the wildcard, including `/`)
     /// ## Example
     /// ```rust
-    /// # use afire::{Server, Response, Header, Method, Content};
+    /// # use afire::{Server, Header, Method, Content};
     /// # let mut server = Server::<()>::new("localhost", 8080);
     /// // Define a route
-    /// server.route(Method::GET, "/greet/{name}", |req| {
-    ///     let name = req.param("name").unwrap();
+    /// server.route(Method::GET, "/greet/{name}", |ctx| {
+    ///     let name = ctx.param("name").unwrap();
     ///
-    ///     Response::new()
-    ///         .text(format!("Hello, {}!", name))
+    ///     ctx.text(format!("Hello, {}!", name))
     ///         .content(Content::TXT)
+    ///         .send()?;
+    ///     Ok(())
     /// });
     /// ```
     pub fn route(
         &mut self,
         method: Method,
         path: impl AsRef<str>,
-        handler: impl Fn(&Request) -> Response + Send + Sync + 'static,
+        handler: impl Fn(&Context<State>) -> AnyResult<()> + Send + Sync + 'static,
     ) -> &mut Self {
         let path = path.as_ref().to_owned();
         trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
 
         self.routes
             .push(Route::new(method, path, Box::new(handler)));
-        self
-    }
-
-    /// Create a new stateful route.
-    /// Is the same as [`Server::route`], but the state is passed as the first parameter.
-    /// (See [`Server::state`])
-    ///
-    /// Note: If you add a stateful route, you must also set the state or starting the sever will return an error.
-    /// ## Example
-    /// ```rust
-    /// # use afire::{Server, Response, Header, Method};
-    /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<u32>::new("localhost", 8080)
-    ///    .state(101);
-    ///
-    /// // Define a route
-    /// server.stateful_route(Method::GET, "/nose", |sta, req| {
-    ///     Response::new().text(sta.to_string())
-    /// });
-    /// ```
-    pub fn stateful_route(
-        &mut self,
-        method: Method,
-        path: impl AsRef<str>,
-        handler: impl Fn(Arc<State>, &Request) -> Response + Send + Sync + 'static,
-    ) -> &mut Self {
-        let path = path.as_ref().to_owned();
-        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
-
-        self.routes
-            .push(Route::new_stateful(method, path, Box::new(handler)));
         self
     }
 
@@ -357,15 +355,11 @@ impl<State: Send + Sync> Server<State> {
         self.state.as_ref().unwrap().clone()
     }
 
-    fn check(&self) -> Result<()> {
-        if self.state.is_none() && self.routes.iter().any(|x| x.is_stateful()) {
-            return Err(StartupError::NoState.into());
-        }
-
-        if self.socket_timeout == Some(Duration::ZERO) {
-            return Err(StartupError::InvalidSocketTimeout.into());
-        }
-
-        Ok(())
+    /// Schedule a shutdown of the server.
+    /// Will complete all current requests before shutting down.
+    pub fn shutdown(&self) {
+        self.running.store(false, Ordering::Relaxed);
+        let addr = SocketAddr::new(self.ip, self.port);
+        let _ = TcpStream::connect(addr);
     }
 }

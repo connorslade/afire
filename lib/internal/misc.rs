@@ -1,7 +1,7 @@
 //! Some little functions used here and there
 
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::sync::{Mutex, MutexGuard};
+
 use std::{borrow::Cow, net::IpAddr};
 
 use crate::error::{Result, StartupError};
@@ -61,20 +61,6 @@ impl ToHostAddress for &str {
     }
 }
 
-/// Adds a force_lock method to Mutex, which will return the inner value even if its poisoned.
-pub(crate) trait ForceLock<T> {
-    fn force_lock(&self) -> MutexGuard<T>;
-}
-
-impl<T> ForceLock<T> for Mutex<T> {
-    fn force_lock(&self) -> MutexGuard<T> {
-        match self.lock() {
-            Ok(i) => i,
-            Err(e) => e.into_inner(),
-        }
-    }
-}
-
 /// Parse a string to an IP address.
 /// Will return a [`StartupError::InvalidIp`] if the IP has an invalid format.
 /// Note: **Only IPv4 is supported**.
@@ -96,6 +82,12 @@ pub fn parse_ip(raw: &str) -> Result<[u8; 4]> {
     Ok(ip)
 }
 
+/// Filter out all `\r` and `\n` from a string.
+/// This is to prevent [CRLF injection](https://datatracker.ietf.org/doc/html/rfc7230#section-9.4).
+pub fn filter_crlf(value: &str) -> String {
+    value.replace(['\r', '\n'], "")
+}
+
 /// Attempt to downcast a `Box<dyn Any>` to a `String` or `&str`.
 /// Will return an empty string if the downcast fails.
 pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str> {
@@ -107,7 +99,7 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
         return Cow::Borrowed(i);
     }
 
-    Cow::Borrowed("")
+    Cow::Borrowed("Box<dyn Any>")
 }
 
 /// Get the current time since the Unix Epoch.
@@ -118,7 +110,7 @@ pub(crate) fn epoch() -> std::time::Duration {
 
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("System time is before the Unix Epoch. Make sure your date is set correctly.")
+        .expect("System time is before the Unix Epoch (1970-01-01 00:00:00 UTC). Make sure your date is set correctly.")
 }
 
 #[cfg(test)]

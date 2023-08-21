@@ -4,15 +4,15 @@
 //! # use afire::{Server, Request, Response, Method, server_sent_events::ServerSentEventsExt};
 //! # use std::{thread, time::Duration};
 //! # fn run(server: &mut Server) {
-//! server.route(Method::GET, "/sse", |req| {
-//!     let stream = req.sse().unwrap();
+//! server.route(Method::GET, "/sse", |ctx| {
+//!     let stream = ctx.req.sse().unwrap();
 //!
 //!     for i in 0..10 {
 //!         stream.send("update", i.to_string());
 //!         thread::sleep(Duration::from_secs(1));
 //!     }
 //!
-//!     Response::end()
+//!     Ok(())
 //! });
 //! # }
 //! ```
@@ -34,7 +34,7 @@ use std::{
     thread,
 };
 
-use crate::{internal::common::ForceLock, Request};
+use crate::{internal::sync::ForceLockMutex, Request};
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
 ///

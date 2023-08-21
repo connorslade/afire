@@ -11,6 +11,7 @@ use crate::{Method, Request};
 
 /// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
+pub(crate) type AnyResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
 
 /// Errors that can occur at startup or in the process of connecting to clients, parsing HTTP and handling requests.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,9 +40,6 @@ pub enum Error {
 pub enum StartupError {
     /// The IP address specified is invalid
     InvalidIp,
-
-    /// No state was specified, but a route requires it
-    NoState,
 
     /// The socket timeout specified is invalid (must be greater than 0)
     InvalidSocketTimeout,
@@ -83,6 +81,14 @@ pub enum ParseError {
 
     /// Invalid Header in Request HTTP
     InvalidHeader,
+
+    /// Invalid HTTP Version in Request HTTP.
+    /// The only supported versions are 1.0 and 1.1.
+    InvalidHttpVersion,
+
+    /// The HOST header was not found in the request.
+    /// It is required by HTTP/1.1.
+    NoHostHeader,
 }
 
 /// Error that can occur while reading or writing to a stream
@@ -123,7 +129,6 @@ impl Display for StartupError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             StartupError::InvalidIp => "The IP address specified is invalid",
-            StartupError::NoState => "No state was specified, but a route requires it",
             StartupError::InvalidSocketTimeout => {
                 "The socket timeout specified is invalid (must be greater than 0)"
             }
@@ -152,6 +157,8 @@ impl Display for ParseError {
             ParseError::InvalidQuery => "Invalid Query in Path",
             ParseError::InvalidMethod => "Invalid Method in Request HTTP",
             ParseError::InvalidHeader => "Invalid Header in Request HTTP",
+            ParseError::InvalidHttpVersion => "Request HTTP Version is not supported",
+            ParseError::NoHostHeader => "The Host header was not found in the request",
         })
     }
 }

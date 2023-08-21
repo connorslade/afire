@@ -16,9 +16,11 @@ pub trait RealIp {
     /// # use afire::{Server, Method, Response};
     ///
     /// # fn test(server: &mut Server) {
-    /// server.route(Method::GET, "/", |req| {
-    ///     let ip = req.real_ip();
-    ///     Response::new().text(format!("Hello, {ip}"))
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     let ip = ctx.req.real_ip();
+    ///     ctx.text(format!("Hello, {ip}"))
+    ///         .send()?;
+    ///     Ok(())
     /// });
     /// # }
     /// ```

@@ -1,6 +1,6 @@
 //! Serve Static Content from the file system.
 
-use std::{borrow::Cow, fs::File, rc::Rc};
+use std::{borrow::Cow, fs::File, sync::Arc};
 
 use crate::{
     error::{HandleError, Result},
@@ -9,7 +9,7 @@ use crate::{
     Error, HeaderType, Request, Response, Status,
 };
 
-type SSMiddleware = Box<dyn Fn(Rc<Request>, &mut Response, &mut bool) + Send + Sync>;
+type SSMiddleware = Box<dyn Fn(Arc<Request>, &mut Response, &mut bool) + Send + Sync>;
 
 /// Serve Static Content
 pub struct ServeStatic {
@@ -25,7 +25,7 @@ pub struct ServeStatic {
     pub disabled_files: Vec<String>,
 
     /// Page not found route
-    pub not_found: fn(Rc<Request>, bool) -> Response,
+    pub not_found: fn(Arc<Request>, bool) -> Response,
 
     /// Middleware
     ///
@@ -37,11 +37,7 @@ pub struct ServeStatic {
 }
 
 impl Middleware for ServeStatic {
-    fn post_raw(
-        &self,
-        req: Result<std::rc::Rc<Request>>,
-        res: &mut Result<Response>,
-    ) -> MiddleResult {
+    fn post_raw(&self, req: Result<Arc<Request>>, res: &mut Result<Response>) -> MiddleResult {
         let req = match req {
             Ok(req) => req,
             Err(_) => return MiddleResult::Continue,
@@ -181,7 +177,7 @@ impl ServeStatic {
     ///
     /// server.start().unwrap();
     /// ```
-    pub fn not_found(self, f: fn(Rc<Request>, bool) -> Response) -> Self {
+    pub fn not_found(self, f: fn(Arc<Request>, bool) -> Response) -> Self {
         Self {
             not_found: f,
             ..self
@@ -264,7 +260,7 @@ impl ServeStatic {
     /// In your middleware you can modify the response and the bool.
     pub fn middleware(
         self,
-        f: impl Fn(Rc<Request>, &mut Response, &mut bool) + Send + Sync + 'static,
+        f: impl Fn(Arc<Request>, &mut Response, &mut bool) + Send + Sync + 'static,
     ) -> Self {
         let mut middleware = self.middleware;
         middleware.push(Box::new(f));
@@ -300,7 +296,7 @@ impl ServeStatic {
     }
 }
 
-fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
+fn process_req(req: Arc<Request>, this: &ServeStatic) -> (Response, bool) {
     let mut path = format!(
         "{}/{}",
         this.data_dir,
@@ -337,7 +333,8 @@ fn process_req(req: Rc<Request>, this: &ServeStatic) -> (Response, bool) {
 
     let mut res = Response::new();
     if let Ok(i) = file.metadata() {
-        res.headers.add("Content-Length", i.len().to_string());
+        res.headers
+            .add(HeaderType::ContentLength, i.len().to_string());
     }
 
     (res.stream(file).header("Content-Type", content_type), true)

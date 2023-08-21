@@ -4,7 +4,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{self, prelude::*};
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::{extension::RealIp, HeaderType, Middleware, Request, Response};
 
@@ -130,7 +130,7 @@ impl Logger {
     }
 
     /// Take a request and log it
-    fn log(&self, req: &Request) {
+    fn log(&self, req: Arc<Request>) {
         let ip = match &self.real_ip {
             Some(i) => req.real_ip_header(i),
             None => req.address.ip(),
@@ -198,7 +198,7 @@ impl Logger {
 }
 
 impl Middleware for Logger {
-    fn end(&self, req: &Request, _res: &Response) {
+    fn end(&self, req: Arc<Request>, _res: &Response) {
         self.log(req);
     }
 }

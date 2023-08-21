@@ -3,43 +3,52 @@ use std::{
     io::Read,
     net::{Shutdown, TcpStream},
     ops::Deref,
-    panic,
-    rc::Rc,
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use crate::{
-    error::{HandleError, ParseError, Result, StreamError},
-    internal::common::any_string,
-    middleware::MiddleResult,
+    context::ContextFlag,
+    error::{HandleError, ParseError, StreamError},
+    internal::sync::ForceLockMutex,
+    prelude::MiddleResult,
     response::ResponseFlag,
-    route::RouteType,
-    trace, Content, Error, Request, Response, Server, Status,
+    route::RouteError,
+    socket::Socket,
+    trace, Content, Context, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
 // https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D
 
-/// - Manages keep-alive sockets
-/// - Lets Request::from_socket read the request
-/// - Lets Response::write write the response to the socket
-/// - Runs End Middleware
-/// - Optionally closes the socket
-pub(crate) fn handle<State>(stream: TcpStream, this: &Server<State>)
+pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
 {
     trace!(Level::Debug, "Opening socket {:?}", stream.peer_addr());
     stream.set_read_timeout(this.socket_timeout).unwrap();
     stream.set_write_timeout(this.socket_timeout).unwrap();
-    let stream = Arc::new(Mutex::new(stream));
-    loop {
+    let stream = Arc::new(Socket::new(stream));
+    'outer: loop {
         let mut keep_alive = false;
-        let req = Request::from_socket(stream.clone());
+        let mut req = Request::from_socket(stream.clone());
+
+        for i in &this.middleware {
+            match i.pre_raw(&mut req) {
+                MiddleResult::Abort => break,
+                MiddleResult::Continue => (),
+                MiddleResult::Send(res) => {
+                    write(stream.clone(), this.clone(), req.map(Arc::new), Ok(res));
+                    if close(stream.clone(), keep_alive, this.clone()) {
+                        break 'outer;
+                    }
+                    continue 'outer;
+                }
+            }
+        }
 
         if let Ok(req) = &req {
-            keep_alive = req.keep_alive();
+            keep_alive = req.keep_alive() && this.keep_alive;
             trace!(
                 Level::Debug,
                 "{} {} {{ keep_alive: {} }}",
@@ -49,137 +58,135 @@ where
             );
         }
 
-        let (req, mut res) = get_response(req, this);
-
-        if res.flag == ResponseFlag::End {
-            trace!(Level::Debug, "Ending socket");
-            break;
-        }
-
-        if let Err(e) = res.write(stream.clone(), &this.default_headers) {
-            trace!(Level::Debug, "Error writing to socket: {:?}", e);
-        }
-
-        // End Middleware
-        if let Some(req) = req {
-            for i in this.middleware.iter().rev() {
-                if let Err(e) = panic::catch_unwind(panic::AssertUnwindSafe(|| i.end(&req, &res))) {
-                    trace!(Level::Error, "Error running end middleware: {:?}", e);
+        let req = match req.map(Arc::new) {
+            Ok(req) => req,
+            Err(e) => {
+                write(stream.clone(), this.clone(), Err(e), Err(Error::None));
+                if close(stream.clone(), keep_alive, this.clone()) {
+                    break 'outer;
                 }
+                continue 'outer;
             }
+        };
+
+        let mut ctx = Context::new(this.clone(), req.clone());
+
+        // Handle Route
+        let (route, params) = match this
+            .routes
+            .iter()
+            .rev()
+            .find_map(|route| route.matches(req.clone()).map(|x| (route, x)))
+        {
+            Some(x) => x,
+            None => {
+                let err = HandleError::NotFound(req.method, req.path.to_owned()).into();
+                write(stream.clone(), this.clone(), Ok(req), Err(err));
+                continue 'outer;
+            }
+        };
+
+        ctx.path_params = params;
+        let result = (route.handler)(&ctx);
+        let sent_response = ctx.flags.get(ContextFlag::ResponseSent);
+
+        if let Err(e) = result {
+            // TODO: account for guaranteed send
+            // TODO: Run through `write` for middleware
+            let error = RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(e));
+            if let Err(e) = error
+                .as_response()
+                .write(req.socket.clone(), &this.default_headers)
+            {
+                trace!(Level::Debug, "Error writing error response: {:?}", e);
+            }
+        } else if sent_response {
+        } else if ctx.flags.get(ContextFlag::GuaranteedSend) {
+            let barrier = ctx.req.socket.barrier.clone();
+            trace!(Level::Debug, "Waiting for response to be sent");
+            barrier.wait();
+            trace!(Level::Debug, "Response sent");
+        } else {
+            // TODO: Impl NotImplemented as an error
+            let res = Response::new()
+                .status(Status::NotImplemented)
+                .text("No response was sent");
+            write(stream.clone(), this.clone(), Ok(req), Ok(res));
         }
 
-        if !keep_alive || res.flag == ResponseFlag::Close || !this.keep_alive {
-            trace!(Level::Debug, "Closing socket");
-            if let Err(e) = stream.lock().unwrap().shutdown(Shutdown::Both) {
-                trace!(Level::Debug, "Error closing socket: {:?}", e);
-            }
-            break;
+        if close(stream.clone(), keep_alive, this.clone()) {
+            break 'outer;
         }
     }
 }
 
-/// Gets the response from a request.
-/// Will call middleware, route handlers and error handlers if needed.
-fn get_response<State>(
-    mut req: Result<Request>,
-    server: &Server<State>,
-) -> (Option<Rc<Request>>, Response)
-where
-    State: 'static + Send + Sync,
-{
-    let mut res = Err(Error::None);
-    let handle_error = |error, req: Result<_>, server| {
-        let err = HandleError::Panic(Box::new(req.clone()), any_string(error).into_owned()).into();
-        (req.ok(), error_response(&err, server))
-    };
-
-    // Pre Middleware
-    for i in server.middleware.iter().rev() {
-        match panic::catch_unwind(panic::AssertUnwindSafe(|| i.pre_raw(&mut req))) {
-            Ok(MiddleResult::Send(this_res)) => {
-                res = Ok(this_res);
+fn write<State: 'static + Send + Sync>(
+    socket: Arc<Socket>,
+    server: Arc<Server<State>>,
+    request: Result<Arc<Request>, Error>,
+    mut response: Result<Response, Error>,
+) {
+    for i in &server.middleware {
+        // TODO: Remove clone
+        match i.post_raw(request.clone(), &mut response) {
+            MiddleResult::Abort => break,
+            MiddleResult::Continue => (),
+            MiddleResult::Send(res) => {
+                response = Ok(res);
                 break;
             }
-            Ok(MiddleResult::Abort) => break,
-            Ok(MiddleResult::Continue) => {}
-            Err(e) => return handle_error(e, req.map(Rc::new), server),
         }
     }
 
-    let req = req.map(Rc::new);
-    if res.is_err() {
-        if let Ok(req) = req.clone() {
-            res = handle_route(req, server);
-        }
-    }
+    // let mut response = if let Err(e) = req
 
-    // Post Middleware
-    for i in server.middleware.iter().rev() {
-        match panic::catch_unwind(panic::AssertUnwindSafe(|| {
-            i.post_raw(req.clone(), &mut res)
-        })) {
-            Ok(MiddleResult::Send(res)) => return (req.ok(), res),
-            Ok(MiddleResult::Abort) => break,
-            Ok(MiddleResult::Continue) => {}
-            Err(e) => return handle_error(e, req, server),
-        }
-    }
-
-    let res = match res {
-        Ok(res) => res,
+    let mut response = match response {
+        Ok(i) => i,
         Err(e) => {
-            let error = match req {
-                Err(ref err) => err,
-                Ok(_) => &e,
-            };
-
-            return (None, error_response(error, server));
+            if let Err(ref r) = request {
+                error_response(&r, server.clone())
+            } else {
+                error_response(&e, server.clone())
+            }
         }
     };
 
-    (req.ok(), res)
-}
-
-/// Tries to find a route that matches the request.
-/// If it finds one, it will call the handler and return the result (assuming it doesn't panic).
-/// If it doesn't find one, it will return an Error of HandleError::NotFound.
-fn handle_route<State>(req: Rc<Request>, this: &Server<State>) -> Result<Response>
-where
-    State: 'static + Send + Sync,
-{
-    // Handle Route
-    let path = req.path.to_owned();
-    for route in this.routes.iter().rev() {
-        if let Some(params) = route.matches(req.clone()) {
-            *req.path_params.borrow_mut() = params;
-            let result = panic::catch_unwind(panic::AssertUnwindSafe(|| match &route.handler {
-                RouteType::Stateless(i) => (i)(&req),
-                RouteType::Stateful(i) => {
-                    (i)(this.state.clone().expect("State not initialized"), &req)
-                }
-            }));
-
-            let err = match result {
-                Ok(i) => return Ok(i),
-                Err(e) => any_string(e),
-            };
-
-            return Err(Error::Handle(Box::new(HandleError::Panic(
-                Box::new(Ok(req)),
-                err.into_owned(),
-            ))));
-        }
+    socket.set_flag(response.flag);
+    if let Err(e) = response.write(socket.clone(), &server.default_headers) {
+        trace!(Level::Debug, "Error writing response: {:?}", e);
+        socket.set_flag(ResponseFlag::End);
     }
 
-    Err(Error::Handle(Box::new(HandleError::NotFound(
-        req.method, path,
-    ))))
+    for i in &server.middleware {
+        i.end_raw(request.clone(), &response);
+    }
+}
+
+fn close<State: 'static + Send + Sync>(
+    stream: Arc<Socket>,
+    keep_alive: bool,
+    this: Arc<Server<State>>,
+) -> bool {
+    let flag = stream.flag();
+    if flag == ResponseFlag::End {
+        trace!(Level::Debug, "Ending socket");
+        return true;
+    }
+
+    if !keep_alive || flag == ResponseFlag::Close || !this.keep_alive {
+        trace!(Level::Debug, "Closing socket");
+        if let Err(e) = stream.force_lock().shutdown(Shutdown::Both) {
+            trace!(Level::Debug, "Error closing socket: {:?}", e);
+        }
+        return true;
+    }
+
+    false
 }
 
 /// Gets a response if there is an error.
 /// Can handle Parse, Handle and IO errors.
-pub fn error_response<State>(err: &Error, server: &Server<State>) -> Response
+pub fn error_response<State>(err: &Error, server: Arc<Server<State>>) -> Response
 where
     State: 'static + Send + Sync,
 {
@@ -190,6 +197,9 @@ where
         Error::Stream(e) => match e {
             StreamError::UnexpectedEof => Response::new().status(400).text("Unexpected EOF"),
         },
+        Error::Parse(ParseError::InvalidHttpVersion) => Response::new()
+            .status(Status::HTTPVersionNotSupported)
+            .text("HTTP version not supported. Only HTTP/1.0 and HTTP/1.1 are supported."),
         Error::Parse(e) => Response::new().status(400).text(match e {
             ParseError::NoSeparator => "No separator",
             ParseError::NoMethod => "No method",
@@ -199,6 +209,8 @@ where
             ParseError::InvalidQuery => "Invalid query",
             ParseError::InvalidHeader => "Invalid header",
             ParseError::InvalidMethod => "Invalid method",
+            ParseError::NoHostHeader => "No Host header",
+            ParseError::InvalidHttpVersion => unreachable!(),
         }),
         Error::Handle(e) => match e.deref() {
             HandleError::NotFound(method, path) => Response::new()

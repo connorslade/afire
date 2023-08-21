@@ -25,19 +25,22 @@ use internal::{encoding, handle, path};
 
 #[macro_use]
 pub mod trace;
+mod context;
 pub mod error;
 mod http;
 pub mod middleware;
 mod request;
 mod response;
-mod route;
+pub mod route;
 mod server;
+pub mod socket;
 pub use self::{
     content_type::Content,
+    context::Context,
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},
-    http::{cookie, header, multipart, server_sent_events},
+    http::{cookie, header, multipart, server_sent_events, web_socket},
     method::Method,
     middleware::Middleware,
     query::Query,
@@ -55,6 +58,7 @@ pub mod prelude {
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
         server_sent_events::ServerSentEventsExt,
+        web_socket::WebSocketExt,
         Content, Cookie, Header, HeaderType, Method, Query, Request, Response, Server, SetCookie,
         Status,
     };

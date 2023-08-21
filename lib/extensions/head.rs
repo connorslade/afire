@@ -64,7 +64,7 @@ impl Middleware for Head {
         if let Some(i) = len {
             res.headers.add(HeaderType::ContentLength, i.to_string());
         }
-        res.data = ResponseBody::empty();
+        res.data = ResponseBody::Empty;
         MiddleResult::Continue
     }
 }
