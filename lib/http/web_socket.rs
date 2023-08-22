@@ -7,6 +7,7 @@ use std::{
     io::{self, ErrorKind, Read, Write},
     net::{Shutdown, TcpStream},
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{self, Iter, Receiver, SyncSender},
         Arc,
     },
@@ -14,11 +15,12 @@ use std::{
 };
 
 use crate::{
+    error::Result,
     internal::{
         encoding::{base64, sha1},
         sync::ForceLockMutex,
     },
-    HeaderType, Request, Response, Status,
+    Error, HeaderType, Request, Response, Status,
 };
 
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -27,18 +29,21 @@ const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 pub struct WebSocketStream {
     rx: Arc<Receiver<TxType>>,
     tx: Arc<SyncSender<TxTypeInternal>>,
+    open: Arc<AtomicBool>,
 }
 
 /// The sender half of a WebSocket stream.
 /// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
 pub struct WebSocketStreamSender {
     tx: Arc<SyncSender<TxTypeInternal>>,
+    open: Arc<AtomicBool>,
 }
 
 /// The receiver half of a WebSocket stream.
 /// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
 pub struct WebSocketStreamReceiver {
     rx: Arc<Receiver<TxType>>,
+    open: Arc<AtomicBool>,
 }
 
 #[derive(Debug)]
@@ -75,8 +80,10 @@ enum TxTypeInternal {
 
 impl WebSocketStream {
     /// Create a new WebSocket stream from a Request.
-    pub fn from_request(req: &Request) -> io::Result<Self> {
-        let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap().to_owned();
+    pub fn from_request(req: &Request) -> Result<Self> {
+        let Some(ws_key) = req.headers.get("Sec-WebSocket-Key").map(|x| x.to_owned()) else {
+            return Err(Error::Io("Missing Sec-WebSocket-Key` Header.".to_owned()));
+        };
         trace!(Level::Debug, "[WS] Key: {}", ws_key);
         let accept = base64::encode(&sha1::hash((ws_key + WS_GUID).as_bytes()));
         trace!(Level::Debug, "[WS] Accept: {}", accept);
@@ -87,17 +94,20 @@ impl WebSocketStream {
             .header(HeaderType::Connection, "Upgrade")
             .header("Sec-WebSocket-Accept", &accept)
             .header("Sec-WebSocket-Version", "13");
-        upgrade.write(req.socket.clone(), &[]).unwrap();
+        upgrade.write(req.socket.clone(), &[])?;
 
+        let open = Arc::new(AtomicBool::new(true));
         let (s2c, rx) = mpsc::sync_channel::<TxTypeInternal>(10);
         let (tx, c2s) = mpsc::sync_channel::<TxType>(10);
         let (s2c, c2s) = (Arc::new(s2c), Arc::new(c2s));
         let this_s2c = s2c.clone();
+        let this_open = open.clone();
 
         let socket = req.socket.force_lock();
-        let mut read_socket = socket.try_clone().unwrap();
-        let mut write_socket = socket.try_clone().unwrap();
+        let mut read_socket = socket.try_clone()?;
+        let mut write_socket = socket.try_clone()?;
         drop(socket);
+
         thread::spawn(move || {
             // Can frames never be longer than 1024 bytes?
             let mut buf = [0u8; 1024];
@@ -136,20 +146,18 @@ impl WebSocketStream {
                     trace!(Level::Trace, "[WS] Received frame with non-zero RSV bits");
                 }
 
-                // 0 = continuation
-                // 1 = text
-                // 2 = binary
-                // 8 = close
-                // 9 = ping
-                // 10 = pong
                 match frame.opcode {
+                    // Continuation
                     0 => todo!(),
+                    // Text
                     1 => tx
                         .send(TxType::Text(
                             String::from_utf8_lossy(&frame.payload).to_string(),
                         ))
                         .unwrap(),
+                    // Binary
                     2 => tx.send(TxType::Binary(frame.payload)).unwrap(),
+                    // Close
                     8 => {
                         if frame.payload_len > 0 {
                             trace!(
@@ -160,9 +168,12 @@ impl WebSocketStream {
                         } else {
                             trace!(Level::Debug, "[WS] Received close frame");
                         }
+                        this_open.store(false, Ordering::Relaxed);
                         this_s2c.send(TxTypeInternal::Close).unwrap()
                     }
+                    // Ping
                     9 => this_s2c.send(TxTypeInternal::Pong).unwrap(),
+                    // Pong
                     10 => {}
                     _ => {}
                 }
@@ -191,7 +202,11 @@ impl WebSocketStream {
             }
         });
 
-        Ok(Self { rx: c2s, tx: s2c })
+        Ok(Self {
+            rx: c2s,
+            tx: s2c,
+            open,
+        })
     }
 
     /// Splits the WebSocket stream into an independent sender and receiver.
@@ -199,33 +214,52 @@ impl WebSocketStream {
         (
             WebSocketStreamSender {
                 tx: self.tx.clone(),
+                open: self.open.clone(),
             },
             WebSocketStreamReceiver {
                 rx: self.rx.clone(),
+                open: self.open.clone(),
             },
         )
     }
 
     /// Sends 'text' data to the client.
     pub fn send(&self, data: impl Display) {
-        self.tx.send(TxType::Text(data.to_string()).into()).unwrap();
+        let _ = self.tx.send(TxType::Text(data.to_string()).into());
     }
 
     /// Sends binary data to the client.
     pub fn send_binary(&self, data: Vec<u8>) {
-        self.tx.send(TxType::Binary(data).into()).unwrap();
+        let _ = self.tx.send(TxType::Binary(data).into());
+    }
+
+    /// Returns whether the WebSocket stream is open.
+    pub fn is_open(&self) -> bool {
+        self.open.load(Ordering::Relaxed)
     }
 }
 
 impl WebSocketStreamSender {
     /// Sends 'text' data to the client.
     pub fn send(&self, data: impl Display) {
-        self.tx.send(TxType::Text(data.to_string()).into()).unwrap();
+        let _ = self.tx.send(TxType::Text(data.to_string()).into());
     }
 
     /// Sends binary data to the client.
     pub fn send_binary(&self, data: Vec<u8>) {
-        self.tx.send(TxType::Binary(data).into()).unwrap();
+        let _ = self.tx.send(TxType::Binary(data).into());
+    }
+
+    /// Returns whether the WebSocket stream is open.
+    pub fn is_open(&self) -> bool {
+        self.open.load(Ordering::Relaxed)
+    }
+}
+
+impl WebSocketStreamReceiver {
+    /// Returns whether the WebSocket stream is open.
+    pub fn is_open(&self) -> bool {
+        self.open.load(Ordering::Relaxed)
     }
 }
 
@@ -441,11 +475,11 @@ impl Frame {
 /// A trait for initiating a WebSocket connection on a request.
 pub trait WebSocketExt {
     /// Initiates a WebSocket connection on a request.
-    fn ws(&self) -> io::Result<WebSocketStream>;
+    fn ws(&self) -> Result<WebSocketStream>;
 }
 
 impl WebSocketExt for Request {
-    fn ws(&self) -> io::Result<WebSocketStream> {
+    fn ws(&self) -> Result<WebSocketStream> {
         WebSocketStream::from_request(self)
     }
 }

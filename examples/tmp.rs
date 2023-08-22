@@ -141,10 +141,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         thread::scope(|s| {
             s.spawn(|| {
-                for i in 0..100 {
+                for i in 0.. {
+                    if !tx.is_open() {
+                        break;
+                    }
+
                     thread::sleep(Duration::from_secs(3));
+                    println!("Sending from another thread #{i}");
                     tx.send(format!("Hello from another thread #{i}"));
                 }
+                println!("Closing - Tx");
             });
 
             for i in rx.into_iter() {
@@ -160,6 +166,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+            println!("Closing - Rx");
         });
 
         Ok(())
