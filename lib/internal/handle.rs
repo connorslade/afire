@@ -95,7 +95,7 @@ where
             // TODO: Run through `write` for middleware
             let error = RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(e));
             if let Err(e) = error
-                .as_response()
+                .to_response()
                 .write(req.socket.clone(), &this.default_headers)
             {
                 trace!(Level::Debug, "Error writing error response: {:?}", e);
@@ -144,7 +144,7 @@ fn write<State: 'static + Send + Sync>(
         Ok(i) => i,
         Err(e) => {
             if let Err(ref r) = request {
-                error_response(&r, server.clone())
+                error_response(r, server.clone())
             } else {
                 error_response(&e, server.clone())
             }

@@ -145,9 +145,9 @@ impl Response {
     /// let response = Response::new()
     ///   .bytes(&[79, 75]); // Bytes for "OK"
     /// ```
-    pub fn bytes(self, bytes: &[u8]) -> Self {
+    pub fn bytes(self, bytes: impl Into<Vec<u8>>) -> Self {
         Self {
-            data: bytes.to_vec().into(),
+            data: bytes.into().into(),
             ..self
         }
     }
@@ -200,8 +200,8 @@ impl Response {
     ///         Header::new("Test-Header", "Test-Value")
     ///     ]);
     /// ```
-    pub fn headers(mut self, headers: &[Header]) -> Self {
-        self.headers.append(&mut headers.to_vec());
+    pub fn headers(mut self, headers: Vec<Header>) -> Self {
+        self.headers.extend(headers);
         self
     }
 
@@ -256,7 +256,7 @@ impl Response {
             new.push(Header::new("Set-Cookie", c.to_string()));
         }
 
-        self.headers(&new)
+        self.headers(new)
     }
 
     /// Set a Content Type on a Response with a [`Content`] enum.
@@ -275,8 +275,9 @@ impl Response {
 
     /// Lets you modify the Response with a function before it is sent to the client.
     /// This can be used to have middleware that modifies the Response on specific routes.
-    pub fn modifier(self, modifier: impl Fn(Response) -> Response) -> Self {
-        modifier(self)
+    pub fn modifier(mut self, modifier: impl FnOnce(&mut Response)) -> Self {
+        modifier(&mut self);
+        self
     }
 
     /// Writes a Response to a TcpStream.

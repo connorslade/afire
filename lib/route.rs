@@ -1,3 +1,7 @@
+//! Stuff for defining routes and error handling in routes.
+//! Holds [`RouteContext`] and [`AdditionalRouteContext`], which are used to add context to errors.
+//! The context can include a message, status code, and headers.
+
 use std::{
     collections::HashMap,
     error::Error,
@@ -88,11 +92,11 @@ impl RouteError {
     /// Convert a RouteError into a Response.
     /// It will have the defined status code, message, and headers.
     /// If none is supplied, the content type will be text/plain.
-    pub fn as_response(&self) -> Response {
+    pub fn to_response(self) -> Response {
         let mut res = Response::new()
             .status(self.status)
             .text(&self.message)
-            .headers(&self.headers);
+            .headers(self.headers);
 
         if !res.headers.has(HeaderType::ContentType) {
             res = res.content(Content::TXT);

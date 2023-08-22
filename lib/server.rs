@@ -61,6 +61,8 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     /// You can also run your own tasks and resizes the threadpool.
     pub thread_pool: Arc<ThreadPool>,
 
+    /// Weather the server is running.
+    /// If this is set to false, the server will stop accepting connections.
     pub running: AtomicBool,
 }
 

@@ -50,7 +50,7 @@ struct Worker {
 impl ThreadPool {
     /// Creates a new thread pool with the specified number of threads.
     /// Panics if `size` is 0.
-    pub(crate) fn new(size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         assert!(size > 0);
 
         let (sender, rx) = mpsc::channel();
@@ -70,7 +70,7 @@ impl ThreadPool {
         }
     }
 
-    pub(crate) fn new_empty() -> Self {
+    pub fn new_empty() -> Self {
         let (sender, rx) = mpsc::channel();
         Self {
             threads: AtomicUsize::new(0),

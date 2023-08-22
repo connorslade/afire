@@ -1,3 +1,5 @@
+//! Cross-thread synchronization stuff.
+
 use std::sync::{Condvar, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Allows locking a mutex even if it's poisoned.
@@ -75,6 +77,7 @@ impl SingleBarrier {
         self.condvar.notify_all();
     }
 
+    /// Reset the barrier to a locked state.
     pub fn reset(&self) {
         let mut locked = self.locked.force_lock();
         *locked = true;

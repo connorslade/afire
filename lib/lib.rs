@@ -33,7 +33,7 @@ mod request;
 mod response;
 pub mod route;
 mod server;
-pub mod socket;
+mod socket;
 pub use self::{
     content_type::Content,
     context::Context,

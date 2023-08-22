@@ -67,6 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // });
 
     server.route(Method::GET, "/info", |ctx| {
+        ctx.req.socket.clone().force_lock();
         let addr = ctx.req.socket.force_lock().peer_addr()?;
         let user_agent = ctx
             .req

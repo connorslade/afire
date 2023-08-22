@@ -36,6 +36,7 @@ Coming Soon
 - Catch panics at the thread-pool level, not the route handler level.
   This will ensure that a worker will not die, even if internal afire code panics.
 - Use an Arc instead of a Rc for `HandleError::Panic`
+- Add `with_response` function on Context to overwrite the response.
 
 # 2.2.1
 
