@@ -26,6 +26,7 @@ use crate::{
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 /// A WebSocket stream.
+#[derive(Clone)]
 pub struct WebSocketStream {
     rx: Arc<Receiver<TxType>>,
     tx: Arc<SyncSender<TxTypeInternal>>,
@@ -34,6 +35,7 @@ pub struct WebSocketStream {
 
 /// The sender half of a WebSocket stream.
 /// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
+#[derive(Clone)]
 pub struct WebSocketStreamSender {
     tx: Arc<SyncSender<TxTypeInternal>>,
     open: Arc<AtomicBool>,
@@ -41,6 +43,7 @@ pub struct WebSocketStreamSender {
 
 /// The receiver half of a WebSocket stream.
 /// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
+#[derive(Clone)]
 pub struct WebSocketStreamReceiver {
     rx: Arc<Receiver<TxType>>,
     open: Arc<AtomicBool>,
