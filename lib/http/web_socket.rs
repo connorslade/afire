@@ -83,6 +83,15 @@ enum TxTypeInternal {
     Pong,
 }
 
+struct Message {
+    opcode: u8,
+    payload: Vec<u8>,
+}
+
+struct FrameStack {
+    frames: Vec<Frame>,
+}
+
 impl WebSocketStream {
     /// Create a new WebSocket stream from a Request.
     pub fn from_request(req: &Request) -> Result<Self> {
@@ -115,6 +124,7 @@ impl WebSocketStream {
         drop(socket);
 
         thread::spawn(move || {
+            let mut frame_stack = FrameStack::new();
             let mut buffer = Vec::with_capacity(BUFF_SIZE);
             loop {
                 let mut buf = vec![0; BUFF_SIZE];
@@ -154,46 +164,44 @@ impl WebSocketStream {
                 );
                 buffer.clear();
 
-                if !frame.fin {
-                    // TODO: this
-                    todo!("Handle fragmented frames");
-                }
-
                 if frame.rsv != 0 {
                     trace!(Level::Trace, "[WS] Received frame with non-zero RSV bits");
                 }
 
-                match frame.opcode {
-                    // Continuation
-                    0 => todo!(),
-                    // Text
-                    1 => tx
-                        .send(TxType::Text(
-                            String::from_utf8_lossy(&frame.payload).to_string(),
-                        ))
-                        .unwrap(),
-                    // Binary
-                    2 => tx.send(TxType::Binary(frame.payload)).unwrap(),
-                    // Close
-                    8 => {
-                        if frame.payload_len > 0 {
-                            trace!(
-                                Level::Debug,
-                                "[WS] Received close frame with close reason: `{}`",
-                                LazyFmt(|| String::from_utf8_lossy(&frame.payload))
-                            );
-                        } else {
-                            trace!(Level::Debug, "[WS] Received close frame");
+                // The frame stack is for handling fragmented messages
+                if let Some(frame) = frame_stack.push(frame) {
+                    match frame.opcode {
+                        // Continuation
+                        0 => todo!(),
+                        // Text
+                        1 => tx
+                            .send(TxType::Text(
+                                String::from_utf8_lossy(&frame.payload).to_string(),
+                            ))
+                            .unwrap(),
+                        // Binary
+                        2 => tx.send(TxType::Binary(frame.payload)).unwrap(),
+                        // Close
+                        8 => {
+                            if frame.payload.len() > 0 {
+                                trace!(
+                                    Level::Debug,
+                                    "[WS] Received close frame with close reason: `{}`",
+                                    LazyFmt(|| String::from_utf8_lossy(&frame.payload))
+                                );
+                            } else {
+                                trace!(Level::Debug, "[WS] Received close frame");
+                            }
+                            this_open.store(false, Ordering::Relaxed);
+                            this_s2c.send(TxTypeInternal::Close).unwrap()
                         }
-                        this_open.store(false, Ordering::Relaxed);
-                        this_s2c.send(TxTypeInternal::Close).unwrap()
+                        // Ping
+                        // TODO: Pongs echo the payload of the ping
+                        9 => this_s2c.send(TxTypeInternal::Pong).unwrap(),
+                        // Pong
+                        10 => {}
+                        _ => {}
                     }
-                    // Ping
-                    // TODO: Pongs echo the payload of the ping
-                    9 => this_s2c.send(TxTypeInternal::Pong).unwrap(),
-                    // Pong
-                    10 => {}
-                    _ => {}
                 }
             }
         });
@@ -489,6 +497,42 @@ impl Frame {
 
     fn _rsv3(&self) -> bool {
         self.rsv & 0b001 != 0
+    }
+}
+
+impl FrameStack {
+    fn new() -> Self {
+        Self { frames: Vec::new() }
+    }
+
+    fn push(&mut self, frame: Frame) -> Option<Message> {
+        if !frame.fin {
+            self.frames.push(frame);
+            return None;
+        }
+
+        if self.frames.is_empty() {
+            Some(frame.into())
+        } else {
+            self.frames.push(frame);
+            let mut payload = Vec::new();
+            for frame in self.frames.drain(..) {
+                payload.extend_from_slice(&frame.payload);
+            }
+            Some(Message {
+                opcode: self.frames[0].opcode,
+                payload,
+            })
+        }
+    }
+}
+
+impl Into<Message> for Frame {
+    fn into(self) -> Message {
+        Message {
+            opcode: self.opcode,
+            payload: self.payload,
+        }
     }
 }
 
