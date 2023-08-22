@@ -143,7 +143,7 @@ impl Response {
     /// # use afire::Response;
     /// // Create Response
     /// let response = Response::new()
-    ///   .bytes(&[79, 75]); // Bytes for "OK"
+    ///   .bytes([79, 75]); // Bytes for "OK"
     /// ```
     pub fn bytes(self, bytes: impl Into<Vec<u8>>) -> Self {
         Self {
@@ -195,10 +195,10 @@ impl Response {
     /// # use afire::{Response, Header};
     /// // Create Response
     /// let response = Response::new()
-    ///     .headers(&[
+    ///     .headers([
     ///         Header::new("Content-Type", "text/html"),
     ///         Header::new("Test-Header", "Test-Value")
-    ///     ]);
+    ///     ].to_vec());
     /// ```
     pub fn headers(mut self, headers: Vec<Header>) -> Self {
         self.headers.extend(headers);
