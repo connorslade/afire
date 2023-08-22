@@ -135,22 +135,32 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     server.route(Method::GET, "/ws", |ctx| {
         ctx.guarantee_will_send();
-        let ws = ctx.req.ws()?;
-        // ws.send("Hello, world!");
+        let (tx, rx) = ctx.req.ws()?.split();
 
-        for i in ws.into_iter() {
-            match i {
-                TxType::Close => break,
-                TxType::Text(t) => {
-                    println!("Received: {}", t);
-                    ws.send(format!("Received: {}", t));
+        tx.send("Hello, world!");
+
+        thread::scope(|s| {
+            s.spawn(|| {
+                for i in 0..100 {
+                    thread::sleep(Duration::from_secs(3));
+                    tx.send(format!("Hello from another thread #{i}"));
                 }
-                TxType::Binary(b) => {
-                    println!("Received: {:?}", b);
-                    ws.send(format!("Received: {:?}", b));
+            });
+
+            for i in rx.into_iter() {
+                match i {
+                    TxType::Close => break,
+                    TxType::Text(t) => {
+                        println!("Received: {}", t);
+                        tx.send(format!("Received: {}", t));
+                    }
+                    TxType::Binary(b) => {
+                        println!("Received: {:?}", b);
+                        tx.send(format!("Received: {:?}", b));
+                    }
                 }
             }
-        }
+        });
 
         Ok(())
     });

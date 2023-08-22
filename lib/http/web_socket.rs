@@ -29,6 +29,18 @@ pub struct WebSocketStream {
     tx: Arc<SyncSender<TxTypeInternal>>,
 }
 
+/// The sender half of a WebSocket stream.
+/// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
+pub struct WebSocketStreamSender {
+    tx: Arc<SyncSender<TxTypeInternal>>,
+}
+
+/// The receiver half of a WebSocket stream.
+/// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
+pub struct WebSocketStreamReceiver {
+    rx: Arc<Receiver<TxType>>,
+}
+
 #[derive(Debug)]
 struct Frame {
     fin: bool,
@@ -116,6 +128,7 @@ impl WebSocketStream {
                 assert_eq!(&buf[..len], &frame.to_bytes()[..]);
 
                 if !frame.fin {
+                    // TODO: this
                     todo!("Handle fragmented frames");
                 }
 
@@ -157,7 +170,6 @@ impl WebSocketStream {
         });
 
         thread::spawn(move || {
-            //todo
             for i in rx {
                 trace!(Level::Debug, "[WS] Sending {:?}", i);
                 let close = i == TxTypeInternal::Close;
@@ -165,8 +177,8 @@ impl WebSocketStream {
                     TxTypeInternal::Close => Frame::close(),
                     TxTypeInternal::Text(s) => Frame::text(s),
                     TxTypeInternal::Binary(b) => Frame::binary(b),
-                    TxTypeInternal::Ping => todo!(),
-                    TxTypeInternal::Pong => todo!(),
+                    TxTypeInternal::Ping => Frame::ping(),
+                    TxTypeInternal::Pong => Frame::pong(),
                 }
                 .write(&mut write_socket)
                 .unwrap();
@@ -182,6 +194,30 @@ impl WebSocketStream {
         Ok(Self { rx: c2s, tx: s2c })
     }
 
+    /// Splits the WebSocket stream into an independent sender and receiver.
+    pub fn split(self) -> (WebSocketStreamSender, WebSocketStreamReceiver) {
+        (
+            WebSocketStreamSender {
+                tx: self.tx.clone(),
+            },
+            WebSocketStreamReceiver {
+                rx: self.rx.clone(),
+            },
+        )
+    }
+
+    /// Sends 'text' data to the client.
+    pub fn send(&self, data: impl Display) {
+        self.tx.send(TxType::Text(data.to_string()).into()).unwrap();
+    }
+
+    /// Sends binary data to the client.
+    pub fn send_binary(&self, data: Vec<u8>) {
+        self.tx.send(TxType::Binary(data).into()).unwrap();
+    }
+}
+
+impl WebSocketStreamSender {
     /// Sends 'text' data to the client.
     pub fn send(&self, data: impl Display) {
         self.tx.send(TxType::Text(data.to_string()).into()).unwrap();
@@ -194,6 +230,15 @@ impl WebSocketStream {
 }
 
 impl<'a> IntoIterator for &'a WebSocketStream {
+    type Item = TxType;
+    type IntoIter = Iter<'a, TxType>;
+
+    fn into_iter(self) -> Iter<'a, TxType> {
+        self.rx.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a WebSocketStreamReceiver {
     type Item = TxType;
     type IntoIter = Iter<'a, TxType>;
 
@@ -358,15 +403,37 @@ impl Frame {
         }
     }
 
-    fn rsv1(&self) -> bool {
+    fn ping() -> Self {
+        Self {
+            fin: true,
+            rsv: 0,
+            opcode: 9,
+            payload_len: 0,
+            mask: None,
+            payload: Vec::new(),
+        }
+    }
+
+    fn pong() -> Self {
+        Self {
+            fin: true,
+            rsv: 0,
+            opcode: 10,
+            payload_len: 0,
+            mask: None,
+            payload: Vec::new(),
+        }
+    }
+
+    fn _rsv1(&self) -> bool {
         self.rsv & 0b100 != 0
     }
 
-    fn rsv2(&self) -> bool {
+    fn _rsv2(&self) -> bool {
         self.rsv & 0b010 != 0
     }
 
-    fn rsv3(&self) -> bool {
+    fn _rsv3(&self) -> bool {
         self.rsv & 0b001 != 0
     }
 }

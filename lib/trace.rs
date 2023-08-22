@@ -121,7 +121,7 @@ pub(crate) fn emoji(emoji: &str) -> String {
 /// Enabled with the `tracing` feature
 #[macro_export]
 macro_rules! trace {
-    (Level::$level: ident, $($arg: tt) *) => {
+    (Level::$level: ident, $($arg: tt) +) => {
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::$level, format_args!($($arg)+));
     };
@@ -129,6 +129,16 @@ macro_rules! trace {
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::Trace, format_args!($($arg)+));
     };
+}
+
+/// A wrapper for [`Display`] types that only evaluates the inner value when it is actually used.
+/// This is useful built-in debug logging, as it allows you to avoid the overhead of formatting the message if it is not going to be logged.
+pub struct LazyFmt<T: Display, F: Fn() -> T>(pub F);
+
+impl<T: Display, F: Fn() -> T> Display for LazyFmt<T, F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", (self.0)())
+    }
 }
 
 /// A trait for custom log formatters.
