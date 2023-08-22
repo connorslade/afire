@@ -14,7 +14,9 @@ use crate::{
     response::ResponseFlag,
     route::RouteError,
     socket::Socket,
-    trace, Content, Context, Error, Request, Response, Server, Status,
+    trace,
+    trace::LazyFmt,
+    Content, Context, Error, Request, Response, Server, Status,
 };
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
@@ -25,7 +27,11 @@ pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
 {
-    trace!(Level::Debug, "Opening socket {:?}", stream.peer_addr());
+    trace!(
+        Level::Debug,
+        "Opening socket {:?}",
+        LazyFmt(|| stream.peer_addr())
+    );
     stream.set_read_timeout(this.socket_timeout).unwrap();
     stream.set_write_timeout(this.socket_timeout).unwrap();
     let stream = Arc::new(Socket::new(stream));

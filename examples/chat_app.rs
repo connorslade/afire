@@ -102,9 +102,7 @@ impl App {
 
     fn remove_client(&self, id: u64) {
         let mut clients = self.clients.force_write();
-        if let Some(index) = clients.iter().position(|c| c.id == id) {
-            clients.remove(index);
-        }
+        clients.retain(|c| c.id != id);
         self.message(format!("[SYSTEM] {} left", id), id);
     }
 }

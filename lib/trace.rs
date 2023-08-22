@@ -1,7 +1,7 @@
 //! Basic built-in logging system
 
 use std::{
-    fmt::{self, Arguments, Display},
+    fmt::{self, Arguments, Debug, Display},
     sync::{
         atomic::{AtomicBool, AtomicU8, Ordering},
         RwLock,
@@ -133,11 +133,17 @@ macro_rules! trace {
 
 /// A wrapper for [`Display`] types that only evaluates the inner value when it is actually used.
 /// This is useful built-in debug logging, as it allows you to avoid the overhead of formatting the message if it is not going to be logged.
-pub struct LazyFmt<T: Display, F: Fn() -> T>(pub F);
+pub struct LazyFmt<T, F: Fn() -> T>(pub F);
 
 impl<T: Display, F: Fn() -> T> Display for LazyFmt<T, F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", (self.0)())
+    }
+}
+
+impl<T: Debug, F: Fn() -> T> Debug for LazyFmt<T, F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", (self.0)())
     }
 }
 

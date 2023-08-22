@@ -20,6 +20,7 @@ use crate::{
         encoding::{base64, sha1},
         sync::ForceLockMutex,
     },
+    trace::LazyFmt,
     Context, Error, HeaderType, Request, Response, Status,
 };
 
@@ -167,7 +168,7 @@ impl WebSocketStream {
                             trace!(
                                 Level::Debug,
                                 "[WS] Received close frame with close reason: `{}`",
-                                String::from_utf8_lossy(&frame.payload)
+                                LazyFmt(|| String::from_utf8_lossy(&frame.payload))
                             );
                         } else {
                             trace!(Level::Debug, "[WS] Received close frame");
@@ -222,7 +223,7 @@ impl WebSocketStream {
             },
             WebSocketStreamReceiver {
                 rx: self.rx.clone(),
-                open: self.open.clone(),
+                open: self.open,
             },
         )
     }
@@ -285,9 +286,9 @@ impl<'a> IntoIterator for &'a WebSocketStreamReceiver {
     }
 }
 
-impl Into<TxTypeInternal> for TxType {
-    fn into(self) -> TxTypeInternal {
-        match self {
+impl From<TxType> for TxTypeInternal {
+    fn from(value: TxType) -> Self {
+        match value {
             TxType::Close => TxTypeInternal::Close,
             TxType::Text(s) => TxTypeInternal::Text(s),
             TxType::Binary(b) => TxTypeInternal::Binary(b),
