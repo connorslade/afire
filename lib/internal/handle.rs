@@ -71,19 +71,15 @@ where
 
         let mut ctx = Context::new(this.clone(), req.clone());
 
-        // Handle Route
-        let (route, params) = match this
+        let Some((route, params)) = this
             .routes
             .iter()
             .rev()
             .find_map(|route| route.matches(req.clone()).map(|x| (route, x)))
-        {
-            Some(x) => x,
-            None => {
-                let err = HandleError::NotFound(req.method, req.path.to_owned()).into();
-                write(stream.clone(), this.clone(), Ok(req), Err(err));
-                continue 'outer;
-            }
+        else {
+            let err = HandleError::NotFound(req.method, req.path.to_owned()).into();
+            write(stream.clone(), this.clone(), Ok(req), Err(err));
+            continue 'outer;
         };
 
         ctx.path_params = params;
@@ -100,7 +96,7 @@ where
             {
                 trace!(Level::Debug, "Error writing error response: {:?}", e);
             }
-        } else if sent_response {
+        } else if sent_response || req.socket.is_raw() {
         } else if ctx.flags.get(ContextFlag::GuaranteedSend) {
             let barrier = ctx.req.socket.barrier.clone();
             trace!(Level::Debug, "Waiting for response to be sent");
@@ -137,8 +133,6 @@ fn write<State: 'static + Send + Sync>(
             }
         }
     }
-
-    // let mut response = if let Err(e) = req
 
     let mut response = match response {
         Ok(i) => i,

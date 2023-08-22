@@ -20,7 +20,7 @@ use crate::{
         encoding::{base64, sha1},
         sync::ForceLockMutex,
     },
-    Error, HeaderType, Request, Response, Status,
+    Context, Error, HeaderType, Request, Response, Status,
 };
 
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -310,7 +310,8 @@ impl Frame {
         };
         trace!(
             Level::Debug,
-            "[WS] {{ fin: {fin}, rsv: {rsv}, opcode: {opcode}, payload_len: {payload_len}, mask: {mask} }}",
+            "[WS] {{ fin: {fin}, rsv: {rsv}, opcode: {opcode}, payload_len: {payload_len}, mask: \
+             {mask} }}",
         );
 
         if payload_len == 0 {
@@ -474,12 +475,19 @@ impl Frame {
 
 /// A trait for initiating a WebSocket connection on a request.
 pub trait WebSocketExt {
-    /// Initiates a WebSocket connection on a request.
+    /// Initiates a WebSocket connection.
     fn ws(&self) -> Result<WebSocketStream>;
+}
+
+impl<T: Send + Sync> WebSocketExt for Context<T> {
+    fn ws(&self) -> Result<WebSocketStream> {
+        self.req.ws()
+    }
 }
 
 impl WebSocketExt for Request {
     fn ws(&self) -> Result<WebSocketStream> {
+        self.socket.set_raw(true);
         WebSocketStream::from_request(self)
     }
 }

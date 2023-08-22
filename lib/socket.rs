@@ -1,7 +1,10 @@
 use std::{
     net::TcpStream,
     ops::Deref,
-    sync::{Arc, Mutex, RwLock},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex, RwLock,
+    },
 };
 
 use crate::{
@@ -16,6 +19,11 @@ pub struct Socket {
     /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
     /// This allows for sending a response from another thread, not sure why you would want to do that though.
     pub(crate) barrier: Arc<SingleBarrier>,
+    /// If true, the socket is being handled by another system.
+    /// This could be SSE or WebSockets, but either way afire core should not mess with it.
+    pub(crate) raw: AtomicBool,
+    // TODO: work on this
+    /// Weather the socket should be closed after the response is sent.
     pub(crate) flag: RwLock<ResponseFlag>,
 }
 
@@ -24,6 +32,7 @@ impl Socket {
         Self {
             socket: Mutex::new(socket),
             barrier: Arc::new(SingleBarrier::new()),
+            raw: AtomicBool::new(false),
             flag: RwLock::new(ResponseFlag::None),
         }
     }
@@ -42,6 +51,14 @@ impl Socket {
 
     pub(crate) fn set_flag(&self, flag: ResponseFlag) {
         *self.flag.force_write() = flag;
+    }
+
+    pub fn is_raw(&self) -> bool {
+        self.raw.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn set_raw(&self, raw: bool) {
+        self.raw.store(raw, Ordering::Relaxed);
     }
 }
 

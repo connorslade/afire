@@ -134,8 +134,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     server.route(Method::GET, "/ws", |ctx| {
-        ctx.guarantee_will_send();
-        let (tx, rx) = ctx.req.ws()?.split();
+        let (tx, rx) = ctx.ws()?.split();
 
         tx.send("Hello, world!");
 
@@ -174,8 +173,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let users = Arc::new(RwLock::new(Vec::new()));
     server.route(Method::GET, "/chat", move |ctx| {
-        ctx.guarantee_will_send();
-        let (ws_tx, ws_rx) = ctx.req.ws()?.split();
+        let (ws_tx, ws_rx) = ctx.ws()?.split();
         let (tx, rx) = sync_channel(10);
         users.force_write().push(tx);
 

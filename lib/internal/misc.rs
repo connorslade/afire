@@ -108,9 +108,10 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
 pub(crate) fn epoch() -> std::time::Duration {
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("System time is before the Unix Epoch (1970-01-01 00:00:00 UTC). Make sure your date is set correctly.")
+    SystemTime::now().duration_since(UNIX_EPOCH).expect(
+        "System time is before the Unix Epoch (1970-01-01 00:00:00 UTC). Make sure your date is \
+         set correctly.",
+    )
 }
 
 #[cfg(test)]
