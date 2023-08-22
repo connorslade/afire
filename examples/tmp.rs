@@ -5,14 +5,14 @@ use std::{
     error::Error,
     fs::{self, File},
     io::{self, Read},
-    sync::Arc,
+    sync::{mpsc::sync_channel, Arc, RwLock},
     thread,
     time::Duration,
 };
 
 use afire::{
     extension::{Date, Head, Logger, ServeStatic, Trace},
-    internal::sync::ForceLockMutex,
+    internal::sync::{ForceLockMutex, ForceLockRwLock},
     multipart::MultipartData,
     prelude::*,
     route::RouteContext,
@@ -167,6 +167,40 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             println!("Closing - Rx");
+        });
+
+        Ok(())
+    });
+
+    let users = Arc::new(RwLock::new(Vec::new()));
+    server.route(Method::GET, "/chat", move |ctx| {
+        ctx.guarantee_will_send();
+        let (ws_tx, ws_rx) = ctx.req.ws()?.split();
+        let (tx, rx) = sync_channel(10);
+        users.force_write().push(tx);
+
+        thread::scope(|s| {
+            s.spawn(move || {
+                for i in rx {
+                    if !ws_tx.is_open() {
+                        break;
+                    }
+
+                    ws_tx.send(i);
+                }
+            });
+
+            for i in ws_rx.into_iter() {
+                match i {
+                    TxType::Close => break,
+                    TxType::Binary(_) => {}
+                    TxType::Text(t) => {
+                        users.force_read().iter().for_each(|u| {
+                            u.send(t.to_owned()).unwrap();
+                        });
+                    }
+                }
+            }
         });
 
         Ok(())
