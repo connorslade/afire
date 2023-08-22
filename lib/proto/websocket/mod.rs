@@ -2,10 +2,9 @@
 //! Work in progress.
 
 use std::{
-    convert::TryInto,
     fmt::Display,
-    io::{self, ErrorKind, Read, Write},
-    net::{Shutdown, TcpStream},
+    io::{ErrorKind, Read},
+    net::Shutdown,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Iter, Receiver, SyncSender},
@@ -22,8 +21,18 @@ use crate::{
         sync::ForceLockMutex,
     },
     trace::LazyFmt,
+    websocket::frame_stack::FrameStack,
     Context, Error, HeaderType, Request, Response, Status,
 };
+
+use self::{
+    frame::Frame,
+    split::{WebSocketStreamReceiver, WebSocketStreamSender},
+};
+
+mod frame;
+mod frame_stack;
+mod split;
 
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
@@ -33,34 +42,6 @@ pub struct WebSocketStream {
     rx: Arc<Receiver<TxType>>,
     tx: Arc<SyncSender<TxTypeInternal>>,
     open: Arc<AtomicBool>,
-}
-
-/// The sender half of a WebSocket stream.
-/// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
-#[derive(Clone)]
-pub struct WebSocketStreamSender {
-    tx: Arc<SyncSender<TxTypeInternal>>,
-    open: Arc<AtomicBool>,
-}
-
-/// The receiver half of a WebSocket stream.
-/// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
-#[derive(Clone)]
-pub struct WebSocketStreamReceiver {
-    rx: Arc<Receiver<TxType>>,
-    open: Arc<AtomicBool>,
-}
-
-#[derive(Debug)]
-struct Frame {
-    fin: bool,
-    /// RSV1, RSV2, RSV3
-    /// BitPacked into one byte (0xRRR)
-    rsv: u8,
-    opcode: u8,
-    payload_len: u64,
-    mask: Option<[u8; 4]>,
-    payload: Vec<u8>,
 }
 
 /// Types of WebSocket frames
@@ -81,15 +62,6 @@ enum TxTypeInternal {
     Binary(Vec<u8>),
     Ping,
     Pong,
-}
-
-struct Message {
-    opcode: u8,
-    payload: Vec<u8>,
-}
-
-struct FrameStack {
-    frames: Vec<Frame>,
 }
 
 impl WebSocketStream {
@@ -265,40 +237,7 @@ impl WebSocketStream {
     }
 }
 
-impl WebSocketStreamSender {
-    /// Sends 'text' data to the client.
-    pub fn send(&self, data: impl Display) {
-        let _ = self.tx.send(TxType::Text(data.to_string()).into());
-    }
-
-    /// Sends binary data to the client.
-    pub fn send_binary(&self, data: Vec<u8>) {
-        let _ = self.tx.send(TxType::Binary(data).into());
-    }
-
-    /// Returns whether the WebSocket stream is open.
-    pub fn is_open(&self) -> bool {
-        self.open.load(Ordering::Relaxed)
-    }
-}
-
-impl WebSocketStreamReceiver {
-    /// Returns whether the WebSocket stream is open.
-    pub fn is_open(&self) -> bool {
-        self.open.load(Ordering::Relaxed)
-    }
-}
-
 impl<'a> IntoIterator for &'a WebSocketStream {
-    type Item = TxType;
-    type IntoIter = Iter<'a, TxType>;
-
-    fn into_iter(self) -> Iter<'a, TxType> {
-        self.rx.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a WebSocketStreamReceiver {
     type Item = TxType;
     type IntoIter = Iter<'a, TxType>;
 
@@ -313,225 +252,6 @@ impl From<TxType> for TxTypeInternal {
             TxType::Close => TxTypeInternal::Close,
             TxType::Text(s) => TxTypeInternal::Text(s),
             TxType::Binary(b) => TxTypeInternal::Binary(b),
-        }
-    }
-}
-
-impl Frame {
-    fn from_slice(buf: &[u8]) -> Option<Self> {
-        let fin = buf[0] & 0b1000_0000 != 0;
-        let rsv = (buf[0] & 0b0111_0000) >> 4;
-
-        let mask = buf[1] & 0b1000_0000 != 0;
-        let opcode = buf[0] & 0b0000_1111;
-        let (payload_len, offset) = match buf[1] as u64 & 0b0111_1111 {
-            126 => (u16::from_be_bytes([buf[2], buf[3]]) as u64, 4),
-            127 => (
-                u64::from_be_bytes([
-                    buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9],
-                ]),
-                10,
-            ),
-            i => (i, 2),
-        };
-
-        trace!(
-            Level::Debug,
-            "[WS] {{ fin: {fin}, rsv: {rsv}, opcode: {opcode}, payload_len: {payload_len}, mask: \
-             {mask} }}",
-        );
-
-        if payload_len == 0 {
-            trace!(Level::Debug, "[WS] Empty payload");
-            // Are empty payloads not allowed?
-            // return None;
-        }
-
-        if !mask {
-            trace!(Level::Debug, "[WS] No mask");
-            // Are unmasked payloads not allowed?
-            // girl i wrote this all so long ago i don't remember
-            return None;
-        }
-
-        let mut decoded = Vec::with_capacity(payload_len as usize);
-        let mask = &buf[offset..offset + 4];
-        for i in 0..payload_len as usize {
-            decoded.push(buf[i + offset + 4] ^ mask[i % 4]);
-        }
-
-        trace!(Level::Debug, "[WS] Decoded: {:?}", decoded);
-        trace!(
-            Level::Debug,
-            "[WS] Decoded: {:?}",
-            LazyFmt(|| String::from_utf8_lossy(&decoded))
-        );
-
-        Some(Self {
-            fin,
-            rsv,
-            opcode,
-            payload_len,
-            mask: Some(mask.try_into().unwrap()),
-            payload: decoded,
-        })
-    }
-
-    /*
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-------+-+-------------+-------------------------------+
-     |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-     |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-     |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-     | |1|2|3|       |K|             |                               |
-     +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-     |     Extended payload length continued, if payload len == 127  |
-     + - - - - - - - - - - - - - - - +-------------------------------+
-     |                               |Masking-key, if MASK set to 1  |
-     +-------------------------------+-------------------------------+
-     | Masking-key (continued)       |          Payload Data         |
-     +-------------------------------- - - - - - - - - - - - - - - - +
-     :                     Payload Data continued ...                :
-     + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-     |                     Payload Data continued ...                |
-     +---------------------------------------------------------------+
-    */
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buf = Vec::new();
-        buf.push((self.fin as u8) << 7 | self.rsv << 4 | self.opcode);
-
-        match self.payload_len {
-            ..=125 => buf.push((self.mask.is_some() as u8) << 7 | self.payload_len as u8),
-            126..=65535 => {
-                buf.push((self.mask.is_some() as u8) << 7 | 126);
-                buf.extend_from_slice(&(self.payload_len as u16).to_be_bytes());
-            }
-            _ => {
-                buf.push((self.mask.is_some() as u8) << 7 | 127);
-                buf.extend_from_slice(&self.payload_len.to_be_bytes());
-            }
-        }
-
-        match self.mask {
-            Some(mask) => {
-                buf.extend_from_slice(&mask);
-                buf.extend_from_slice(&xor_mask(&mask, &self.payload))
-            }
-            None => buf.extend_from_slice(&self.payload),
-        }
-
-        buf
-    }
-
-    fn write(&self, socket: &mut TcpStream) -> io::Result<()> {
-        let buf = self.to_bytes();
-        trace!(Level::Debug, "[WS] Writing: {:?}", buf);
-
-        socket.write_all(&buf)?;
-        Ok(())
-    }
-
-    fn close() -> Self {
-        Self {
-            fin: true,
-            rsv: 0,
-            opcode: 8,
-            payload_len: 0,
-            mask: None,
-            payload: Vec::new(),
-        }
-    }
-
-    fn text(text: String) -> Self {
-        Self {
-            fin: true,
-            rsv: 0,
-            opcode: 1,
-            payload_len: text.len() as u64,
-            mask: None,
-            payload: text.into_bytes(),
-        }
-    }
-
-    fn binary(binary: Vec<u8>) -> Self {
-        Self {
-            fin: true,
-            rsv: 0,
-            opcode: 2,
-            payload_len: binary.len() as u64,
-            mask: None,
-            payload: binary,
-        }
-    }
-
-    fn ping() -> Self {
-        Self {
-            fin: true,
-            rsv: 0,
-            opcode: 9,
-            payload_len: 0,
-            mask: None,
-            payload: Vec::new(),
-        }
-    }
-
-    fn pong() -> Self {
-        Self {
-            fin: true,
-            rsv: 0,
-            opcode: 10,
-            payload_len: 0,
-            mask: None,
-            payload: Vec::new(),
-        }
-    }
-
-    fn _rsv1(&self) -> bool {
-        self.rsv & 0b100 != 0
-    }
-
-    fn _rsv2(&self) -> bool {
-        self.rsv & 0b010 != 0
-    }
-
-    fn _rsv3(&self) -> bool {
-        self.rsv & 0b001 != 0
-    }
-}
-
-impl FrameStack {
-    fn new() -> Self {
-        Self { frames: Vec::new() }
-    }
-
-    fn push(&mut self, frame: Frame) -> Option<Message> {
-        if !frame.fin {
-            self.frames.push(frame);
-            return None;
-        }
-
-        if self.frames.is_empty() {
-            Some(frame.into())
-        } else {
-            self.frames.push(frame);
-            let mut payload = Vec::new();
-            for frame in self.frames.drain(..) {
-                payload.extend_from_slice(&frame.payload);
-            }
-            Some(Message {
-                opcode: self.frames[0].opcode,
-                payload,
-            })
-        }
-    }
-}
-
-impl From<Frame> for Message {
-    fn from(value: Frame) -> Self {
-        Message {
-            opcode: value.opcode,
-            payload: value.payload,
         }
     }
 }
