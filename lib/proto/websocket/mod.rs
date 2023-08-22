@@ -183,7 +183,7 @@ impl WebSocketStream {
                         2 => tx.send(TxType::Binary(frame.payload)).unwrap(),
                         // Close
                         8 => {
-                            if frame.payload.len() > 0 {
+                            if !frame.payload.is_empty() {
                                 trace!(
                                     Level::Debug,
                                     "[WS] Received close frame with close reason: `{}`",
@@ -409,7 +409,7 @@ impl Frame {
             }
             _ => {
                 buf.push((self.mask.is_some() as u8) << 7 | 127);
-                buf.extend_from_slice(&(self.payload_len as u64).to_be_bytes());
+                buf.extend_from_slice(&self.payload_len.to_be_bytes());
             }
         }
 
@@ -527,11 +527,11 @@ impl FrameStack {
     }
 }
 
-impl Into<Message> for Frame {
-    fn into(self) -> Message {
+impl From<Frame> for Message {
+    fn from(value: Frame) -> Self {
         Message {
-            opcode: self.opcode,
-            payload: self.payload,
+            opcode: value.opcode,
+            payload: value.payload,
         }
     }
 }

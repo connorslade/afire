@@ -12,7 +12,7 @@ use std::{
 use afire::{
     internal::sync::ForceLockRwLock,
     trace::{set_log_level, Level},
-    web_socket::{TxType, WebSocketExt},
+    websocket::{TxType, WebSocketExt},
     Method, Server,
 };
 

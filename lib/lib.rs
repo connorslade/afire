@@ -20,15 +20,15 @@ pub mod internal;
 
 // Import Internal Functions
 mod thread_pool;
-use http::*;
 use internal::{encoding, handle, path};
+use proto::http::{self, *};
 
 #[macro_use]
 pub mod trace;
 mod context;
 pub mod error;
-mod http;
 pub mod middleware;
+mod proto;
 mod request;
 mod response;
 pub mod route;
@@ -40,9 +40,10 @@ pub use self::{
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderType},
-    http::{cookie, header, multipart, server_sent_events, web_socket},
+    http::{cookie, header, multipart},
     method::Method,
     middleware::Middleware,
+    proto::{server_sent_events, websocket},
     query::Query,
     request::Request,
     response::Response,
@@ -57,8 +58,8 @@ pub mod prelude {
     pub use crate::{
         error::{self, Error},
         middleware::{MiddleResult, Middleware},
-        server_sent_events::ServerSentEventsExt,
-        web_socket::WebSocketExt,
+        proto::server_sent_events::ServerSentEventsExt,
+        proto::websocket::WebSocketExt,
         Content, Cookie, Header, HeaderType, Method, Query, Request, Response, Server, SetCookie,
         Status,
     };

@@ -19,7 +19,7 @@ use afire::{
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
-    web_socket::TxType,
+    websocket::TxType,
 };
 
 // File to download
@@ -68,7 +68,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // });
 
     server.route(Method::GET, "/info", |ctx| {
-        ctx.req.socket.clone().force_lock();
         let addr = ctx.req.socket.force_lock().peer_addr()?;
         let user_agent = ctx
             .req
@@ -113,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     server.route(Method::GET, "/sse", |ctx| {
-        let stream = ctx.req.sse()?;
+        let stream = ctx.sse()?;
         stream.set_retry(10_000);
 
         let mut start = 0;
