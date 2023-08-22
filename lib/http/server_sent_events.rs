@@ -28,13 +28,17 @@ use std::{
     fmt::Display,
     io::{self, Write},
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{self, Sender},
-        Arc, Barrier,
+        Arc,
     },
     thread,
 };
 
-use crate::{internal::sync::ForceLockMutex, Request};
+use crate::{
+    internal::sync::{ForceLockMutex, SingleBarrier},
+    Request, Response,
+};
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
 ///
@@ -42,6 +46,7 @@ use crate::{internal::sync::ForceLockMutex, Request};
 pub struct ServerSentEventStream {
     /// Channel to send events to the client.
     stream: Sender<EventType>,
+    open: AtomicBool,
     /// If the EventSource connection gets reset, the client will send the last received event id in the `Last-Event-ID` header.
     /// This will be available here, if applicable.
     pub last_index: Option<u32>,
@@ -57,7 +62,7 @@ pub struct Event {
 enum EventType {
     Event(Event),
     SetRetry(u32),
-    Close(Arc<Barrier>),
+    Close(Arc<SingleBarrier>),
 }
 
 impl ServerSentEventStream {
@@ -88,9 +93,14 @@ impl ServerSentEventStream {
     /// This will leave the socket open, so a new SSEStream could be created.
     /// Note: The client will likely try to reconnect automatically after a few seconds.
     pub fn close(&self) {
-        let barrier = Arc::new(Barrier::new(2));
+        if !self.open.load(Ordering::Relaxed) {
+            return;
+        }
+
+        self.open.store(false, Ordering::Relaxed);
+        let barrier = Arc::new(SingleBarrier::new());
         let _ = self.stream.send(EventType::Close(barrier.clone()));
-        barrier.wait();
+        barrier.unlock();
     }
 
     /// Creates a new SSE stream from the given request.
@@ -102,6 +112,7 @@ impl ServerSentEventStream {
             .and_then(|id| id.parse::<u32>().ok());
 
         let socket = this.socket.clone();
+        // let res = Response::new().header("Content-Type", "text/event-stream").header("Cache-Control", "no-cache");
         socket.force_lock().write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\r\n")?;
 
         let (tx, rx) = mpsc::channel::<EventType>();
@@ -130,6 +141,7 @@ impl ServerSentEventStream {
         Ok(Self {
             stream: tx,
             last_index,
+            open: AtomicBool::new(true),
         })
     }
 }
@@ -174,6 +186,12 @@ impl ToString for Event {
 
         out.push('\n');
         out
+    }
+}
+
+impl Drop for ServerSentEventStream {
+    fn drop(&mut self) {
+        self.close();
     }
 }
 

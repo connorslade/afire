@@ -111,23 +111,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
-    // server.route(Method::GET, "/sse", |req| {
-    //     let stream = req.sse().unwrap();
-    //     stream.set_retry(10_000);
+    server.route(Method::GET, "/sse", |ctx| {
+        let stream = ctx.req.sse().unwrap();
+        stream.set_retry(10_000);
 
-    //     let mut start = 0;
-    //     if let Some(i) = stream.last_index {
-    //         stream.send_id("update", i, format!("Got last ID of `{i}`"));
-    //         start = i + 1;
-    //     }
+        let mut start = 0;
+        if let Some(i) = stream.last_index {
+            stream.send_id("update", i, format!("Got last ID of `{i}`"));
+            start = i + 1;
+        }
 
-    //     for i in 0..10 {
-    //         stream.send_id("update", start + i, format!("eggs, are cool {}", start + i));
-    //         thread::sleep(Duration::from_secs(1));
-    //     }
+        for i in 0..10 {
+            stream.send_id("update", start + i, format!("eggs, are cool {}", start + i));
+            thread::sleep(Duration::from_secs(1));
+        }
 
-    //     Response::end()
-    // });
+        stream.close();
+        println!("Closed stream");
+
+        Ok(())
+    });
 
     server.route(Method::GET, "/", |ctx| {
         // let _ = File::open("index.html")
