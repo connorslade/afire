@@ -3,6 +3,7 @@
 use std::{
     convert::TryFrom,
     error::Error,
+    fmt::Arguments,
     fs::{self, File},
     io::{self, Read},
     sync::{mpsc::sync_channel, Arc, RwLock},
@@ -309,7 +310,7 @@ impl Middleware for Test {
 struct LogFormatter;
 
 impl Formatter for LogFormatter {
-    fn format(&self, level: Level, color: bool, msg: String) {
+    fn format(&self, level: Level, color: bool, msg: Arguments) {
         DefaultFormatter.format(level, color, msg);
     }
 }

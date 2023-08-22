@@ -94,16 +94,15 @@ pub fn _trace(level: Level, fmt: Arguments) {
         return;
     }
 
-    let msg = fmt.to_string();
     if FORMATTER_PRESENT.load(Ordering::Relaxed) {
         let formatter = FORMATTER.read().unwrap();
         if let Some(formatter) = &*formatter {
-            formatter.format(level, COLOR.load(Ordering::Relaxed), msg);
+            formatter.format(level, COLOR.load(Ordering::Relaxed), fmt);
             return;
         }
     }
 
-    DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), msg);
+    DefaultFormatter.format(level, COLOR.load(Ordering::Relaxed), fmt);
 }
 
 // TODO: convert to macro for compile time concat!
@@ -153,7 +152,7 @@ pub trait Formatter {
     /// This will usually print the message to stdout, write it to a file, or pass it to another logging system.
     ///
     /// Note: Only log messages with a level equal to or higher than the global log level will be passed to the formatter.
-    fn format(&self, level: Level, color: bool, msg: String);
+    fn format(&self, level: Level, color: bool, msg: Arguments);
 }
 
 /// The default log formatter.
@@ -166,7 +165,7 @@ pub trait Formatter {
 pub struct DefaultFormatter;
 
 impl Formatter for DefaultFormatter {
-    fn format(&self, level: Level, _color: bool, msg: String) {
+    fn format(&self, level: Level, _color: bool, msg: Arguments) {
         let color = COLOR.load(Ordering::Relaxed);
 
         println!(
