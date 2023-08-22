@@ -15,6 +15,7 @@ use std::{
 };
 
 use crate::{
+    consts::BUFF_SIZE,
     error::Result,
     internal::{
         encoding::{base64, sha1},
@@ -114,9 +115,9 @@ impl WebSocketStream {
         drop(socket);
 
         thread::spawn(move || {
-            // Can frames never be longer than 1024 bytes?
-            let mut buf = [0u8; 1024];
+            let mut buffer = Vec::with_capacity(BUFF_SIZE);
             loop {
+                let mut buf = vec![0; BUFF_SIZE];
                 let len = match read_socket.read(&mut buf) {
                     Ok(l) => l,
                     Err(e) if e.kind() == ErrorKind::Interrupted => continue,
@@ -127,12 +128,18 @@ impl WebSocketStream {
                     }
                 };
 
+                trace!(Level::Debug, "[WS] Read {} bytes", len);
                 if len == 0 {
                     break;
                 }
 
-                trace!(Level::Debug, "[WS] Received: {:?}", &buf[..len]);
-                let frame = match Frame::from_slice(&buf[..len]) {
+                buffer.extend_from_slice(&buf[..len]);
+                if len == BUFF_SIZE {
+                    continue;
+                }
+
+                trace!(Level::Debug, "[WS] Received: {:?}", &buffer);
+                let frame = match Frame::from_slice(&buffer) {
                     Some(f) => f,
                     None => {
                         trace!(Level::Debug, "[WS] Invalid frame");
@@ -140,7 +147,12 @@ impl WebSocketStream {
                     }
                 };
 
-                assert_eq!(&buf[..len], &frame.to_bytes()[..]);
+                debug_assert_eq!(
+                    &buffer,
+                    &frame.to_bytes(),
+                    "Recoded frame does not match original frame."
+                );
+                buffer.clear();
 
                 if !frame.fin {
                     // TODO: this
@@ -177,6 +189,7 @@ impl WebSocketStream {
                         this_s2c.send(TxTypeInternal::Close).unwrap()
                     }
                     // Ping
+                    // TODO: Pongs echo the payload of the ping
                     9 => this_s2c.send(TxTypeInternal::Pong).unwrap(),
                     // Pong
                     10 => {}
@@ -313,6 +326,7 @@ impl Frame {
             ),
             i => (i, 2),
         };
+
         trace!(
             Level::Debug,
             "[WS] {{ fin: {fin}, rsv: {rsv}, opcode: {opcode}, payload_len: {payload_len}, mask: \
@@ -342,7 +356,7 @@ impl Frame {
         trace!(
             Level::Debug,
             "[WS] Decoded: {:?}",
-            String::from_utf8_lossy(&decoded)
+            LazyFmt(|| String::from_utf8_lossy(&decoded))
         );
 
         Some(Self {
@@ -383,11 +397,11 @@ impl Frame {
             ..=125 => buf.push((self.mask.is_some() as u8) << 7 | self.payload_len as u8),
             126..=65535 => {
                 buf.push((self.mask.is_some() as u8) << 7 | 126);
-                buf.extend_from_slice(&self.payload_len.to_be_bytes());
+                buf.extend_from_slice(&(self.payload_len as u16).to_be_bytes());
             }
             _ => {
                 buf.push((self.mask.is_some() as u8) << 7 | 127);
-                buf.extend_from_slice(&self.payload_len.to_be_bytes());
+                buf.extend_from_slice(&(self.payload_len as u64).to_be_bytes());
             }
         }
 
