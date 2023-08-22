@@ -79,7 +79,7 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn limit(self, limit: u64) -> RateLimiter {
         RateLimiter {
@@ -106,7 +106,7 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn timeout(self, timeout: u64) -> RateLimiter {
         RateLimiter {
@@ -134,7 +134,7 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn handler(self, handler: Handler) -> RateLimiter {
         RateLimiter { handler, ..self }

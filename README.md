@@ -50,7 +50,7 @@ server.route(Method::GET, "/greet/{name}", |ctx| {
 });
 
 // Start the server
-server.start().unwrap();
+server.run().unwrap();
 ```
 
 ## 💼 License

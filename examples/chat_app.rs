@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
-    server.start()?;
+    server.run()?;
     Ok(())
 }
 

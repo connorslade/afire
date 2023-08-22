@@ -116,9 +116,9 @@ impl<State: Send + Sync> Server<State> {
     ///
     /// // Starts the server
     /// // This is blocking
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
-    pub fn start(self) -> Result<()> {
+    pub fn run(self) -> Result<()> {
         let threads = self.thread_pool.threads();
         if threads == 0 {
             self.thread_pool.resize(1);

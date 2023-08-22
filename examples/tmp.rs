@@ -274,7 +274,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Head::new().attach(&mut server);
     ServeStatic::new("../misc/scripts/ayesha").attach(&mut server);
     Logger::new().attach(&mut server);
-    server.start()?;
+    server.run()?;
 
     Ok(())
 }

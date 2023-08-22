@@ -78,7 +78,7 @@ impl ServeStatic {
     /// // Make a new static file server and attach it to the afire server
     /// ServeStatic::new("data/static").attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn new(data_path: impl AsRef<str>) -> Self {
         Self {
@@ -113,7 +113,7 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn disable(self, file_path: impl AsRef<str>) -> Self {
         let mut disabled = self.disabled_files;
@@ -142,7 +142,7 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn disable_vec(self, file_paths: &[impl AsRef<str>]) -> Self {
         let mut disabled = self.disabled_files;
@@ -175,7 +175,7 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn not_found(self, f: fn(Arc<Request>, bool) -> Response) -> Self {
         Self {
@@ -207,7 +207,7 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn mime_type(self, key: impl AsRef<str>, value: impl AsRef<str>) -> Self {
         let mut types = self.types;
@@ -238,7 +238,7 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn mime_types(self, new_types: &[(impl AsRef<str>, impl AsRef<str>)]) -> Self {
         let mut new_types = new_types
@@ -286,7 +286,7 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     /// ```
     pub fn path(self, path: impl AsRef<str>) -> Self {
         Self {

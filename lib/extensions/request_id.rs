@@ -28,7 +28,7 @@ impl RequestId {
     /// RequestId::new("X-REQ-ID").attach(&mut server);
     ///
     /// // Start Server
-    /// server.start().unwrap();
+    /// server.run().unwrap();
     ///```
     pub fn new(header: impl Into<HeaderType>) -> Self {
         Self {
