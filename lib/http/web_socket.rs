@@ -94,6 +94,7 @@ impl WebSocketStream {
             .header(HeaderType::Connection, "Upgrade")
             .header("Sec-WebSocket-Accept", &accept)
             .header("Sec-WebSocket-Version", "13");
+        // TODO: Get default headers here? somehow?
         upgrade.write(req.socket.clone(), &[])?;
 
         let open = Arc::new(AtomicBool::new(true));

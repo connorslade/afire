@@ -26,7 +26,7 @@
 //! ```
 use std::{
     fmt::Display,
-    io::{self, Write},
+    io::Write,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Sender},
@@ -36,8 +36,9 @@ use std::{
 };
 
 use crate::{
+    error::Result,
     internal::sync::{ForceLockMutex, SingleBarrier},
-    Request, Response,
+    Context, Request, Response,
 };
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
@@ -105,15 +106,18 @@ impl ServerSentEventStream {
 
     /// Creates a new SSE stream from the given request.
     /// This is called automatically if you use the [`ServerSentEventsExt`] trait's .sse() method.
-    pub fn from_request(this: &Request) -> io::Result<Self> {
+    pub fn from_request(this: &Request) -> Result<Self> {
         let last_index = this
             .headers
             .get("Last-Event-ID")
             .and_then(|id| id.parse::<u32>().ok());
 
         let socket = this.socket.clone();
-        // let res = Response::new().header("Content-Type", "text/event-stream").header("Cache-Control", "no-cache");
-        socket.force_lock().write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\r\n")?;
+        let mut res = Response::new()
+            .header("Content-Type", "text/event-stream")
+            .header("Cache-Control", "no-cache");
+        // TODO: Get default headers here?
+        res.write(socket.clone(), &[])?;
 
         let (tx, rx) = mpsc::channel::<EventType>();
         thread::Builder::new()
@@ -197,12 +201,19 @@ impl Drop for ServerSentEventStream {
 
 /// A trait for initiating a SSE connection on a request.
 pub trait ServerSentEventsExt {
-    /// Initiates a SSE connection on the request.
-    fn sse(&self) -> io::Result<ServerSentEventStream>;
+    /// Initiates a SSE connection.
+    fn sse(&self) -> Result<ServerSentEventStream>;
+}
+
+impl<T: Send + Sync> ServerSentEventsExt for Context<T> {
+    fn sse(&self) -> Result<ServerSentEventStream> {
+        self.req.sse()
+    }
 }
 
 impl ServerSentEventsExt for Request {
-    fn sse(&self) -> io::Result<ServerSentEventStream> {
+    fn sse(&self) -> Result<ServerSentEventStream> {
+        self.socket.set_raw(true);
         ServerSentEventStream::from_request(self)
     }
 }
