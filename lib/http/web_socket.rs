@@ -4,8 +4,8 @@
 use std::{
     convert::TryInto,
     fmt::Display,
-    io::{self, Read, Write},
-    net::TcpStream,
+    io::{self, ErrorKind, Read, Write},
+    net::{Shutdown, TcpStream},
     sync::{
         mpsc::{self, Iter, Receiver, SyncSender},
         Arc,
@@ -26,7 +26,7 @@ const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 /// A WebSocket stream.
 pub struct WebSocketStream {
     rx: Arc<Receiver<TxType>>,
-    tx: Arc<SyncSender<TxType>>,
+    tx: Arc<SyncSender<TxTypeInternal>>,
 }
 
 #[derive(Debug)]
@@ -52,14 +52,22 @@ pub enum TxType {
     Binary(Vec<u8>),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum TxTypeInternal {
+    Close,
+    Text(String),
+    Binary(Vec<u8>),
+    Ping,
+    Pong,
+}
+
 impl WebSocketStream {
     /// Create a new WebSocket stream from a Request.
     pub fn from_request(req: &Request) -> io::Result<Self> {
-        dbg!(&req);
         let ws_key = req.headers.get("Sec-WebSocket-Key").unwrap().to_owned();
-        trace!(Level::Debug, "WS Key: {}", ws_key);
+        trace!(Level::Debug, "[WS] Key: {}", ws_key);
         let accept = base64::encode(&sha1::hash((ws_key + WS_GUID).as_bytes()));
-        trace!(Level::Debug, "WS Accept: {}", accept);
+        trace!(Level::Debug, "[WS] Accept: {}", accept);
 
         let mut upgrade = Response::new()
             .status(Status::SwitchingProtocols)
@@ -69,8 +77,8 @@ impl WebSocketStream {
             .header("Sec-WebSocket-Version", "13");
         upgrade.write(req.socket.clone(), &[]).unwrap();
 
-        let (s2c, rx) = mpsc::sync_channel::<TxType>(10);
-        let (_tx, c2s) = mpsc::sync_channel::<TxType>(10);
+        let (s2c, rx) = mpsc::sync_channel::<TxTypeInternal>(10);
+        let (tx, c2s) = mpsc::sync_channel::<TxType>(10);
         let (s2c, c2s) = (Arc::new(s2c), Arc::new(c2s));
         let this_s2c = s2c.clone();
 
@@ -79,17 +87,30 @@ impl WebSocketStream {
         let mut write_socket = socket.try_clone().unwrap();
         drop(socket);
         thread::spawn(move || {
+            // Can frames never be longer than 1024 bytes?
             let mut buf = [0u8; 1024];
             loop {
-                let len = read_socket.read(&mut buf).unwrap();
+                let len = match read_socket.read(&mut buf) {
+                    Ok(l) => l,
+                    Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                    Err(e) => {
+                        trace!(Level::Debug, "[WS] Read error: {}", e);
+                        this_s2c.send(TxTypeInternal::Close).unwrap();
+                        break;
+                    }
+                };
+
                 if len == 0 {
                     break;
                 }
 
-                trace!(Level::Debug, "WS: Received: {:?}", &buf[..len]);
+                trace!(Level::Debug, "[WS] Received: {:?}", &buf[..len]);
                 let frame = match Frame::from_slice(&buf[..len]) {
                     Some(f) => f,
-                    None => continue,
+                    None => {
+                        trace!(Level::Debug, "[WS] Invalid frame");
+                        continue;
+                    }
                 };
 
                 assert_eq!(&buf[..len], &frame.to_bytes()[..]);
@@ -99,7 +120,7 @@ impl WebSocketStream {
                 }
 
                 if frame.rsv != 0 {
-                    trace!(Level::Trace, "WS: Received frame with non-zero RSV bits");
+                    trace!(Level::Trace, "[WS] Received frame with non-zero RSV bits");
                 }
 
                 // 0 = continuation
@@ -109,11 +130,26 @@ impl WebSocketStream {
                 // 9 = ping
                 // 10 = pong
                 match frame.opcode {
-                    0 => {}
-                    1 => {}
-                    2 => {}
-                    8 => this_s2c.send(TxType::Close).unwrap(),
-                    9 => {}
+                    0 => todo!(),
+                    1 => tx
+                        .send(TxType::Text(
+                            String::from_utf8_lossy(&frame.payload).to_string(),
+                        ))
+                        .unwrap(),
+                    2 => tx.send(TxType::Binary(frame.payload)).unwrap(),
+                    8 => {
+                        if frame.payload_len > 0 {
+                            trace!(
+                                Level::Debug,
+                                "[WS] Received close frame with close reason: `{}`",
+                                String::from_utf8_lossy(&frame.payload)
+                            );
+                        } else {
+                            trace!(Level::Debug, "[WS] Received close frame");
+                        }
+                        this_s2c.send(TxTypeInternal::Close).unwrap()
+                    }
+                    9 => this_s2c.send(TxTypeInternal::Pong).unwrap(),
                     10 => {}
                     _ => {}
                 }
@@ -123,15 +159,23 @@ impl WebSocketStream {
         thread::spawn(move || {
             //todo
             for i in rx {
-                trace!(Level::Debug, "WS: Sending {:?}", i);
+                trace!(Level::Debug, "[WS] Sending {:?}", i);
+                let close = i == TxTypeInternal::Close;
                 match i {
-                    TxType::Close => Frame::close(),
-                    TxType::Text(s) => Frame::text(s),
-                    TxType::Binary(b) => Frame::binary(b),
+                    TxTypeInternal::Close => Frame::close(),
+                    TxTypeInternal::Text(s) => Frame::text(s),
+                    TxTypeInternal::Binary(b) => Frame::binary(b),
+                    TxTypeInternal::Ping => todo!(),
+                    TxTypeInternal::Pong => todo!(),
                 }
                 .write(&mut write_socket)
                 .unwrap();
-                trace!(Level::Debug, "WS: Sent :p");
+                trace!(Level::Debug, "[WS] Sent :p");
+
+                if close {
+                    let _ = write_socket.shutdown(Shutdown::Both);
+                    break;
+                }
             }
         });
 
@@ -140,12 +184,12 @@ impl WebSocketStream {
 
     /// Sends 'text' data to the client.
     pub fn send(&self, data: impl Display) {
-        self.tx.send(TxType::Text(data.to_string())).unwrap();
+        self.tx.send(TxType::Text(data.to_string()).into()).unwrap();
     }
 
     /// Sends binary data to the client.
     pub fn send_binary(&self, data: Vec<u8>) {
-        self.tx.send(TxType::Binary(data)).unwrap();
+        self.tx.send(TxType::Binary(data).into()).unwrap();
     }
 }
 
@@ -155,6 +199,16 @@ impl<'a> IntoIterator for &'a WebSocketStream {
 
     fn into_iter(self) -> Iter<'a, TxType> {
         self.rx.iter()
+    }
+}
+
+impl Into<TxTypeInternal> for TxType {
+    fn into(self) -> TxTypeInternal {
+        match self {
+            TxType::Close => TxTypeInternal::Close,
+            TxType::Text(s) => TxTypeInternal::Text(s),
+            TxType::Binary(b) => TxTypeInternal::Binary(b),
+        }
     }
 }
 
@@ -177,16 +231,19 @@ impl Frame {
         };
         trace!(
             Level::Debug,
-            "WS: {{ fin: {fin}, rsv: {rsv}, opcode: {opcode}, payload_len: {payload_len}, mask: {mask} }}",
+            "[WS] {{ fin: {fin}, rsv: {rsv}, opcode: {opcode}, payload_len: {payload_len}, mask: {mask} }}",
         );
 
         if payload_len == 0 {
-            trace!(Level::Debug, "WS: Empty payload");
-            return None;
+            trace!(Level::Debug, "[WS] Empty payload");
+            // Are empty payloads not allowed?
+            // return None;
         }
 
         if !mask {
-            trace!(Level::Debug, "WS: No mask");
+            trace!(Level::Debug, "[WS] No mask");
+            // Are unmasked payloads not allowed?
+            // girl i wrote this all so long ago i don't remember
             return None;
         }
 
@@ -196,10 +253,10 @@ impl Frame {
             decoded.push(buf[i + offset + 4] ^ mask[i % 4]);
         }
 
-        trace!(Level::Debug, "WS: Decoded: {:?}", decoded);
+        trace!(Level::Debug, "[WS] Decoded: {:?}", decoded);
         trace!(
             Level::Debug,
-            "WS: Decoded: {:?}",
+            "[WS] Decoded: {:?}",
             String::from_utf8_lossy(&decoded)
         );
 
@@ -262,7 +319,7 @@ impl Frame {
 
     fn write(&self, socket: &mut TcpStream) -> io::Result<()> {
         let buf = self.to_bytes();
-        trace!(Level::Debug, "WS: Writing: {:?}", buf);
+        trace!(Level::Debug, "[WS] Writing: {:?}", buf);
 
         socket.write_all(&buf)?;
         Ok(())

@@ -19,6 +19,7 @@ use afire::{
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
+    web_socket::TxType,
 };
 
 // File to download
@@ -112,7 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     server.route(Method::GET, "/sse", |ctx| {
-        let stream = ctx.req.sse().unwrap();
+        let stream = ctx.req.sse()?;
         stream.set_retry(10_000);
 
         let mut start = 0;
@@ -128,6 +129,28 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         stream.close();
         println!("Closed stream");
+
+        Ok(())
+    });
+
+    server.route(Method::GET, "/ws", |ctx| {
+        ctx.guarantee_will_send();
+        let ws = ctx.req.ws()?;
+        // ws.send("Hello, world!");
+
+        for i in ws.into_iter() {
+            match i {
+                TxType::Close => break,
+                TxType::Text(t) => {
+                    println!("Received: {}", t);
+                    ws.send(format!("Received: {}", t));
+                }
+                TxType::Binary(b) => {
+                    println!("Received: {:?}", b);
+                    ws.send(format!("Received: {:?}", b));
+                }
+            }
+        }
 
         Ok(())
     });
