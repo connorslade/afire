@@ -269,6 +269,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
+    server.route(Method::GET, "/socket", |ctx| {
+        let id = ctx.req.socket.id;
+        ctx.text(format!("Socket #{id}")).send()?;
+        Ok(())
+    });
+
     Test.attach(&mut server);
     Date.attach(&mut server);
     Trace::new().attach(&mut server);

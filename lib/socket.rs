@@ -2,7 +2,7 @@ use std::{
     net::TcpStream,
     ops::Deref,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Mutex, RwLock,
     },
 };
@@ -16,6 +16,8 @@ use crate::{
 pub struct Socket {
     /// The internal TcpStream.
     pub socket: Mutex<TcpStream>,
+    /// A unique identifier that uniquely identifies this socket.
+    pub id: u64,
     /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
     /// This allows for sending a response from another thread, not sure why you would want to do that though.
     pub(crate) barrier: Arc<SingleBarrier>,
@@ -29,8 +31,10 @@ pub struct Socket {
 
 impl Socket {
     pub(crate) fn new(socket: TcpStream) -> Self {
+        static ID: AtomicU64 = AtomicU64::new(0);
         Self {
             socket: Mutex::new(socket),
+            id: ID.fetch_add(1, Ordering::Relaxed),
             barrier: Arc::new(SingleBarrier::new()),
             raw: AtomicBool::new(false),
             flag: RwLock::new(ResponseFlag::None),
