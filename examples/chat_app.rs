@@ -1,5 +1,6 @@
 use std::{
     error::Error,
+    fmt::{self, Debug, Formatter},
     net::Ipv4Addr,
     sync::{
         atomic::{AtomicU64, Ordering},
@@ -25,6 +26,12 @@ struct Client {
     sender: SyncSender<String>,
 }
 
+impl Debug for Client {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Client").field("id", &self.id).finish()
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     set_log_level(Level::Debug);
     let mut server = Server::new(Ipv4Addr::LOCALHOST, 8080)
@@ -39,6 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let client = Client::new(tx);
         let id = client.id;
         ctx.app().add_client(client);
+        println!("{:?}", ctx.app().clients.force_read());
 
         ws_tx.send(format!("[SYSTEM] Your id is {id}. Welcome!"));
 
@@ -46,6 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         thread::spawn(move || {
             for i in rx {
                 if !this_ws_tx.is_open() {
+                    println!("Socket closed - rx");
                     break;
                 }
 
@@ -64,7 +73,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
+        println!("Socket closed - tx");
         ctx.app().remove_client(id);
+        println!("REMOVED");
+        println!("{:?}", ctx.app().clients.force_read());
         let pool_size = ctx.server.thread_pool.threads();
         ctx.server.thread_pool.resize(pool_size.saturating_sub(1));
 
@@ -103,6 +115,7 @@ impl App {
     fn remove_client(&self, id: u64) {
         let mut clients = self.clients.force_write();
         clients.retain(|c| c.id != id);
+        drop(clients);
         self.message(format!("[SYSTEM] {} left", id), id);
     }
 }
@@ -128,11 +141,10 @@ const HTML: &str = r#"
     </form>
 
     <script>
-        var loc = window.location, new_uri;
-        if (loc.protocol === "https:") new_uri = "wss:";
-        else new_uri = "ws:";
-        new_uri += "//" + loc.host;
-        new_uri += loc.pathname + "/api/chat";
+        // Modified From https://stackoverflow.com/questions/10406930
+        let new_uri =
+            location.origin.replace("http://", "ws://").replace("https://", "wss://") +
+            "/api/chat";
 
         const ws = new WebSocket(new_uri);
         const messages = document.querySelector("[messages]");
@@ -141,8 +153,7 @@ const HTML: &str = r#"
 
         let id = null;
         ws.onmessage = (e) => {
-            if (id === null)
-                id = e.data.split(" ")[4].slice(0, -1);
+            if (id === null) id = e.data.split(" ")[4].slice(0, -1);
             const p = document.createElement("p");
             p.innerText = e.data;
             messages.appendChild(p);

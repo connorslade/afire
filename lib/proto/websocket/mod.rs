@@ -21,7 +21,7 @@ use crate::{
         sync::ForceLockMutex,
     },
     trace::LazyFmt,
-    websocket::frame_stack::FrameStack,
+    websocket::{frame::OpCode, frame_stack::FrameStack},
     Context, Error, HeaderType, Request, Response, Status,
 };
 
@@ -35,6 +35,7 @@ mod frame_stack;
 mod split;
 
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const CHANNEL_LENGTH: usize = 10;
 
 /// A WebSocket stream.
 #[derive(Clone)]
@@ -56,12 +57,13 @@ pub enum TxType {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 enum TxTypeInternal {
     Close,
     Text(String),
     Binary(Vec<u8>),
-    Ping,
-    Pong,
+    Ping(Vec<u8>),
+    Pong(Vec<u8>),
 }
 
 impl WebSocketStream {
@@ -82,10 +84,11 @@ impl WebSocketStream {
             .header("Sec-WebSocket-Version", "13");
         // TODO: Get default headers here? somehow?
         upgrade.write(req.socket.clone(), &[])?;
+        trace!(Level::Debug, "[WS] Upgraded socket #{}", req.socket.id);
 
         let open = Arc::new(AtomicBool::new(true));
-        let (s2c, rx) = mpsc::sync_channel::<TxTypeInternal>(10);
-        let (tx, c2s) = mpsc::sync_channel::<TxType>(10);
+        let (s2c, rx) = mpsc::sync_channel::<TxTypeInternal>(CHANNEL_LENGTH);
+        let (tx, c2s) = mpsc::sync_channel::<TxType>(CHANNEL_LENGTH);
         let (s2c, c2s) = (Arc::new(s2c), Arc::new(c2s));
         let this_s2c = s2c.clone();
         let this_open = open.clone();
@@ -111,12 +114,21 @@ impl WebSocketStream {
                 };
 
                 trace!(Level::Debug, "[WS] Read {} bytes", len);
+                buffer.extend_from_slice(&buf[..len]);
+
+                // If read returns 0, the socket has been closed
                 if len == 0 {
+                    this_open.store(false, Ordering::Relaxed);
                     break;
                 }
 
-                buffer.extend_from_slice(&buf[..len]);
-                if len == BUFF_SIZE {
+                // Get the length of the payload and the offset of the payload
+                let Some((payload_len, offset)) = frame::payload_length(&buffer) else {
+                    continue;
+                };
+
+                // Continue reading until we have the entire payload
+                if buffer.len() < offset + 4 + payload_len as usize {
                     continue;
                 }
 
@@ -143,18 +155,15 @@ impl WebSocketStream {
                 // The frame stack is for handling fragmented messages
                 if let Some(frame) = frame_stack.push(frame) {
                     match frame.opcode {
-                        // Continuation
-                        0 => todo!(),
-                        // Text
-                        1 => tx
+                        // Handled by the frame stack
+                        OpCode::Continuation => unreachable!(),
+                        OpCode::Text => tx
                             .send(TxType::Text(
                                 String::from_utf8_lossy(&frame.payload).to_string(),
                             ))
                             .unwrap(),
-                        // Binary
-                        2 => tx.send(TxType::Binary(frame.payload)).unwrap(),
-                        // Close
-                        8 => {
+                        OpCode::Binary => tx.send(TxType::Binary(frame.payload)).unwrap(),
+                        OpCode::Close => {
                             if !frame.payload.is_empty() {
                                 trace!(
                                     Level::Debug,
@@ -167,12 +176,8 @@ impl WebSocketStream {
                             this_open.store(false, Ordering::Relaxed);
                             this_s2c.send(TxTypeInternal::Close).unwrap()
                         }
-                        // Ping
-                        // TODO: Pongs echo the payload of the ping
-                        9 => this_s2c.send(TxTypeInternal::Pong).unwrap(),
-                        // Pong
-                        10 => {}
-                        _ => {}
+                        OpCode::Ping => this_s2c.send(TxTypeInternal::Pong(frame.payload)).unwrap(),
+                        OpCode::Pong => {}
                     }
                 }
             }
@@ -186,8 +191,8 @@ impl WebSocketStream {
                     TxTypeInternal::Close => Frame::close(),
                     TxTypeInternal::Text(s) => Frame::text(s),
                     TxTypeInternal::Binary(b) => Frame::binary(b),
-                    TxTypeInternal::Ping => Frame::ping(),
-                    TxTypeInternal::Pong => Frame::pong(),
+                    TxTypeInternal::Ping(b) => Frame::ping(b),
+                    TxTypeInternal::Pong(b) => Frame::pong(b),
                 }
                 .write(&mut write_socket)
                 .unwrap();

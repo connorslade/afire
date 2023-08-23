@@ -73,3 +73,9 @@ impl Deref for Socket {
         &self.socket
     }
 }
+
+impl Drop for Socket {
+    fn drop(&mut self) {
+        trace!(Level::Debug, "Dropping socket {}", self.id);
+    }
+}

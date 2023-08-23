@@ -1,7 +1,9 @@
-use super::frame::Frame;
+use std::convert::TryInto;
+
+use super::frame::{Frame, OpCode};
 
 pub struct Message {
-    pub opcode: u8,
+    pub opcode: OpCode,
     pub payload: Vec<u8>,
 }
 
@@ -29,7 +31,7 @@ impl FrameStack {
                 payload.extend_from_slice(&frame.payload);
             }
             Some(Message {
-                opcode: self.frames[0].opcode,
+                opcode: self.frames[0].opcode.try_into().ok()?,
                 payload,
             })
         }
@@ -39,7 +41,7 @@ impl FrameStack {
 impl From<Frame> for Message {
     fn from(value: Frame) -> Self {
         Message {
-            opcode: value.opcode,
+            opcode: value.opcode.try_into().unwrap(),
             payload: value.payload,
         }
     }

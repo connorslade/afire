@@ -37,6 +37,12 @@ Coming Soon
   This will ensure that a worker will not die, even if internal afire code panics.
 - Use an Arc instead of a Rc for `HandleError::Panic`
 - Add `with_response` function on Context to overwrite the response.
+- Finish implementing Websockets. :tada:
+- Add chat app example application.
+- Rename `Server::start` to `Server::run` to emphasize that it blocks.
+- Pass `Arguments` to trace formatters instead of a String.
+  This can be more efficient if the formatter decides not to format the trace.
+- Attach a unique ID to each socket.
 
 # 2.2.1
 

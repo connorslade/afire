@@ -1,5 +1,5 @@
 use std::{
-    convert::TryInto,
+    convert::{TryFrom, TryInto},
     io::{self, Write},
     net::TcpStream,
 };
@@ -8,6 +8,7 @@ use crate::trace::LazyFmt;
 
 use super::xor_mask;
 
+/// ## Frame Layout
 /// ```plain
 ///  0                   1                   2                   3
 ///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -40,6 +41,16 @@ pub struct Frame {
     pub payload: Vec<u8>,
 }
 
+#[repr(u8)]
+pub enum OpCode {
+    Continuation = 0,
+    Text = 1,
+    Binary = 2,
+    Close = 8,
+    Ping = 9,
+    Pong = 10,
+}
+
 impl Frame {
     pub fn from_slice(buf: &[u8]) -> Option<Self> {
         let fin = buf[0] & 0b1000_0000 != 0;
@@ -47,16 +58,7 @@ impl Frame {
 
         let mask = buf[1] & 0b1000_0000 != 0;
         let opcode = buf[0] & 0b0000_1111;
-        let (payload_len, offset) = match buf[1] as u64 & 0b0111_1111 {
-            126 => (u16::from_be_bytes([buf[2], buf[3]]) as u64, 4),
-            127 => (
-                u64::from_be_bytes([
-                    buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9],
-                ]),
-                10,
-            ),
-            i => (i, 2),
-        };
+        let (payload_len, offset) = payload_length(buf)?;
 
         trace!(
             Level::Debug,
@@ -168,25 +170,25 @@ impl Frame {
         }
     }
 
-    pub fn ping() -> Self {
+    pub fn ping(binary: Vec<u8>) -> Self {
         Self {
             fin: true,
             rsv: 0,
             opcode: 9,
             payload_len: 0,
             mask: None,
-            payload: Vec::new(),
+            payload: binary,
         }
     }
 
-    pub fn pong() -> Self {
+    pub fn pong(binary: Vec<u8>) -> Self {
         Self {
             fin: true,
             rsv: 0,
             opcode: 10,
             payload_len: 0,
             mask: None,
-            payload: Vec::new(),
+            payload: binary,
         }
     }
 
@@ -201,4 +203,59 @@ impl Frame {
     pub fn _rsv3(&self) -> bool {
         self.rsv & 0b001 != 0
     }
+}
+
+impl From<OpCode> for u8 {
+    fn from(opcode: OpCode) -> Self {
+        opcode as u8
+    }
+}
+
+impl TryFrom<u8> for OpCode {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => OpCode::Continuation,
+            1 => OpCode::Text,
+            2 => OpCode::Binary,
+            8 => OpCode::Close,
+            9 => OpCode::Ping,
+            10 => OpCode::Pong,
+            _ => return Err(()),
+        })
+    }
+}
+
+/// Returns (payload_len, offset).
+/// If not enough bytes are available, returns None.
+pub fn payload_length(buf: &[u8]) -> Option<(u64, usize)> {
+    if buf.len() < 2 {
+        return None;
+    }
+
+    let (payload_len, offset) = match buf[1] as u64 & 0b0111_1111 {
+        126 => {
+            if buf.len() < 4 {
+                return None;
+            }
+
+            (u16::from_be_bytes([buf[2], buf[3]]) as u64, 4)
+        }
+        127 => {
+            if buf.len() < 10 {
+                return None;
+            }
+
+            (
+                u64::from_be_bytes([
+                    buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9],
+                ]),
+                10,
+            )
+        }
+        i => (i, 2),
+    };
+
+    Some((payload_len, offset))
 }
