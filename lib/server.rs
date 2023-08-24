@@ -15,10 +15,10 @@ use crate::{
     handle::handle,
     header::Headers,
     internal::misc::ToHostAddress,
+    route::Route,
     thread_pool::ThreadPool,
     trace::emoji,
-    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Route, Status,
-    VERSION,
+    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Status, VERSION,
 };
 
 type ErrorHandler<State> =

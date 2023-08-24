@@ -119,14 +119,12 @@ impl Query {
         for i in parts {
             let mut sub = i.splitn(2, '=');
 
-            let key = match sub.next() {
-                Some(i) => url::decode(i).unwrap_or_else(|| i.to_owned()),
-                None => continue,
+            let Some(key) = sub.next().map(|i| url::decode(i).unwrap_or_else(|| i.to_owned())) else {
+                continue;
             };
 
-            let value = match sub.next() {
-                Some(i) => url::decode(i).unwrap_or_else(|| i.to_owned()),
-                None => continue,
+            let Some(value) = sub.next().map(|i| url::decode(i).unwrap_or_else(|| i.to_owned())) else {
+                continue;
             };
 
             data.push([key, value])

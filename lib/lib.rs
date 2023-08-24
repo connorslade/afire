@@ -47,7 +47,6 @@ pub use self::{
     query::Query,
     request::Request,
     response::Response,
-    route::Route,
     server::Server,
     status::Status,
 };

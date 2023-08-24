@@ -1,4 +1,46 @@
-//! Basic built-in logging system
+//! This is afire's built-in logging system.
+//! Enabled with the `tracing` feature (enabled by default).
+//! The default log level is [`Level::Error`].
+//!
+//! It's used for both logging helpful information during startup, and for helping me debug afire (set log level to Debug and use websockets to [see what I mean](https://i.imgur.com/fJV6UYx.png) :sob:).
+//! You can make use of the logger through the [`trace!`] macro in your own code.
+//!
+//! Because the logger is used all over the place internally, it would not be practical to allow customizing it per server, so all configuration is global.
+//! There are three settings that can be configured: the log level, whether or not to colorize the log output, and the log formatter.
+//! The log formatter is the most powerful of these, and can be used to do anything from redirecting the log output to a file, to passing it to another logging system (check [this](https://github.com/rcsc/amplitude/blob/48570f3df7280efc6058dcf462bb09f1a7f5e235/amplitude/src/logger.rs) out to see afire's logs redirected to the [tracing](http://crates.io/crates/tracing) crate).
+//!
+//! ## Example
+//! ```
+//! # use afire::{
+//! #     trace,
+//! #     trace::{set_log_color, set_log_formatter, set_log_level, Formatter, Level},
+//! # };
+//! fn main() {
+//!     // Set the log level to trace at the start of the program.
+//!     set_log_level(Level::Trace);
+//!
+//!     // Set the global log formatter to our custom formatter.
+//!     set_log_formatter(MyFormatter);
+//!
+//!     // Disable colorized log output.
+//!     set_log_color(false);
+//!
+//!     // Use the trace! macro to log some stuff.
+//!     trace!(Level::Trace, "Hello, world!");
+//!     trace!(Level::Error, "Buffer: {:?}", [1, 2, 3, 4]);
+//!
+//!     let world = "World!";
+//!     trace!(Level::Debug, "Hello {world}");
+//! }
+//!
+//! struct MyFormatter;
+//!
+//! impl Formatter for MyFormatter {
+//!     fn format(&self, level: Level, _color: bool, msg: std::fmt::Arguments) {
+//!         println!("{}: {}", level, msg);
+//!     }
+//! }
+//! ```
 
 use std::{
     fmt::{self, Arguments, Debug, Display},
@@ -22,7 +64,7 @@ static FORMATTER_PRESENT: AtomicBool = AtomicBool::new(false);
 
 /// Log levels.
 /// Used to control the verbosity of afire's internal logging.
-/// The default log level is [`Level::Off`].
+/// The default log level is [`Level::Error`].
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
 pub enum Level {
@@ -124,14 +166,22 @@ macro_rules! trace {
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::$level, format_args!($($arg)+));
     };
-    ($($arg : tt) +) => {
+    ($($arg: tt) +) => {
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::Trace, format_args!($($arg)+));
     };
 }
 
-/// A wrapper for [`Display`] types that only evaluates the inner value when it is actually used.
-/// This is useful built-in debug logging, as it allows you to avoid the overhead of formatting the message if it is not going to be logged.
+/// A wrapper for [`Display`] or [`Debug`] types that only evaluates the inner value when it is actually used.
+/// This is useful built-in debug logging, as it allows you to avoid the overhead of formatting the message if it is not going to be logged (due to log level, or custom formatter).
+/// ## Example
+/// ```
+/// # use afire::{trace, trace::LazyFmt};
+/// let buffer = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, /* ... */];
+/// // Calling `from_utf8_lossy` on large buffers unnecessarily is very expensive.
+/// // Using `LazyFmt` allows us to avoid this overhead if the message is not going to be logged.
+/// trace!(Level::Debug, "Buffer: {}", LazyFmt(|| String::from_utf8_lossy(&buffer)));
+///
 pub struct LazyFmt<T, F: Fn() -> T>(pub F);
 
 impl<T: Display, F: Fn() -> T> Display for LazyFmt<T, F> {
@@ -158,16 +208,14 @@ pub trait Formatter {
 /// The default log formatter.
 /// afire will use this if no custom formatter is set.
 ///
-/// Prints logs to stdout in the following format:
+/// Prints logs to stdout in the following format with ansi colorization (unless disabled).
 /// ```text
 /// [LEVEL] MESSAGE
 /// ```
 pub struct DefaultFormatter;
 
 impl Formatter for DefaultFormatter {
-    fn format(&self, level: Level, _color: bool, msg: Arguments) {
-        let color = COLOR.load(Ordering::Relaxed);
-
+    fn format(&self, level: Level, color: bool, msg: Arguments) {
         println!(
             "[{}] {}{}{}",
             level.as_str(),

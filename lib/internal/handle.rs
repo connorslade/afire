@@ -220,7 +220,6 @@ where
             ParseError::NoPath => "No path",
             ParseError::NoVersion => "No HTTP version",
             ParseError::NoRequestLine => "No request line",
-            ParseError::InvalidQuery => "Invalid query",
             ParseError::InvalidHeader => "Invalid header",
             ParseError::InvalidMethod => "Invalid method",
             ParseError::NoHostHeader => "No Host header",

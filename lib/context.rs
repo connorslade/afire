@@ -69,11 +69,46 @@ impl<State: 'static + Send + Sync> Context<State> {
 
     /// Gets a path parameter.
     /// If the parameter does not exist, it **will panic**.
+    /// Because any path parameters are guaranteed to exist if the route matches, there is no need to be able to check if a parameter exists.
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/greet/{name}", |ctx| {
+    ///     let name = ctx.param("name");
+    ///     ctx.text(format!("Hello, {}!", name)).send()?;
+    ///     Ok(())
+    /// });
+    /// # }
     pub fn param(&self, name: impl AsRef<str>) -> &String {
         self.path_params.get(name.as_ref()).unwrap()
     }
 
     /// Sends the response to the client.
+    /// This method must not be called more than once per request.
+    ///
+    /// ### Returning without sending a response
+    ///
+    /// If you return from the handler without sending a response, either because you forgot or because you are sending the response asynchronously from another thread, the server will by default send a 501 Not Implemented response.
+    /// If you want to allow doing this, you can use [`Context::guarantee_will_send`] to signal to the server that you *will* send the response.
+    /// This will cause the server to wait until the response is sent before looking for another another request.
+    ///
+    /// ### Sending multiple responses
+    ///
+    /// If you send multiple responses for a single request, all but the first will be ignored and log a warning with the [`Error` log level][`crate::trace::Level`].
+    ///
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     ctx.text("Hello World!").send()?;
+    ///    Ok(())
+    /// });
+    ///
+    /// // A more compact way to send a response.
+    /// server.route(Method::GET, "/", |ctx| Ok(ctx.text("Hello World!").send()?));
+    /// # }
     pub fn send(&self) -> Result<()> {
         if self.flags.get(ContextFlag::ResponseSent) {
             return Err(HandleError::ResponseAlreadySent.into());
@@ -124,6 +159,22 @@ impl<State: 'static + Send + Sync> Context<State> {
     }
 }
 
+/// Response building methods.
+/// These methods are the same as the ones on [`Response`], but they just mutate the internal response of the context.
+/// Don't forget to call [`Context::send`] once you are done building the response.
+/// ## Example
+/// ```
+/// # use afire::prelude::*;
+/// # fn test(server: &mut Server) {
+/// server.route(Method::GET, "/", |ctx| {
+///     // Because the internal response is mutated,
+///     // the sent response will have the "X-Test" header.
+///     ctx.header("X-Test", "Test");
+///     ctx.text("Hello World!").send()?;
+///     Ok(())
+/// });
+/// # }
+/// ```
 impl<State: 'static + Send + Sync> Context<State> {
     // TODO: Maybe rename this?
     /// Overwrites the response with a new one.
@@ -232,14 +283,17 @@ impl<State: 'static + Send + Sync> Context<State> {
 }
 
 impl ContextFlags {
+    /// Create a new ContextFlags with no flags set.
     fn new() -> Self {
         Self(AtomicU8::new(0))
     }
 
+    /// Get the value of a flag.
     pub(crate) fn get(&self, flag: ContextFlag) -> bool {
         self.0.load(Ordering::Relaxed) & flag as u8 != 0
     }
 
+    /// Set a flag to true.
     fn set(&self, flag: ContextFlag) {
         self.0.fetch_or(flag as u8, Ordering::Relaxed);
     }
