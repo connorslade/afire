@@ -15,6 +15,7 @@ use std::{
 
 use crate::{
     consts::BUFF_SIZE,
+    context::ContextFlag,
     error::Result,
     internal::{
         encoding::{base64, sha1},
@@ -38,10 +39,9 @@ const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 const CHANNEL_LENGTH: usize = 10;
 
 /// A WebSocket stream.
-#[derive(Clone)]
 pub struct WebSocketStream {
-    rx: Arc<Receiver<TxType>>,
-    tx: Arc<SyncSender<TxTypeInternal>>,
+    rx: Receiver<TxType>,
+    tx: SyncSender<TxTypeInternal>,
     open: Arc<AtomicBool>,
 }
 
@@ -89,7 +89,6 @@ impl WebSocketStream {
         let open = Arc::new(AtomicBool::new(true));
         let (s2c, rx) = mpsc::sync_channel::<TxTypeInternal>(CHANNEL_LENGTH);
         let (tx, c2s) = mpsc::sync_channel::<TxType>(CHANNEL_LENGTH);
-        let (s2c, c2s) = (Arc::new(s2c), Arc::new(c2s));
         let this_s2c = s2c.clone();
         let this_open = open.clone();
 
@@ -216,11 +215,11 @@ impl WebSocketStream {
     pub fn split(self) -> (WebSocketStreamSender, WebSocketStreamReceiver) {
         (
             WebSocketStreamSender {
-                tx: self.tx.clone(),
+                tx: self.tx,
                 open: self.open.clone(),
             },
             WebSocketStreamReceiver {
-                rx: self.rx.clone(),
+                rx: self.rx,
                 open: self.open,
             },
         )
@@ -269,6 +268,10 @@ pub trait WebSocketExt {
 
 impl<T: Send + Sync> WebSocketExt for Context<T> {
     fn ws(&self) -> Result<WebSocketStream> {
+        if self.flags.get(ContextFlag::ResponseSent) {
+            return Err(Error::Io("Response already sent.".to_owned()));
+        }
+
         self.req.ws()
     }
 }
@@ -283,9 +286,9 @@ impl WebSocketExt for Request {
 fn xor_mask(mask: &[u8], data: &[u8]) -> Vec<u8> {
     debug_assert_eq!(mask.len(), 4);
 
-    let mut decoded = Vec::with_capacity(data.len());
-    for (i, byte) in data.iter().enumerate() {
-        decoded.push(byte ^ mask[i % 4]);
+    let mut decoded = data.to_vec();
+    for (i, byte) in decoded.iter_mut().enumerate() {
+        *byte ^= mask[i % 4]
     }
 
     decoded

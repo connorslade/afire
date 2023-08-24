@@ -2,7 +2,7 @@ use std::{
     fmt::Display,
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::{Iter, Receiver, SyncSender},
+        mpsc::{Iter, Receiver, RecvError, SyncSender, TryRecvError},
         Arc,
     },
 };
@@ -13,15 +13,14 @@ use super::{TxType, TxTypeInternal};
 /// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
 #[derive(Clone)]
 pub struct WebSocketStreamSender {
-    pub(super) tx: Arc<SyncSender<TxTypeInternal>>,
+    pub(super) tx: SyncSender<TxTypeInternal>,
     pub(super) open: Arc<AtomicBool>,
 }
 
 /// The receiver half of a WebSocket stream.
 /// Created by calling [`WebSocketStream::split`] on a [`WebSocketStream`].
-#[derive(Clone)]
 pub struct WebSocketStreamReceiver {
-    pub(super) rx: Arc<Receiver<TxType>>,
+    pub(super) rx: Receiver<TxType>,
     pub(super) open: Arc<AtomicBool>,
 }
 
@@ -46,6 +45,14 @@ impl WebSocketStreamReceiver {
     /// Returns whether the WebSocket stream is open.
     pub fn is_open(&self) -> bool {
         self.open.load(Ordering::Relaxed)
+    }
+
+    pub fn recv(&self) -> Result<TxType, RecvError> {
+        self.rx.recv()
+    }
+
+    pub fn try_recv(&self) -> Result<TxType, TryRecvError> {
+        self.rx.try_recv()
     }
 }
 

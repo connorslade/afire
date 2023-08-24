@@ -137,6 +137,26 @@ impl ThreadPool {
         workers.retain(|worker| !worker.is_dead());
         self.threads.store(size, Ordering::Relaxed);
     }
+
+    pub fn increase(&self) {
+        trace!(Level::Debug, "Increasing thread pool size by 1");
+        let mut workers = self.workers.force_lock();
+        let id = self.worker_id.fetch_add(1, Ordering::Relaxed);
+        workers.push(Worker::new(id, self.receiver.clone()));
+        self.threads.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn decrease(&self) {
+        trace!(Level::Debug, "Decreasing thread pool size by 1");
+        let sender = self.sender.force_lock();
+        let barrier = Arc::new(Barrier::new(2));
+        sender.send(Message::KillWait(barrier.clone())).unwrap();
+        barrier.wait();
+
+        let mut workers = self.workers.force_lock();
+        workers.retain(|worker| !worker.is_dead());
+        self.threads.fetch_sub(1, Ordering::Relaxed);
+    }
 }
 
 impl Worker {

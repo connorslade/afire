@@ -16,7 +16,7 @@ static COLOR: AtomicBool = AtomicBool::new(true);
 /// Will use [`DefaultFormatter`] if none is set.
 static FORMATTER: RwLock<Option<Box<dyn Formatter + Send + Sync + 'static>>> = RwLock::new(None);
 /// Whether or not a formatter has been set.
-/// Used because loading a bool is faster than a RwLock.
+/// Used because loading an atomic bool is faster than a RwLock.
 /// This is always loaded before the RwLock to improve performance when using the default formatter.
 static FORMATTER_PRESENT: AtomicBool = AtomicBool::new(false);
 
