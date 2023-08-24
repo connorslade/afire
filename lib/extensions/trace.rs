@@ -4,6 +4,7 @@ use crate::{
 };
 
 /// Adds support for the [HTTP TRACE](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/TRACE) method.
+///
 /// It echos the request (Status line + Headers) back to the client as the response body.
 /// The `Cookie` header is excluded by default because it could contain sensitive information.
 /// Read more about it in [RFC-9110](https://www.rfc-editor.org/rfc/rfc9110#TRACE).

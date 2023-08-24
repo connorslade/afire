@@ -6,7 +6,7 @@ use std::io::{self, prelude::*};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use crate::{extension::RealIp, HeaderType, Middleware, Request, Response};
+use crate::{extensions::RealIp, HeaderType, Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::logger::{Logger, Level};
+    /// use afire::extensions::logger::{Logger, Level};
     ///
     /// // Create a new logger
     /// let logger = Logger::new();
@@ -69,7 +69,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::logger::{Logger, Level};
+    /// use afire::extensions::logger::{Logger, Level};
     ///
     /// // Create a new logger
     /// let logger = Logger::new()
@@ -79,7 +79,7 @@ impl Logger {
         Self { level, ..self }
     }
 
-    /// Uses the [`crate::extension::RealIp`] extension for log IPs.
+    /// Uses the [`crate::extensions::RealIp`] extension for log IPs.
     /// You will need to supply the header that will contain the IP address, for example the [X-Forwarded-For header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) ([`HeaderType::XForwardedFor`])
     ///
     /// **Warning**: Make sure your reverse proxy is overwriting the specified header on the incoming requests so clients cant spoof their original Ips.
@@ -94,7 +94,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::logger::{Logger, Level};
+    /// use afire::extensions::logger::{Logger, Level};
     ///
     /// // Create a new logger and enable logging to file
     /// # fn run() {
@@ -119,7 +119,7 @@ impl Logger {
     /// ## Example
     /// ```rust
     /// // Import Lib
-    /// use afire::extension::logger::{Logger, Level};
+    /// use afire::extensions::logger::{Logger, Level};
     ///
     /// // Create a new logger and enable console
     /// let logger = Logger::new()

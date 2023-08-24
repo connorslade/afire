@@ -1,4 +1,4 @@
-use afire::{extension::RateLimiter, Content, Method, Middleware, Response, Server, Status};
+use afire::{extensions::RateLimiter, Content, Method, Middleware, Response, Server, Status};
 
 use crate::Example;
 

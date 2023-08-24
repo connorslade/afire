@@ -340,7 +340,7 @@ impl Default for Response {
 impl ResponseBody {
     /// Checks if the ResponseBody is static.
     fn is_static(&self) -> bool {
-        matches!(self, ResponseBody::Static(_))
+        matches!(self, ResponseBody::Static(_) | ResponseBody::Empty)
     }
 
     /// Gets the content length header of a static ResponseBody.
@@ -348,6 +348,7 @@ impl ResponseBody {
     fn content_len(&self) -> Header {
         let len = match self {
             ResponseBody::Static(data) => data.len(),
+            ResponseBody::Empty => 0,
             _ => unreachable!("Can't get content length of a stream"),
         };
         Header::new("Content-Length", len.to_string())

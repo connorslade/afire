@@ -12,7 +12,7 @@ use std::{
 };
 
 use afire::{
-    extension::{Date, Head, Logger, ServeStatic, Trace},
+    extensions::{Date, Head, Logger, RedirectResponse, RouteShorthands, ServeStatic, Trace},
     internal::sync::{ForceLockMutex, ForceLockRwLock},
     multipart::MultipartData,
     prelude::*,
@@ -32,6 +32,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
+
+    server.get("/yt/{id}", |ctx| {
+        let id = ctx.param("id");
+        ctx.redirect(format!("https://youtube.com/watch?v={id}"))
+            .send()?;
+        Ok(())
+    });
 
     server.route(Method::POST, "/upload", |ctx| {
         let content_type = ctx

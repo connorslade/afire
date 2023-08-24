@@ -1,5 +1,5 @@
 use afire::{
-    extension::logger::{Level, Logger},
+    extensions::logger::{Level, Logger},
     Content, HeaderType, Method, Middleware, Response, Server,
 };
 

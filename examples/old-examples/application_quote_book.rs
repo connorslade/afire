@@ -13,7 +13,7 @@ use std::{
 };
 
 use afire::{
-    extension::date::imp_date,
+    extensions::date::imp_date,
     internal::encoding::url,
     trace,
     trace::{set_log_level, Level},

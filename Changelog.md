@@ -44,6 +44,11 @@ Coming Soon
   This can be more efficient if the formatter decides not to format the trace.
 - Attach a unique ID to each socket.
 - Disallow [forbidden headers](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) as default headers.
+- Rename `extension` module to `extensions`.
+- Added a RouteShorthand extension.
+  It allows you to use `server.get(...)` instead of `server.route(Method::GET, ...)`.
+- Added Redirect shorthand extension.
+  It allows you to use `ctx.redirect("...")` instead of `ctx.status(Status::Found).header(HeaderType::Location, "...")`.
 
 # 2.2.1
 

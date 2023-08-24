@@ -5,7 +5,7 @@
 //! # use std::{thread, time::Duration};
 //! # fn run(server: &mut Server) {
 //! server.route(Method::GET, "/sse", |ctx| {
-//!     let stream = ctx.req.sse().unwrap();
+//!     let stream = ctx.sse()?;
 //!
 //!     for i in 0..10 {
 //!         stream.send("update", i.to_string());

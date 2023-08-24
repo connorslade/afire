@@ -12,7 +12,7 @@ pub trait RealIp {
     /// Uses [`RealIp::real_ip_header`] with the ["X-Forwarded-For"](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) header.
     /// ## Example
     /// ```rust
-    /// use afire::extension::RealIp;
+    /// use afire::extensions::RealIp;
     /// # use afire::{Server, Method, Response};
     ///
     /// # fn test(server: &mut Server) {

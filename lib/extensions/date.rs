@@ -17,7 +17,7 @@ const MONTHS: [&str; 12] = [
 ///
 /// ## Example
 /// ```rust
-/// # use afire::{extension::Date, Middleware};
+/// # use afire::{extensions::Date, Middleware};
 /// # fn add(mut server: afire::Server) {
 /// Date.attach(&mut server);
 /// # }

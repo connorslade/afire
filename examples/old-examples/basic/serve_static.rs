@@ -19,7 +19,7 @@ impl Example for ServeStatic {
         let mut server = Server::<()>::new("localhost", 8080);
 
         // Make a new static file server with a path
-        extension::ServeStatic::new(STATIC_DIR)
+        extensions::ServeStatic::new(STATIC_DIR)
             // The middleware priority is by most recently defined.
             // The middleware function takes 3 parameters: the request, the response, and weather the file was loaded successfully.
             // In your middleware you can modify the response and the bool.

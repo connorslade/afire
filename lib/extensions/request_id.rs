@@ -21,7 +21,7 @@ impl RequestId {
     /// ## Example
     /// ```rust,no_run
     /// // Import Lib
-    /// use afire::{Server, Middleware, extension::RequestId};
+    /// use afire::{Server, Middleware, extensions::RequestId};
     ///
     /// // Create Server & RequestId Middleware
     /// let mut server = Server::<()>::new("localhost", 8080);

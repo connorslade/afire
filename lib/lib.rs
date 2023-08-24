@@ -66,30 +66,36 @@ pub mod prelude {
 
 // Extra Features
 #[cfg(feature = "extensions")]
-mod extensions;
+#[path = "extensions/mod.rs"]
+mod _extensions;
+
 #[cfg(feature = "extensions")]
-pub mod extension {
+pub mod extensions {
     //! Useful extensions to the base afire.
     //! Includes helpful middleware like Serve Static, Rate Limit and Logger.
     //!
     //! ## All Feature
-    //! | Name            | Description                                           |
-    //! | --------------- | ----------------------------------------------------- |
-    //! | [`Date`]        | Add the Date header to responses. Required by HTTP.   |
-    //! | [`Head`]        | Add support for HTTP `HEAD` requests.                 |
-    //! | [`Logger`]      | Log incoming requests to the console / file.          |
-    //! | [`RateLimiter`] | Limit how many requests can be handled from a source. |
-    //! | [`RealIp`]      | Get the real IP of a client through a reverse proxy   |
-    //! | [`RequestId`]   | Add a Request-Id header to all requests.              |
-    //! | [`ServeStatic`] | Serve static files from a dir.                        |
-    //! | [`Trace`]       | Add support for the HTTP `TRACE` method.              |
-    pub use crate::extensions::{
+    //! | Name                 | Description                                           |
+    //! | -------------------- | ----------------------------------------------------- |
+    //! | [`Date`]             | Add the Date header to responses. Required by HTTP.   |
+    //! | [`Head`]             | Add support for HTTP `HEAD` requests.                 |
+    //! | [`Logger`]           | Log incoming requests to the console / file.          |
+    //! | [`RateLimiter`]      | Limit how many requests can be handled from a source. |
+    //! | [`RealIp`]           | Get the real IP of a client through a reverse proxy   |
+    //! | [`RedirectResponse`] | Shorthands for HTTP redirects.                        |
+    //! | [`RequestId`]        | Add a Request-Id header to all requests.              |
+    //! | [`RouteShorthands`]  | Shorthands for defining routes (`server.get(...)`).   |
+    //! | [`ServeStatic`]      | Serve static files from a dir.                        |
+    //! | [`Trace`]            | Add support for the HTTP `TRACE` method.              |
+    pub use crate::_extensions::{
         date::{self, Date},
         head::Head,
         logger::{self, Logger},
         ratelimit::RateLimiter,
         real_ip::RealIp,
+        redirect::{self, RedirectResponse, RedirectType},
         request_id::RequestId,
+        route_shorthands::RouteShorthands,
         serve_static::{self, ServeStatic},
         trace::Trace,
     };
