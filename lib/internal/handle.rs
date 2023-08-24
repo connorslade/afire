@@ -221,6 +221,6 @@ where
                 (server.error_handler)(server.state.clone(), r, e.to_owned())
             }
         },
-        Error::Io(e) => Response::new().status(500).text(e),
+        Error::Io(e) | Error::Misc(e) => Response::new().status(500).text(e),
     }
 }

@@ -31,6 +31,9 @@ pub enum Error {
     /// IO Errors
     Io(String),
 
+    /// Miscellaneous errors
+    Misc(String),
+
     /// Response does not exist (probably because of an error with the request)
     None,
 }
@@ -98,7 +101,14 @@ pub enum StreamError {
     UnexpectedEof,
 }
 
+impl Error {
+    pub fn bail<T>(msg: impl Into<String>) -> Result<T> {
+        Err(Error::Misc(msg.into()))
+    }
+}
+
 impl error::Error for Error {}
+
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -107,6 +117,7 @@ impl Display for Error {
             Error::Stream(e) => fmt::Display::fmt(e, f),
             Error::Parse(e) => fmt::Display::fmt(e, f),
             Error::Io(e) => f.write_str(e),
+            Error::Misc(e) => f.write_str(e),
             Error::None => f.write_str("None"),
         }
     }

@@ -1,6 +1,5 @@
 use std::{
     error::Error,
-    fmt::{self, Debug, Formatter},
     net::Ipv4Addr,
     sync::{
         atomic::{AtomicU64, Ordering},
@@ -26,35 +25,38 @@ struct Client {
     sender: SyncSender<String>,
 }
 
-impl Debug for Client {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Client").field("id", &self.id).finish()
-    }
-}
-
+// Instead of using `Result<(), Box<dyn Error>>` you should use anyhow::Result
 fn main() -> Result<(), Box<dyn Error>> {
-    set_log_level(Level::Debug);
+    set_log_level(Level::Trace);
+
+    // Create a server on ivp4 localhost port 8080 with 4 workers
     let mut server = Server::new(Ipv4Addr::LOCALHOST, 8080)
         .state(App::new())
-        .workers(8);
+        .workers(4);
 
+    // Root route to serve the client html + js
     server.route(Method::GET, "/", |ctx| Ok(ctx.text(HTML).send()?));
+
+    // Websocket route to handle chat
     server.route(Method::GET, "/api/chat", |ctx| {
+        // Convert the socket to a websocket. This automatically performs the handshake.
+        // We then call `split` to separate the websocket stream into a sender and receiver.
         let (ws_tx, ws_rx) = ctx.ws()?.split();
         let (tx, rx) = sync_channel(10);
 
+        // Create a client with a channel to send messages to the websocket and add it to the app
         let client = Client::new(tx);
         let id = client.id;
         ctx.app().add_client(client);
-        println!("{:?}", ctx.app().clients.force_read());
 
+        // Send a welcome message with the client's id
         ws_tx.send(format!("[SYSTEM] Your id is {id}. Welcome!"));
 
+        // Proxy messages from the channel to the websocket
         let this_ws_tx = ws_tx.clone();
         thread::spawn(move || {
             for i in rx {
                 if !this_ws_tx.is_open() {
-                    println!("Socket closed - rx");
                     break;
                 }
 
@@ -62,34 +64,27 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         });
 
-        let pool_size = ctx.server.thread_pool.threads();
-        ctx.server.thread_pool.resize(pool_size.saturating_add(1));
-
-        for i in ws_rx.into_iter() {
-            match i {
-                TxType::Close => break,
-                TxType::Binary(_) => ws_tx.send("[SYSTEM] Binary is not supported"),
-                TxType::Text(t) => ctx.app().message(format!("[{id}] {t}"), id),
+        // Proxy messages from the websocket to the channel to be sent to other clients
+        let app = ctx.app();
+        thread::spawn(move || {
+            for i in ws_rx.into_iter() {
+                match i {
+                    TxType::Close => break,
+                    TxType::Binary(_) => ws_tx.send("[SYSTEM] Binary is not supported"),
+                    TxType::Text(t) => app.message(format!("[{id}] {t}"), id),
+                }
             }
-        }
 
-        println!("Socket closed - tx");
-        ctx.app().remove_client(id);
-        println!("REMOVED");
-        println!("{:?}", ctx.app().clients.force_read());
-        let pool_size = ctx.server.thread_pool.threads();
-        ctx.server.thread_pool.resize(pool_size.saturating_sub(1));
+            // If the socket is closed
+            app.remove_client(id);
+        });
 
         Ok(())
     });
 
+    // Start the server
     server.run()?;
     Ok(())
-}
-
-fn new_id() -> u64 {
-    static ID: AtomicU64 = AtomicU64::new(0);
-    ID.fetch_add(1, Ordering::Relaxed)
 }
 
 impl App {
@@ -122,8 +117,10 @@ impl App {
 
 impl Client {
     fn new(sender: SyncSender<String>) -> Self {
+        static ID: AtomicU64 = AtomicU64::new(0);
+
         Self {
-            id: new_id(),
+            id: ID.fetch_add(1, Ordering::Relaxed),
             sender,
         }
     }
@@ -169,5 +166,4 @@ const HTML: &str = r#"
         };
     </script>
 </body>
-</html>
-"#;
+</html>"#;
