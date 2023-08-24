@@ -1,4 +1,4 @@
-//! Some little functions used here and there
+//! Some little functions used here and there.
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 

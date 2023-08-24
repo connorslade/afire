@@ -44,7 +44,7 @@ impl Middleware for ServeStatic {
         };
 
         let path = match res {
-            Err(Error::Handle(e)) => match &**e {
+            Err(Error::Handle(e)) => match &*e {
                 HandleError::NotFound(_, i) => i,
                 _ => return MiddleResult::Continue,
             },

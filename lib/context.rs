@@ -10,8 +10,10 @@ use std::{
 };
 
 use crate::{
-    error::Result, internal::sync::ForceLockMutex, response::ResponseBody, Content, Header,
-    HeaderType, Request, Response, Server, SetCookie, Status,
+    error::{HandleError, Result},
+    internal::sync::ForceLockMutex,
+    response::ResponseBody,
+    Content, Header, HeaderType, Request, Response, Server, SetCookie, Status,
 };
 
 /// A collection of data important for handling a request.
@@ -73,6 +75,10 @@ impl<State: 'static + Send + Sync> Context<State> {
 
     /// Sends the response to the client.
     pub fn send(&self) -> Result<()> {
+        if self.flags.get(ContextFlag::ResponseSent) {
+            return Err(HandleError::ResponseAlreadySent.into());
+        }
+
         self.response
             .force_lock()
             .write(self.req.socket.clone(), &self.server.default_headers)?;
@@ -87,6 +93,31 @@ impl<State: 'static + Send + Sync> Context<State> {
 
     /// Guarantees that the response will be sent.
     /// This allows you to send the response after the handler has returned.
+    ///
+    /// We send a not implemented response by default because otherwise the handler would hang if you forgot to send a response.
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # use std::thread;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     // Tell the the router that we *will* send the response later.
+    ///     ctx.guarantee_will_send();
+    ///
+    ///     // We can't take ctx into the thread so we clone the socket.
+    ///     // This probably isn't something you would actually do.
+    ///     // But for example, we do something similar in the websocket implementation.
+    ///     let socket = ctx.req.socket.clone();
+    ///     thread::spawn(move || {
+    ///         Response::new()
+    ///             .text("Hello from another thread")
+    ///             .write(socket, &[])
+    ///             .unwrap();
+    ///     });
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
     pub fn guarantee_will_send(&self) -> &Self {
         self.flags.set(ContextFlag::GuaranteedSend);
         self

@@ -3,7 +3,7 @@
 use std::{
     error,
     fmt::{self, Display, Formatter},
-    result,
+    io, result,
     sync::Arc,
 };
 
@@ -14,7 +14,7 @@ pub type Result<T> = result::Result<T, Error>;
 pub(crate) type AnyResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
 
 /// Errors that can occur at startup or in the process of connecting to clients, parsing HTTP and handling requests.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Error {
     /// Error while starting the server
     Startup(StartupError),
@@ -23,13 +23,13 @@ pub enum Error {
     Stream(StreamError),
 
     /// Error while handling a Request
-    Handle(Box<HandleError>),
+    Handle(HandleError),
 
     /// Error while parsing request HTTP
     Parse(ParseError),
 
     /// IO Errors
-    Io(String),
+    Io(Arc<io::Error>),
 
     /// Miscellaneous errors
     Misc(String),
@@ -51,6 +51,14 @@ pub enum StartupError {
 /// Errors that can arise while handling a request
 #[derive(Debug, Clone)]
 pub enum HandleError {
+    /// Route matching request was found, but did not send a response.
+    /// This happens if a route handler returns Ok(()) before sending a response.
+    /// If you want to send a response asynchronously after the route handler returns, you can use [`afire::Context::guarantee_will_send`] to promise the router that you will *eventually* send a response.
+    NotImplemented,
+
+    /// Route tried to send a response, but one was already sent.
+    ResponseAlreadySent,
+
     /// Route matching request path not found
     NotFound(Method, String),
 
@@ -102,6 +110,22 @@ pub enum StreamError {
 }
 
 impl Error {
+    /// Create a new [`Error::Misc`] with the given message.
+    /// This is a shorthand for `Err(Error::Misc(msg))`.
+    /// # Examples
+    /// ```
+    /// # use afire::prelude::*;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     if ctx.req.body.len() > 100 {
+    ///         return Error::bail("Request body too big!")?;
+    ///     }
+    ///
+    ///     ctx.text("Hello World!").send()?;
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
     pub fn bail<T>(msg: impl Into<String>) -> Result<T> {
         Err(Error::Misc(msg.into()))
     }
@@ -116,8 +140,8 @@ impl Display for Error {
             Error::Startup(e) => fmt::Display::fmt(e, f),
             Error::Stream(e) => fmt::Display::fmt(e, f),
             Error::Parse(e) => fmt::Display::fmt(e, f),
-            Error::Io(e) => f.write_str(e),
-            Error::Misc(e) => f.write_str(e),
+            Error::Io(e) => fmt::Display::fmt(e, f),
+            Error::Misc(e) => fmt::Display::fmt(e, f),
             Error::None => f.write_str("None"),
         }
     }
@@ -126,6 +150,10 @@ impl Display for Error {
 impl Display for HandleError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            HandleError::NotImplemented => f.write_str("Route handler did not send a response"),
+            HandleError::ResponseAlreadySent => {
+                f.write_str("Route handler tried to send a response, but one was already sent")
+            }
             HandleError::NotFound(method, path) => {
                 f.write_fmt(format_args!("No route found at {method} {path}"))
             }
@@ -194,17 +222,32 @@ impl From<ParseError> for Error {
 
 impl From<HandleError> for Error {
     fn from(e: HandleError) -> Self {
-        Error::Handle(Box::new(e))
+        Error::Handle(e)
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        Error::Io(e.to_string())
+        Error::Io(Arc::new(e))
+    }
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Error::Startup(l0), Error::Startup(r0)) => l0 == r0,
+            (Error::Stream(l0), Error::Stream(r0)) => l0 == r0,
+            (Error::Handle(l0), Error::Handle(r0)) => l0 == r0,
+            (Error::Parse(l0), Error::Parse(r0)) => l0 == r0,
+            (Error::Io(l0), Error::Io(r0)) => l0.kind() == r0.kind(),
+            (Error::Misc(l0), Error::Misc(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
     }
 }
 
 impl Eq for HandleError {}
+
 impl PartialEq for HandleError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {

@@ -2,7 +2,6 @@ use std::{
     cell::RefCell,
     io::Read,
     net::{Shutdown, TcpStream},
-    ops::Deref,
     sync::Arc,
 };
 
@@ -93,6 +92,20 @@ where
         let sent_response = ctx.flags.get(ContextFlag::ResponseSent);
 
         if let Err(e) = result {
+            if let Some(Error::Handle(HandleError::ResponseAlreadySent)) = e.downcast_ref::<Error>()
+            {
+                trace!(
+                    Level::Error,
+                    "Route handler [{:?}] tried to send a response, but one was already sent.",
+                    route
+                );
+
+                if close(stream.clone(), keep_alive, this.clone()) {
+                    break 'outer;
+                }
+                continue 'outer;
+            }
+
             // TODO: account for guaranteed send
             // TODO: Run through `write` for middleware
             let error = RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(e));
@@ -105,15 +118,16 @@ where
         } else if sent_response || req.socket.is_raw() {
         } else if ctx.flags.get(ContextFlag::GuaranteedSend) {
             let barrier = ctx.req.socket.barrier.clone();
-            trace!(Level::Debug, "Waiting for response to be sent");
+            trace!(Level::Debug, "Waiting for response to be sent (guaranteed)");
             barrier.wait();
             trace!(Level::Debug, "Response sent");
         } else {
-            // TODO: Impl NotImplemented as an error
-            let res = Response::new()
-                .status(Status::NotImplemented)
-                .text("No response was sent");
-            write(stream.clone(), this.clone(), Ok(req), Ok(res));
+            write(
+                stream.clone(),
+                this.clone(),
+                Ok(req),
+                Err(HandleError::NotImplemented.into()),
+            );
         }
 
         if close(stream.clone(), keep_alive, this.clone()) {
@@ -212,7 +226,10 @@ where
             ParseError::NoHostHeader => "No Host header",
             ParseError::InvalidHttpVersion => unreachable!(),
         }),
-        Error::Handle(e) => match e.deref() {
+        Error::Handle(e) => match e {
+            HandleError::NotImplemented => Response::new()
+                .status(Status::NotImplemented)
+                .text("No response was sent"),
             HandleError::NotFound(method, path) => Response::new()
                 .status(Status::NotFound)
                 .text(format!("Cannot {method} {path}"))
@@ -220,7 +237,9 @@ where
             HandleError::Panic(r, e) => {
                 (server.error_handler)(server.state.clone(), r, e.to_owned())
             }
+            HandleError::ResponseAlreadySent => unreachable!(),
         },
-        Error::Io(e) | Error::Misc(e) => Response::new().status(500).text(e),
+        Error::Io(e) => Response::new().status(500).text(e),
+        Error::Misc(e) => Response::new().status(500).text(e),
     }
 }

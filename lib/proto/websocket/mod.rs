@@ -70,8 +70,9 @@ impl WebSocketStream {
     /// Create a new WebSocket stream from a Request.
     pub fn from_request(req: &Request) -> Result<Self> {
         let Some(ws_key) = req.headers.get("Sec-WebSocket-Key").map(|x| x.to_owned()) else {
-            return Err(Error::Io("Missing Sec-WebSocket-Key` Header.".to_owned()));
+            return Error::bail("Missing `Sec-WebSocket-Key` Header.");
         };
+
         trace!(Level::Debug, "[WS] Key: {}", ws_key);
         let accept = base64::encode(&sha1::hash((ws_key + WS_GUID).as_bytes()));
         trace!(Level::Debug, "[WS] Accept: {}", accept);
@@ -82,6 +83,7 @@ impl WebSocketStream {
             .header(HeaderType::Connection, "Upgrade")
             .header("Sec-WebSocket-Accept", &accept)
             .header("Sec-WebSocket-Version", "13");
+
         // TODO: Get default headers here? somehow?
         upgrade.write(req.socket.clone(), &[])?;
         trace!(Level::Debug, "[WS] Upgraded socket #{}", req.socket.id);
@@ -269,7 +271,7 @@ pub trait WebSocketExt {
 impl<T: Send + Sync> WebSocketExt for Context<T> {
     fn ws(&self) -> Result<WebSocketStream> {
         if self.flags.get(ContextFlag::ResponseSent) {
-            return Err(Error::Io("Response already sent.".to_owned()));
+            Error::bail("Response already sent.")?;
         }
 
         self.req.ws()

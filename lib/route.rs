@@ -30,6 +30,12 @@ pub struct Route<State: 'static + Send + Sync> {
     pub(crate) handler: Handler<State>,
 }
 
+impl<State: Send + Sync> Debug for Route<State> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{} /{}", self.method, self.path.raw))
+    }
+}
+
 // Thanks breon for the idea - https://github.com/rcsc/amplitude/blob/main/amplitude/src/error.rs
 /// Error returned by a route handler.
 #[derive(Debug, Clone, PartialEq, Eq)]

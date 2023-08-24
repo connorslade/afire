@@ -275,6 +275,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
+    server.route(Method::GET, "/ne", |ctx| {
+        ctx.guarantee_will_send();
+        let socket = ctx.req.socket.clone();
+        thread::spawn(move || {
+            Response::new()
+                .text("Hello from another thread")
+                .write(socket, &[])
+                .unwrap();
+        });
+        Ok(())
+    });
+
+    server.route(Method::GET, "/send-2", |ctx| {
+        ctx.text("1").send()?;
+        ctx.text("2").send()?;
+        Ok(())
+    });
+
     Test.attach(&mut server);
     Date.attach(&mut server);
     Trace::new().attach(&mut server);
