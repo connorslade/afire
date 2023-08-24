@@ -168,7 +168,7 @@ impl Header {
             if xb[xb.len() - 1] == b'-' {
                 return name.starts_with(x);
             }
-            name.to_string() == *x
+            name == *x
         })
     }
 }
