@@ -5,7 +5,7 @@ use std::sync::{Condvar, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWrite
 /// Allows locking a mutex even if it's poisoned.
 pub trait ForceLockMutex<T> {
     /// Referer to [`Mutex::lock`] documentation.
-    /// This function will return the inner value of the mutex if it's poisoned.
+    /// This function will return the inner value of the mutex even if it's poisoned.
     fn force_lock(&self) -> MutexGuard<T>;
 }
 

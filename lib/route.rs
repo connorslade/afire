@@ -111,12 +111,12 @@ impl RouteError {
         res
     }
 
-    /// Tries to downcast a Box<dyn Error> into a RouteError.
+    /// Tries to downcast a `Box<dyn Error>` into a RouteError.
     pub fn downcast_error(e: &Box<dyn Error>) -> Option<RouteError> {
         e.downcast_ref::<RouteError>().cloned()
     }
 
-    /// Converts any error type (Box<dyn Error>) into a RouteError.
+    /// Converts any error type (`Box<dyn Error>`) into a RouteError.
     pub fn from_error(e: Box<dyn Error>) -> Self {
         Self {
             status: Status::InternalServerError,

@@ -4,19 +4,19 @@ use std::collections::HashMap;
 
 use super::encoding::url;
 
-/// Http Path
+/// Route path.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Path {
-    /// Raw Path String
+    /// Raw path string.
     pub raw: String,
 
-    /// Path Segments
+    /// The path tokenized into its parts.
     pub parts: Vec<PathPart>,
 }
 
 /// Segment of a path
 ///
-/// Ex: `/hello/{name}` => [Normal::("hello"), Param::("name")]
+/// Ex: `/hello/{name}` => [Normal("hello"), Param("name")]
 #[derive(Debug, PartialEq, Eq)]
 pub enum PathPart {
     /// Normal Path Segment (/hi)
@@ -28,14 +28,14 @@ pub enum PathPart {
     /// Match anything for self and after
     AnyAfter,
 
-    /// Literally Anything (E)
+    /// Literally Anything
     Any,
 }
 
 impl Path {
     /// Tokenize a new path
-    pub fn new(path: String) -> Path {
-        let path = normalize_path(path);
+    pub fn new(mut path: String) -> Path {
+        normalize_path(&mut path);
         let mut out = Vec::new();
 
         // Split off into Path Parts
@@ -49,13 +49,13 @@ impl Path {
         }
     }
 
-    /// Match Path, returns None if it doesn't match and the path params if it does
-    pub fn match_path(&self, path: String) -> Option<HashMap<String, String>> {
+    /// Match Path, returns None if it doesn't match and the path params if it does.
+    pub fn match_path(&self, mut path: String) -> Option<HashMap<String, String>> {
         if self.parts == [PathPart::AnyAfter] {
             return Some(HashMap::new());
         }
 
-        let path = normalize_path(path);
+        normalize_path(&mut path);
         let mut out = HashMap::new();
 
         let path = path.split('/');
@@ -100,10 +100,8 @@ impl PathPart {
     }
 }
 
-/// Normalize a Path
-///
-/// Removes loading and trailing slashes
-pub fn normalize_path(mut path: String) -> String {
+/// Normalize a Path by removing trailing and leading slashes.
+pub fn normalize_path(path: &mut String) {
     while path.ends_with('/') {
         path.pop();
     }
@@ -111,8 +109,6 @@ pub fn normalize_path(mut path: String) -> String {
     while path.starts_with('/') {
         path.remove(0);
     }
-
-    path
 }
 
 #[cfg(test)]
@@ -219,14 +215,12 @@ mod test {
 
     #[test]
     fn test_normalize_path() {
-        assert_eq!(
-            normalize_path("/COOL/BEANS/".to_owned()),
-            "COOL/BEANS".to_owned()
-        );
+        let mut test = "/COOL/BEANS/".to_owned();
+        normalize_path(&mut test);
+        assert_eq!(test, "COOL/BEANS".to_owned());
 
-        assert_eq!(
-            normalize_path("////COOL/BEANS////".to_owned()),
-            "COOL/BEANS".to_owned()
-        );
+        let mut test = "////COOL/BEANS////".to_owned();
+        normalize_path(&mut test);
+        assert_eq!(test, "COOL/BEANS".to_owned());
     }
 }

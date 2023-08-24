@@ -12,7 +12,7 @@ use crate::{
     response::ResponseFlag,
 };
 
-/// Socket is a wrapper around TcpStream that allows for sending a response from another thread.
+/// Socket is a wrapper around TcpStream that allows for sending a response from other threads.
 pub struct Socket {
     /// The internal TcpStream.
     pub socket: Mutex<TcpStream>,
@@ -25,11 +25,13 @@ pub struct Socket {
     /// This could be SSE or WebSockets, but either way afire core should not mess with it.
     pub(crate) raw: AtomicBool,
     // TODO: work on this
-    /// Weather the socket should be closed after the response is sent.
+    /// If the socket should be closed after the response is sent.
     pub(crate) flag: RwLock<ResponseFlag>,
 }
 
 impl Socket {
+    /// Create a new `Socket` from a `TcpStream`.
+    /// Will also create a new unique identifier for the socket.
     pub(crate) fn new(socket: TcpStream) -> Self {
         static ID: AtomicU64 = AtomicU64::new(0);
         Self {
@@ -41,26 +43,33 @@ impl Socket {
         }
     }
 
+    /// Unlock the barrier.
+    /// This indicates that the response has been sent, and the thread that was waiting for the response can continue.
     pub(crate) fn unlock(&self) {
         self.barrier.unlock();
     }
 
+    /// Re-lock the barrier.
     pub(crate) fn reset_barrier(&self) {
         self.barrier.reset();
     }
 
+    /// Get the response flag.
     pub(crate) fn flag(&self) -> ResponseFlag {
         *self.flag.force_read()
     }
 
+    /// Set the response flag.
     pub(crate) fn set_flag(&self, flag: ResponseFlag) {
         *self.flag.force_write() = flag;
     }
 
+    /// Check if the socket is being handled by another system.
     pub fn is_raw(&self) -> bool {
         self.raw.load(Ordering::Relaxed)
     }
 
+    /// Set the socket as being handled by another system.
     pub(crate) fn set_raw(&self, raw: bool) {
         self.raw.store(raw, Ordering::Relaxed);
     }

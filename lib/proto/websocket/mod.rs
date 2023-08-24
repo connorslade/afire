@@ -23,7 +23,7 @@ use crate::{
     },
     trace::LazyFmt,
     websocket::{frame::OpCode, frame_stack::FrameStack},
-    Context, Error, HeaderType, Request, Response, Status,
+    Context, Error, Header, HeaderType, Request, Response, Status,
 };
 
 use self::{
@@ -68,7 +68,7 @@ enum TxTypeInternal {
 
 impl WebSocketStream {
     /// Create a new WebSocket stream from a Request.
-    pub fn from_request(req: &Request) -> Result<Self> {
+    pub fn from_request(req: &Request, headers: &[Header]) -> Result<Self> {
         let Some(ws_key) = req.headers.get("Sec-WebSocket-Key").map(|x| x.to_owned()) else {
             return Error::bail("Missing `Sec-WebSocket-Key` Header.");
         };
@@ -84,8 +84,7 @@ impl WebSocketStream {
             .header("Sec-WebSocket-Accept", &accept)
             .header("Sec-WebSocket-Version", "13");
 
-        // TODO: Get default headers here? somehow?
-        upgrade.write(req.socket.clone(), &[])?;
+        upgrade.write(req.socket.clone(), headers)?;
         trace!(Level::Debug, "[WS] Upgraded socket #{}", req.socket.id);
 
         let open = Arc::new(AtomicBool::new(true));
@@ -262,7 +261,7 @@ impl From<TxType> for TxTypeInternal {
     }
 }
 
-/// A trait for initiating a WebSocket connection on a request.
+/// A trait for initiating a WebSocket connection on a request context.
 pub trait WebSocketExt {
     /// Initiates a WebSocket connection.
     fn ws(&self) -> Result<WebSocketStream>;
@@ -274,14 +273,8 @@ impl<T: Send + Sync> WebSocketExt for Context<T> {
             Error::bail("Response already sent.")?;
         }
 
-        self.req.ws()
-    }
-}
-
-impl WebSocketExt for Request {
-    fn ws(&self) -> Result<WebSocketStream> {
-        self.socket.set_raw(true);
-        WebSocketStream::from_request(self)
+        self.req.socket.set_raw(true);
+        WebSocketStream::from_request(&*self.req, &self.server.default_headers)
     }
 }
 

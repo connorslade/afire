@@ -20,8 +20,9 @@ use crate::{
 
 pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
-// https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D
-
+/// Handles a socket.
+///
+/// <https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D>
 pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
@@ -116,6 +117,7 @@ where
                 trace!(Level::Debug, "Error writing error response: {:?}", e);
             }
         } else if sent_response || req.socket.is_raw() {
+            // A response has already been sent or another system has taken over the socket.
         } else if ctx.flags.get(ContextFlag::GuaranteedSend) {
             let barrier = ctx.req.socket.barrier.clone();
             trace!(Level::Debug, "Waiting for response to be sent (guaranteed)");
@@ -136,6 +138,7 @@ where
     }
 }
 
+/// Writes response to a socket and runs post and end middleware.
 fn write<State: 'static + Send + Sync>(
     socket: Arc<Socket>,
     server: Arc<Server<State>>,
@@ -176,6 +179,8 @@ fn write<State: 'static + Send + Sync>(
     }
 }
 
+/// Closes a socket based on its response flag.
+/// If the socket it closed, returns `true`.
 fn close<State: 'static + Send + Sync>(
     stream: Arc<Socket>,
     keep_alive: bool,
@@ -199,7 +204,6 @@ fn close<State: 'static + Send + Sync>(
 }
 
 /// Gets a response if there is an error.
-/// Can handle Parse, Handle and IO errors.
 pub fn error_response<State>(err: &Error, server: Arc<Server<State>>) -> Response
 where
     State: 'static + Send + Sync,

@@ -1,5 +1,4 @@
-//! Utilities for encoding and decoding strings.
-//! Currently only supports url encoding.
+//! Url encoding and decoding.
 
 /// Decode a url encoded string.
 /// Supports `+` and `%` encoding.

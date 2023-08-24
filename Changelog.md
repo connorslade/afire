@@ -43,6 +43,7 @@ Coming Soon
 - Pass `Arguments` to trace formatters instead of a String.
   This can be more efficient if the formatter decides not to format the trace.
 - Attach a unique ID to each socket.
+- Disallow [forbidden headers](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) as default headers.
 
 # 2.2.1
 

@@ -137,6 +137,10 @@ impl<State: Send + Sync> Server<State> {
             return Err(StartupError::InvalidSocketTimeout.into());
         }
 
+        if let Some(i) = self.default_headers.iter().find(|x| x.is_forbidden()) {
+            return Err(StartupError::ForbiddenDefaultHeader(i.name.to_string()).into());
+        }
+
         let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
         let this = Arc::new(self);
 

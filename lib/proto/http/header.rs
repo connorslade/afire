@@ -10,6 +10,61 @@ use crate::{
     internal::misc::filter_crlf,
 };
 
+/// [Forbidden headers](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) are headers that should not be set by the user as they have special meaning in the HTTP protocol.
+///
+/// These headers are allowed to be set by the user in routes, but will throw an error if added to default headers.
+/// This is because it may make sense to set these headers in a route in some cases, but it is never a good idea to set them in default headers.
+///
+/// Also note that entries ending with a dash (`-`) are prefixes, so any header that starts with that prefix is forbidden.
+///
+/// ## The Headers
+/// - Accept-Charset
+/// - Accept-Encoding
+/// - Access-Control-Request-Headers
+/// - Access-Control-Request-Method
+/// - Connection
+/// - Content-Length
+/// - Cookie
+/// - Date
+/// - DNT
+/// - Expect
+/// - Host
+/// - Keep-Alive
+/// - Origin
+/// - Permissions-Policy
+/// - Proxy-
+/// - Sec-
+/// - Referer
+/// - TE
+/// - Trailer
+/// - Transfer-Encoding
+/// - Upgrade
+/// - Via
+pub const FORBIDDEN_HEADERS: &[&str] = &[
+    "accept-charset",
+    "accept-encoding",
+    "access-control-request-headers",
+    "access-control-request-method",
+    "connection",
+    "content-length",
+    "cookie",
+    "date",
+    "dnt",
+    "expect",
+    "host",
+    "keep-alive",
+    "origin",
+    "permissions-policy",
+    "proxy-",
+    "sec-",
+    "referer",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    "via",
+];
+
 /// Http header.
 /// Has a name and a value.
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -104,6 +159,18 @@ impl Header {
     pub fn params(&self) -> HeaderParams {
         HeaderParams::new(self.value.as_str())
     }
+
+    /// Checks if the header is a [forbidden header](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name).
+    pub fn is_forbidden(&self) -> bool {
+        let name = self.name.to_string().to_ascii_lowercase();
+        FORBIDDEN_HEADERS.iter().any(|x| {
+            let xb = x.as_bytes();
+            if xb[xb.len() - 1] == b'-' {
+                return name.starts_with(x);
+            }
+            name.to_string() == *x
+        })
+    }
 }
 
 impl<'a> HeaderParams<'a> {
@@ -114,21 +181,16 @@ impl<'a> HeaderParams<'a> {
         let value = parts.next().unwrap_or_default();
 
         for i in parts {
-            let split = i.splitn(2, '=').collect::<Vec<_>>();
-            if split.len() != 2 {
+            let mut split = i.splitn(2, '=');
+
+            let Some(key) = split.next() else {
                 break;
-            }
-
-            let key = match split.first() {
-                Some(key) => key.trim(),
-                None => break,
             };
-            let value = match split.get(1) {
-                Some(value) => value.trim(),
-                None => break,
+            let Some(value) = split.next() else {
+                break;
             };
 
-            params.push([key, value]);
+            params.push([key.trim(), value.trim()]);
         }
 
         Self { value, params }

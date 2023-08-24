@@ -3,7 +3,7 @@
 //! The default log level is [`Level::Error`].
 //!
 //! It's used for both logging helpful information during startup, and for helping me debug afire (set log level to Debug and use websockets to [see what I mean](https://i.imgur.com/fJV6UYx.png) :sob:).
-//! You can make use of the logger through the [`trace!`] macro in your own code.
+//! You can make use of the logger through the [`crate::trace!`] macro in your own code.
 //!
 //! Because the logger is used all over the place internally, it would not be practical to allow customizing it per server, so all configuration is global.
 //! There are three settings that can be configured: the log level, whether or not to colorize the log output, and the log formatter.

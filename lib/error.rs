@@ -48,6 +48,9 @@ pub enum StartupError {
 
     /// The socket timeout specified is invalid (must be greater than 0).
     InvalidSocketTimeout,
+
+    /// A [forbidden header][`crate::header::FORBIDDEN_HEADERS`] was set as a default header.
+    ForbiddenDefaultHeader(String),
 }
 
 /// Errors that can arise while handling a request.
@@ -55,11 +58,11 @@ pub enum StartupError {
 pub enum HandleError {
     /// Route matching request was found, but did not send a response.
     /// This happens if a route handler returns Ok(()) before sending a response.
-    /// If you want to send a response asynchronously after the route handler returns, you can use [`afire::Context::guarantee_will_send`] to promise the router that you will *eventually* send a response.
+    /// If you want to send a response asynchronously after the route handler returns, you can use [`crate::Context::guarantee_will_send`] to promise the router that you will *eventually* send a response.
     NotImplemented,
 
     /// Route tried to send a response, but one was already sent.
-    /// For more information, see [`afire::Context::send`].
+    /// For more information, see [`crate::Context::send`].
     ResponseAlreadySent,
 
     /// Route matching request path not found.
@@ -168,12 +171,15 @@ impl Display for HandleError {
 
 impl Display for StartupError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            StartupError::InvalidIp => "The IP address specified is invalid",
+        match self {
+            StartupError::InvalidIp => f.write_str("The IP address specified is invalid"),
             StartupError::InvalidSocketTimeout => {
-                "The socket timeout specified is invalid (must be greater than 0)"
+                f.write_str("The socket timeout specified is invalid (must be greater than 0)")
             }
-        })
+            StartupError::ForbiddenDefaultHeader(header) => f.write_fmt(format_args!(
+                "The header `{header}` is forbidden and may not be used as a default header",
+            )),
+        }
     }
 }
 

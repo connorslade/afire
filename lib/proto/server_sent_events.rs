@@ -36,9 +36,10 @@ use std::{
 };
 
 use crate::{
+    context::ContextFlag,
     error::Result,
     internal::sync::{ForceLockMutex, SingleBarrier},
-    Context, Request, Response,
+    Context, Error, Header, Request, Response,
 };
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
@@ -106,7 +107,7 @@ impl ServerSentEventStream {
 
     /// Creates a new SSE stream from the given request.
     /// This is called automatically if you use the [`ServerSentEventsExt`] trait's .sse() method.
-    pub fn from_request(this: &Request) -> Result<Self> {
+    pub fn from_request(this: &Request, headers: &[Header]) -> Result<Self> {
         let last_index = this
             .headers
             .get("Last-Event-ID")
@@ -116,8 +117,7 @@ impl ServerSentEventStream {
         let mut res = Response::new()
             .header("Content-Type", "text/event-stream")
             .header("Cache-Control", "no-cache");
-        // TODO: Get default headers here?
-        res.write(socket.clone(), &[])?;
+        res.write(socket.clone(), headers)?;
 
         let (tx, rx) = mpsc::channel::<EventType>();
         thread::Builder::new()
@@ -207,14 +207,12 @@ pub trait ServerSentEventsExt {
 
 impl<T: Send + Sync> ServerSentEventsExt for Context<T> {
     fn sse(&self) -> Result<ServerSentEventStream> {
-        self.req.sse()
-    }
-}
+        if self.flags.get(ContextFlag::ResponseSent) {
+            Error::bail("Response already sent.")?;
+        }
 
-impl ServerSentEventsExt for Request {
-    fn sse(&self) -> Result<ServerSentEventStream> {
-        self.socket.set_raw(true);
-        ServerSentEventStream::from_request(self)
+        self.req.socket.set_raw(true);
+        ServerSentEventStream::from_request(&self.req, &self.server.default_headers)
     }
 }
 

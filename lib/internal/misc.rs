@@ -89,7 +89,8 @@ pub fn filter_crlf(value: &str) -> String {
 }
 
 /// Attempt to downcast a `Box<dyn Any>` to a `String` or `&str`.
-/// Will return an empty string if the downcast fails.
+/// Will return 'Box<dyn Any>' if the downcast fails.
+/// This is the same behavior as used in the standard library.
 pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str> {
     if let Some(i) = any.downcast_ref::<String>() {
         return Cow::Owned(i.to_owned());

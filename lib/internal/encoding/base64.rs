@@ -1,6 +1,7 @@
 //! Base64 encoding and decoding.
-//! - Reference: <https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp>
-//! - Reference: <https://dev.to/tiemen/implementing-base64-from-scratch-in-rust-kb1>
+
+// - Reference: <https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp>
+// - Reference: <https://dev.to/tiemen/implementing-base64-from-scratch-in-rust-kb1>
 
 const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                        abcdefghijklmnopqrstuvwxyz\

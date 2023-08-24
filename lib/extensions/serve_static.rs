@@ -82,7 +82,7 @@ impl ServeStatic {
     /// ```
     pub fn new(data_path: impl AsRef<str>) -> Self {
         Self {
-            serve_path: normalize_path("/".to_owned()),
+            serve_path: String::new(),
             data_dir: data_path.as_ref().to_string(),
             disabled_files: Vec::new(),
             middleware: Vec::new(),
@@ -289,10 +289,9 @@ impl ServeStatic {
     /// server.run().unwrap();
     /// ```
     pub fn path(self, path: impl AsRef<str>) -> Self {
-        Self {
-            serve_path: normalize_path(path.as_ref().to_owned()),
-            ..self
-        }
+        let mut serve_path = path.as_ref().to_owned();
+        normalize_path(&mut serve_path);
+        Self { serve_path, ..self }
     }
 }
 
