@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use tokenizer::Tokenizer;
-
 #[derive(Debug)]
 pub struct Path {
     segments: Vec<Segment>,
@@ -23,19 +21,16 @@ pub struct PathParameters {
 
 impl Path {
     pub fn new(path: &str) -> Path {
-        let mut tokenizer = Tokenizer::new(path);
+        let mut tokenizer = tokenizer::Tokenizer::new(path);
         tokenizer.tokenize();
 
-        #[cfg(debug_assertions)]
-        {
-            let mut last_special = false;
-            for i in &tokenizer.tokens {
-                if last_special && i.disallow_adjacent() {
-                    panic!("Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous.");
-                }
-
-                last_special = i.disallow_adjacent();
+        let mut last_special = false;
+        for i in &tokenizer.tokens {
+            if last_special && i.disallow_adjacent() {
+                panic!("Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous.");
             }
+
+            last_special = i.disallow_adjacent();
         }
 
         Path {
@@ -67,7 +62,7 @@ impl PathParameters {
 fn main() {
     let path = Path::new("/hello*!");
     println!("{:?}", path.segments);
-    println!("{:?}", path.matches("/helloworld!"));
+    println!("{:?}", path.matches("/hello!"));
 }
 
 mod matcher {
@@ -114,7 +109,7 @@ mod matcher {
                 }
             }
 
-            if self.path_index == self.path.len() {
+            if self.path_index >= self.path.len() {
                 return Some(self.params.take().unwrap());
             }
 
@@ -179,7 +174,7 @@ mod matcher {
                 .skip(self.path_index)
                 .position(|i| *i == '/')
                 .map(|i| i + self.path_index)
-                .unwrap_or(self.path.len().saturating_sub(1))
+                .unwrap_or(self.path.len())
         }
 
         // Find last occurrence of next literal without passing any separators.
@@ -187,10 +182,12 @@ mod matcher {
             let end_pos = match self.segments.get(self.seg_index) {
                 Some(Segment::Literal(l)) => {
                     let chars = l.chars().collect::<Vec<_>>();
-                    let mut i = self.next_separator().saturating_sub(l.len()) + 1;
+                    let mut i = self.next_separator().saturating_sub(l.len());
                     let mut found = false;
 
-                    while i > self.path_index {
+                    // GE - Matches 0-length any / parameter segments
+                    // G  - Does not match 0-length any / parameter segments
+                    while i >= self.path_index {
                         if self.path[i..i + l.len()] != chars {
                             i -= 1;
                             continue;
@@ -206,12 +203,7 @@ mod matcher {
 
                     i
                 }
-                Some(Segment::Separator) => self
-                    .path
-                    .iter()
-                    .skip(self.path_index)
-                    .position(|i| *i == '/')?,
-                None => self.path.len(),
+                None | Some(Segment::Separator) => self.next_separator(),
                 Some(Segment::Any | Segment::AnyAfter | Segment::Parameter(_)) => unreachable!(),
             };
 
@@ -358,7 +350,7 @@ mod test {
                     $(
                         let path = Path::new($path);
                         $(
-                            assert_eq!(path.matches($test), $result);
+                            assert_eq!(path.matches($test), $result, "`{}`.matches(`{}`)", $path, $test);
                         )*
                     )+
                 }
@@ -371,13 +363,19 @@ mod test {
         #[test(parameters_1)]
         "/hello{world}world/E" => [
             "/hellopeople!worldworld/E" => Some(match_result!["world" => "people!world"]),
-            "/helloworld/E"             => None
+            "/helloworld/E"             => Some(match_result!["world" => ""])
         ],
         #[test(parameters_2)]
         "/file/{name}.{ext}" => [
-            "/file/hello.txt"  => Some(match_result!["name" => "hello", "ext" => "txt"]), // FAILING
+            "/file/hello.txt"  => Some(match_result!["name" => "hello", "ext" => "txt"]),
             "/file/hello"      => None,
             "/file/hello.txt/" => None
+        ],
+        #[test(parameters_2_trailing)]
+        "/file/{name}.{ext}/" => [
+            "/file/hello.txt"  => None,
+            "/file/hello"      => None,
+            "/file/hello.txt/" => Some(match_result!["name" => "hello", "ext" => "txt"])
         ],
         #[test(parameters_3)]
         "/api/get/{name}" => [
