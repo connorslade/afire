@@ -1,48 +1,93 @@
+//! A router for matching request paths against routes.
+
 use std::{
     collections::HashMap,
     fmt::{self, Display},
 };
 
+use crate::error::{PathError, Result, StartupError};
+
+/// A route path.
+/// There are 5 types of segments that can be used to make up a path:
+/// - Literal: A literal string that must match exactly.
+/// - Parameter: A named parameter that can be matched to any string before the next separator, including empty strings.
+/// - Any: A wildcard that matches any string before the next separator, including empty strings. Just like a parameter, but does not capture a value.
+/// - AnyAfter: A wildcard that matches anything after the current segment. Must only ever be used as the last segment.
+/// - Separator: A separator that must be matched exactly (/).
+///
+/// ## Examples
+/// | Route           | Explanation                                                                                                              |
+/// | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+/// | `/hello/world`  | Matches `/hello/world` exactly. Will not match if path has a trailing separator.                                         |
+/// | `/hello/world/` | Matches `/hello/world/`, will not match `/hello/world`                                                                   |
+/// | `/hello/{name}` | Matches `/hello/` followed by any string before a separator. Will match `/hello/darren` and `/hello/` but not `/hello/`. |
+/// | `/hello/*`      | Matches `/hello/` followed by any string. Will match `/hello/world` but not `/hello/world/test` or `/hello/world/`.      |
+/// | `/**`           | Matches any path. This is useful for 404 pages.                                                                          |
 #[derive(Debug)]
 pub struct Path {
     segments: Vec<Segment>,
 }
 
+/// A segment of a path.
 #[derive(Debug)]
-pub enum Segment {
+enum Segment {
+    /// A separator that must be matched exactly (/).
     Separator,
+    /// A literal string that must match exactly.
     Literal(String),
+    /// A named parameter that can be matched to any string before the next separator, including empty strings.
     Parameter(String),
+    /// A wildcard that matches any string before the next separator, including empty strings.
+    /// Just like a parameter, but does not capture a value.
     Any,
+    /// A wildcard that matches anything after the current segment.
+    /// Must only ever be used as the last segment.
     AnyAfter,
 }
 
+/// A container for path parameters.
+/// Created when a path matches a route with [`Path::matches`].
+/// Values are automatically url-decoded.
 #[derive(Debug, PartialEq, Eq)]
 pub struct PathParameters {
     params: HashMap<String, String>,
 }
 
 impl Path {
-    pub fn new(path: &str) -> Path {
+    /// Parse a raw path string into a `Path`.
+    pub fn new(path: &str) -> Result<Path> {
         let mut tokenizer = tokenizer::Tokenizer::new(path);
-        tokenizer.tokenize();
+        if let Err(e) = tokenizer.tokenize() {
+            return Err(StartupError::Path {
+                error: e,
+                route: path.into(),
+            }
+            .into());
+        };
 
         let path = Path {
-            segments: tokenizer.tokens,
+            segments: dbg!(tokenizer.tokens),
         };
 
         let mut last_special = false;
         for i in &path.segments {
             if last_special && i.disallow_adjacent() {
-                panic!("Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous. ({})", path);
+                return Err(StartupError::Path {
+                    error: PathError::AmbiguousPath,
+                    route: path.to_string(),
+                }
+                .into());
             }
 
             last_special = i.disallow_adjacent();
         }
 
-        path
+        Ok(path)
     }
 
+    /// Try to match a path against this route.
+    /// Returns `None` if the path does not match.
+    /// Returns `Some` with a `PathParameters` if the path matches.
     pub fn matches(&self, path: &str) -> Option<PathParameters> {
         let mut matcher = matcher::Matcher::new(&self.segments, path);
         matcher.matches().map(|params| PathParameters { params })
@@ -59,6 +104,7 @@ impl Segment {
 }
 
 impl PathParameters {
+    #[cfg(test)]
     pub(crate) fn new(params: HashMap<String, String>) -> PathParameters {
         PathParameters { params }
     }
@@ -92,6 +138,8 @@ impl Display for Path {
 mod matcher {
     use std::{collections::HashMap, ops::Range};
 
+    use crate::internal::encoding::url;
+
     use super::Segment;
 
     pub struct Matcher<'a> {
@@ -104,7 +152,7 @@ mod matcher {
     }
 
     impl<'a> Matcher<'a> {
-        pub fn new(segments: &'a [Segment], path: &'a str) -> Matcher<'a> {
+        pub(super) fn new(segments: &'a [Segment], path: &'a str) -> Matcher<'a> {
             Matcher {
                 segments,
                 path: path.chars().collect(),
@@ -117,21 +165,21 @@ mod matcher {
 
         pub fn matches(&mut self) -> Option<HashMap<String, String>> {
             while self.seg_index < self.segments.len() {
-                match self.next_seg() {
+                match &self.segments[self.seg_index] {
                     Segment::AnyAfter => return Some(self.params.take().unwrap()),
+                    Segment::Literal(l) => self.take_str(l)?,
                     Segment::Any => self.match_any()?,
-                    Segment::Literal(l) => {
-                        let l = l.to_string();
-                        self.take_str(&l)?;
-                    }
                     Segment::Parameter(p) => {
-                        let key = p.to_owned();
-                        let val = self.match_parameter()?.to_string();
-                        // TODO: Remove clones?
-                        self.params.as_mut().unwrap().insert(key, val);
+                        let val = self.match_parameter()?;
+                        self.params
+                            .as_mut()
+                            .unwrap()
+                            .insert(p.to_owned(), url::decode(&val));
                     }
                     Segment::Separator => self.take('/')?,
                 }
+
+                self.seg_index += 1;
             }
 
             if self.path_index >= self.path.len() {
@@ -143,12 +191,6 @@ mod matcher {
     }
 
     impl<'a> Matcher<'a> {
-        fn next_seg(&mut self) -> &Segment {
-            let seg = &self.segments[self.seg_index];
-            self.seg_index += 1;
-            seg
-        }
-
         fn take(&mut self, value: char) -> Option<()> {
             if *self.path.get(self.path_index)? != value {
                 return None;
@@ -173,7 +215,7 @@ mod matcher {
                 self.path_index += 1;
             }
 
-            values.next().is_none().then(|| ())
+            values.next().is_none().then_some(())
         }
 
         fn next_separator(&self) -> usize {
@@ -187,7 +229,7 @@ mod matcher {
 
         // Find last occurrence of next literal without passing any separators.
         fn match_around(&mut self) -> Option<Range<usize>> {
-            let end_pos = match self.segments.get(self.seg_index) {
+            let end_pos = match self.segments.get(self.seg_index + 1) {
                 Some(Segment::Literal(l)) => {
                     let chars = l.chars().collect::<Vec<_>>();
                     let mut i = self.next_separator().saturating_sub(l.len());
@@ -234,9 +276,11 @@ mod matcher {
 }
 
 mod tokenizer {
+    use crate::error::PathError;
+
     use super::Segment;
 
-    pub struct Tokenizer {
+    pub(super) struct Tokenizer {
         chars: Vec<char>,
         index: usize,
 
@@ -255,7 +299,7 @@ mod tokenizer {
             }
         }
 
-        pub fn tokenize(&mut self) {
+        pub fn tokenize(&mut self) -> Result<(), PathError> {
             while self.index < self.chars.len() {
                 let chr = self.next();
                 match chr {
@@ -265,7 +309,7 @@ mod tokenizer {
                     }
                     '{' => {
                         self.flush_buffer();
-                        self.parse_parameter();
+                        self.parse_parameter()?;
                     }
                     '*' if self.peek() == Some(&'*') => {
                         self.flush_buffer();
@@ -273,10 +317,10 @@ mod tokenizer {
                         self.index += 1;
 
                         if self.index < self.chars.len() {
-                            panic!("AnyAfter must be the last segment");
+                            return Err(PathError::NonTerminatingAnyAfter);
                         }
 
-                        return;
+                        return Ok(());
                     }
                     '*' => {
                         self.flush_buffer();
@@ -287,7 +331,9 @@ mod tokenizer {
                     }
                 }
             }
-            self.flush_buffer()
+
+            self.flush_buffer();
+            Ok(())
         }
     }
 
@@ -311,17 +357,17 @@ mod tokenizer {
             self.buffer.clear();
         }
 
-        fn parse_parameter(&mut self) {
+        fn parse_parameter(&mut self) -> Result<(), PathError> {
             while self.index < self.chars.len() {
                 let chr = self.next();
                 match chr {
                     '{' => {
-                        panic!("nested parameters are not allowed");
+                        return Err(PathError::NestedParameter);
                     }
                     '}' => {
                         self.tokens.push(Segment::Parameter(self.buffer.clone()));
                         self.buffer.clear();
-                        return;
+                        return Ok(());
                     }
                     _ => {
                         self.buffer.push(chr);
@@ -329,7 +375,7 @@ mod tokenizer {
                 }
             }
 
-            panic!("unterminated parameter");
+            Err(PathError::UnterminatedParameter)
         }
     }
 }
@@ -355,12 +401,13 @@ mod test {
     }
 
     macro_rules! match_tests {
-        {$(#[test($test_name:ident)] $($path:literal => [$($test:literal => $result:expr),+]),+),*} => {
+        {$(#[test($test_name:ident)] $(#[$meta:meta])* $($path:literal => [$($test:literal => $result:expr),+]),+),*} => {
             $(
                 #[test]
+                $(#[$meta])*
                 fn $test_name() {
                     $(
-                        let path = Path::new($path);
+                        let path = Path::new($path).unwrap();
                         $(
                             assert_eq!(path.matches($test), $result, "`{}`.matches(`{}`)", $path, $test);
                         )*
@@ -409,11 +456,17 @@ mod test {
         ],
         #[test(wildcard_1)]
         "/hello*!" => [
-            "/hello!"       => Some(match_result![]), // FAILING
+            "/hello!"       => Some(match_result![]),
             "/hello"        => None,
             "/helloworld!"  => Some(match_result![]),
             "/helloworld"   => None,
             "/hello/world!" => None
+        ],
+        #[test(wildcard_2)]
+        "/hello/*" => [
+            "/hello/"      => Some(match_result![]),
+            "/hello"       => None,
+            "/hello/world" => Some(match_result![])
         ],
         #[test(any_after_1)]
         "/hello/**" => [

@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{Method, Request};
+use crate::{HeaderType, Method, Request};
 
 /// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
@@ -50,7 +50,41 @@ pub enum StartupError {
     InvalidSocketTimeout,
 
     /// A [forbidden header][`crate::header::FORBIDDEN_HEADERS`] was set as a default header.
-    ForbiddenDefaultHeader(String),
+    ForbiddenDefaultHeader {
+        /// The header in question.
+        header: HeaderType,
+    },
+
+    /// Errors that can occur while parsing a route path.
+    Path {
+        ///The error that occurred.
+        error: PathError,
+        /// The route path that caused the error.
+        route: String,
+    },
+}
+
+/// Errors that can occur while parsing a route path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PathError {
+    /// Any, AnyAfter, and Parameter segments cannot be adjacent in route paths as they make matching ambiguous.
+    /// For example, `/hello{a}{b}` is ambiguous because it could match `/helloworld!` as:
+    /// - { a: 'world!', b: '' }
+    /// - { a: 'world', b: '!' }
+    /// - { a: 'worl', b: 'd!' }
+    /// - { a: 'wor', b: 'ld!' }
+    /// - etc.
+    AmbiguousPath,
+
+    /// Because AnyAfter match any path after the segment, putting one before another segment does not make sense.
+    // TODO: make AnyAfter work like any but it just ignores separators?
+    NonTerminatingAnyAfter,
+
+    /// Parameter segments must be terminated with a closing curly-bracket.
+    UnterminatedParameter,
+
+    /// Parameters cannot be nested inside each other or contain '{' or '}'.
+    NestedParameter,
 }
 
 /// Errors that can arise while handling a request.
@@ -94,7 +128,6 @@ pub enum ParseError {
     /// Invalid Method in Request HTTP.
     /// The only supported methods are GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH, and TRACE.
     InvalidMethod,
-
     /// Invalid Header in Request HTTP.
     InvalidHeader,
 
@@ -172,14 +205,36 @@ impl Display for HandleError {
 impl Display for StartupError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            StartupError::Path { error, route } => {
+                f.write_fmt(format_args!("Path error {error} on route `{route}`."))
+            }
             StartupError::InvalidIp => f.write_str("The IP address specified is invalid"),
             StartupError::InvalidSocketTimeout => {
                 f.write_str("The socket timeout specified is invalid (must be greater than 0)")
             }
-            StartupError::ForbiddenDefaultHeader(header) => f.write_fmt(format_args!(
+            StartupError::ForbiddenDefaultHeader { header } => f.write_fmt(format_args!(
                 "The header `{header}` is forbidden and may not be used as a default header",
             )),
         }
+    }
+}
+
+impl Display for PathError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            PathError::AmbiguousPath => f.write_str(
+                "Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous"
+            ),
+            PathError::NonTerminatingAnyAfter => f.write_str(
+                "AnyAfter segments must be the last segment in a route path"
+            ),
+            PathError::UnterminatedParameter => f.write_str(
+                "Parameter segments must be terminated with a closing curly-bracket",
+            ),
+            PathError::NestedParameter => f.write_str(
+                "Parameters cannot be nested inside each other or contain '{' or '}'"
+            ),
+      }
     }
 }
 

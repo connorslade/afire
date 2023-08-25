@@ -73,9 +73,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     server.route(Method::POST, "/new-form", |ctx| {
         // Get data from form
         let query = Query::from_body(&String::from_utf8_lossy(&ctx.req.body));
-        let name = url::decode(query.get("name").unwrap_or("Untitled")).context("Invalid name")?;
-        let body =
-            url::decode(query.get("body").context("No body supplied")?).context("Invalid body")?;
+        let name = url::decode(query.get("name").unwrap_or("Untitled"));
+        let body = url::decode(query.get("body").context("No body supplied")?);
 
         // Make sure paste data isn't too long
         if body.len() > DATA_LIMIT {

@@ -68,9 +68,7 @@ impl Cookie {
                 None => continue,
             };
 
-            let name = url::decode(name).unwrap_or_else(|| name.to_owned());
-            let value = url::decode(value).unwrap_or_else(|| value.to_owned());
-            out.push(Cookie::new(name, value));
+            out.push(Cookie::new(url::decode(name), url::decode(value)));
         }
 
         out

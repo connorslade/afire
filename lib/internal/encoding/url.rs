@@ -1,9 +1,18 @@
 //! Url encoding and decoding.
 
+use std::str::Chars;
+
 /// Decode a url encoded string.
 /// Supports `+` and `%` encoding.
-/// If the decode fails for any reason, [`None`] is returned.
-pub fn decode(url: &str) -> Option<String> {
+/// If invalid encoding is found, it will be ignored.
+pub fn decode(url: &str) -> String {
+    fn decode_hex(chars: &mut Chars<'_>) -> Option<char> {
+        let mut hex = String::new();
+        hex.push(chars.next()?);
+        hex.push(chars.next()?);
+        u8::from_str_radix(&hex, 16).ok().map(char::from)
+    }
+
     let mut chars = url.chars();
     let mut out = String::with_capacity(url.len());
 
@@ -11,16 +20,15 @@ pub fn decode(url: &str) -> Option<String> {
         match i {
             '+' => out.push(' '),
             '%' => {
-                let mut hex = String::new();
-                hex.push(chars.next()?);
-                hex.push(chars.next()?);
-                out.push(u8::from_str_radix(&hex, 16).ok()? as char);
+                if let Some(chr) = decode_hex(&mut chars) {
+                    out.push(chr);
+                }
             }
             _ => out.push(i),
         }
     }
 
-    Some(out)
+    out
 }
 
 /// Encodes a string with url encoding.
@@ -50,19 +58,19 @@ mod test {
 
     #[test]
     fn test_url_decode() {
-        assert_eq!(decode("hello+world").unwrap(), "hello world");
-        assert_eq!(decode("hello%20world").unwrap(), "hello world");
+        assert_eq!(decode("hello+world"), "hello world");
+        assert_eq!(decode("hello%20world"), "hello world");
         assert_eq!(
-            decode("%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60").unwrap(),
+            decode("%3C%3E%22%23%25%7B%7D%7C%5C%5E~%5B%5D%60"),
             "<>\"#%{}|\\^~[]`"
         );
     }
 
     #[test]
     fn test_url_decode_fail() {
-        assert_eq!(decode("hello%20world%"), None);
-        assert_eq!(decode("hello%20world%2"), None);
-        assert_eq!(decode("hello%20world%2G"), None);
+        assert_eq!(decode("hello%20world%"), "hello world");
+        assert_eq!(decode("hello%20world%2"), "hello world");
+        assert_eq!(decode("hello%20world%2G"), "hello world");
     }
 
     #[test]

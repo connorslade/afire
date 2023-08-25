@@ -284,7 +284,7 @@ impl ServeStatic {
     /// server.run().unwrap();
     /// ```
     pub fn path(self, path: impl AsRef<str>) -> Self {
-        let mut serve_path = path.as_ref().to_owned();
+        let serve_path = path.as_ref().to_owned();
         // TODO: Normalize path?
         // normalize_path(&mut serve_path);
         Self { serve_path, ..self }

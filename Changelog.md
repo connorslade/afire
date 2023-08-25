@@ -49,6 +49,13 @@ Coming Soon
   It allows you to use `server.get(...)` instead of `server.route(Method::GET, ...)`.
 - Added Redirect shorthand extension.
   It allows you to use `ctx.redirect("...")` instead of `ctx.status(Status::Found).header(HeaderType::Location, "...")`.
+- Rewrote the router to allow for more compacted routes.
+  Parameters and wildcards no longer have to be separated by a slash, they can be separated by any literal.
+  This was not implemented before because it it significantly more complicated [to implement](/lib/internal/router.rs).
+  Here are some examples of what you can do now:
+  - `/file/{name}.{ext}`
+  - `/hello*world`
+- Internal `url::decode` will not hard fail in the case of invalid url encoded strings.
 
 # 2.2.1
 

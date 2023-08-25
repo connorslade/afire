@@ -10,8 +10,10 @@ use std::{
 };
 
 use crate::{
-    error::AnyResult, internal::router::PathParameters, router::Path, Content, Context, Header,
-    HeaderType, Method, Request, Response, Status,
+    error::{self, AnyResult},
+    internal::router::PathParameters,
+    router::Path,
+    Content, Context, Header, HeaderType, Method, Request, Response, Status,
 };
 
 type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
@@ -75,12 +77,12 @@ pub trait AdditionalRouteContext<T> {
 
 impl<State: 'static + Send + Sync> Route<State> {
     /// Creates a new route.
-    pub(crate) fn new(method: Method, path: &str, handler: Handler<State>) -> Self {
-        Self {
+    pub(crate) fn new(method: Method, path: &str, handler: Handler<State>) -> error::Result<Self> {
+        Ok(Self {
             method,
-            path: Path::new(path),
+            path: Path::new(path)?,
             handler,
-        }
+        })
     }
 
     /// Checks if a Request matches the route.

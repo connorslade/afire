@@ -1,6 +1,5 @@
 use std::{
     cell::RefCell,
-    collections::HashMap,
     fmt::Display,
     io::Read,
     sync::{
@@ -85,7 +84,7 @@ impl<State: 'static + Send + Sync> Context<State> {
             .as_ref()
             .unwrap()
             .get(name.as_ref())
-            .expect(format!("Path parameter {} does not exist.", name.as_ref()).as_str())
+            .unwrap_or_else(|| panic!("Path parameter {} does not exist.", name.as_ref()))
     }
 
     /// Sends the response to the client.

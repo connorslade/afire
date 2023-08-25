@@ -138,7 +138,10 @@ impl<State: Send + Sync> Server<State> {
         }
 
         if let Some(i) = self.default_headers.iter().find(|x| x.is_forbidden()) {
-            return Err(StartupError::ForbiddenDefaultHeader(i.name.to_string()).into());
+            return Err(StartupError::ForbiddenDefaultHeader {
+                header: i.clone().name,
+            }
+            .into());
         }
 
         let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
@@ -339,8 +342,9 @@ impl<State: Send + Sync> Server<State> {
     ) -> &mut Self {
         trace!("{}Adding Route {} {}", emoji("🚗"), method, path.as_ref());
 
-        self.routes
-            .push(Route::new(method, path.as_ref(), Box::new(handler)));
+        self.routes.push(
+            Route::new(method, path.as_ref(), Box::new(handler)).expect("Error creating route."),
+        );
         self
     }
 
