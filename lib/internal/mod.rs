@@ -6,5 +6,5 @@
 pub mod encoding;
 pub(crate) mod handle;
 pub mod misc;
-pub mod path;
+pub mod router;
 pub mod sync;

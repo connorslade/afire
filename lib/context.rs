@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     error::{HandleError, Result},
-    internal::sync::ForceLockMutex,
+    internal::{router::PathParameters, sync::ForceLockMutex},
     response::ResponseBody,
     Content, Header, HeaderType, Request, Response, Server, SetCookie, Status,
 };
@@ -25,7 +25,7 @@ pub struct Context<State: 'static + Send + Sync> {
     /// The request you are handling.
     pub req: Arc<Request>,
     /// The path parameters.
-    pub(crate) path_params: HashMap<String, String>,
+    pub(crate) path_params: Option<PathParameters>,
     /// The response you are building.
     pub(crate) response: Mutex<Response>,
     /// Various bit-packed flags.
@@ -52,7 +52,7 @@ impl<State: 'static + Send + Sync> Context<State> {
         Self {
             server,
             req,
-            path_params: HashMap::new(),
+            path_params: None,
             response: Mutex::new(Response::new()),
             flags: ContextFlags::new(),
         }
@@ -80,8 +80,12 @@ impl<State: 'static + Send + Sync> Context<State> {
     ///     Ok(())
     /// });
     /// # }
-    pub fn param(&self, name: impl AsRef<str>) -> &String {
-        self.path_params.get(name.as_ref()).unwrap()
+    pub fn param(&self, name: impl AsRef<str>) -> &str {
+        self.path_params
+            .as_ref()
+            .unwrap()
+            .get(name.as_ref())
+            .expect(format!("Path parameter {} does not exist.", name.as_ref()).as_str())
     }
 
     /// Sends the response to the client.

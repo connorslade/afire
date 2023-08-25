@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+};
 
 #[derive(Debug)]
 pub struct Path {
@@ -24,18 +27,20 @@ impl Path {
         let mut tokenizer = tokenizer::Tokenizer::new(path);
         tokenizer.tokenize();
 
+        let path = Path {
+            segments: tokenizer.tokens,
+        };
+
         let mut last_special = false;
-        for i in &tokenizer.tokens {
+        for i in &path.segments {
             if last_special && i.disallow_adjacent() {
-                panic!("Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous.");
+                panic!("Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous. ({})", path);
             }
 
             last_special = i.disallow_adjacent();
         }
 
-        Path {
-            segments: tokenizer.tokens,
-        }
+        path
     }
 
     pub fn matches(&self, path: &str) -> Option<PathParameters> {
@@ -57,12 +62,31 @@ impl PathParameters {
     pub(crate) fn new(params: HashMap<String, String>) -> PathParameters {
         PathParameters { params }
     }
+
+    pub(crate) fn get(&self, key: &str) -> Option<&str> {
+        self.params.get(key).map(|x| x.as_str())
+    }
 }
 
-fn main() {
-    let path = Path::new("/hello*!");
-    println!("{:?}", path.segments);
-    println!("{:?}", path.matches("/hello!"));
+impl Display for Segment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Segment::Separator => f.write_str("/"),
+            Segment::Literal(l) => f.write_str(l),
+            Segment::Parameter(p) => f.write_fmt(format_args!("{{{}}}", p)),
+            Segment::Any => f.write_str("*"),
+            Segment::AnyAfter => f.write_str("**"),
+        }
+    }
+}
+
+impl Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for i in &self.segments {
+            write!(f, "{}", i)?;
+        }
+        Ok(())
+    }
 }
 
 mod matcher {
@@ -103,6 +127,7 @@ mod matcher {
                     Segment::Parameter(p) => {
                         let key = p.to_owned();
                         let val = self.match_parameter()?.to_string();
+                        // TODO: Remove clones?
                         self.params.as_mut().unwrap().insert(key, val);
                     }
                     Segment::Separator => self.take('/')?,
@@ -148,24 +173,7 @@ mod matcher {
                 self.path_index += 1;
             }
 
-            Some(())
-        }
-
-        fn take_until(&mut self, stop: char) -> Option<()> {
-            while self.path_index < self.path.len() {
-                if self.path[self.path_index] == stop {
-                    self.path_index += 1;
-                    return Some(());
-                }
-
-                self.path_index += 1;
-            }
-
-            if self.path_index == self.path.len() {
-                return Some(());
-            }
-
-            None
+            values.next().is_none().then(|| ())
         }
 
         fn next_separator(&self) -> usize {
@@ -262,6 +270,7 @@ mod tokenizer {
                     '*' if self.peek() == Some(&'*') => {
                         self.flush_buffer();
                         self.tokens.push(Segment::AnyAfter);
+                        self.index += 1;
 
                         if self.index < self.chars.len() {
                             panic!("AnyAfter must be the last segment");
@@ -290,7 +299,7 @@ mod tokenizer {
         }
 
         fn peek(&self) -> Option<&char> {
-            self.chars.get(self.index + 1)
+            self.chars.get(self.index)
         }
 
         fn flush_buffer(&mut self) {
@@ -331,6 +340,9 @@ mod test {
     use std::collections::HashMap;
 
     macro_rules! match_result {
+        [] => {
+            PathParameters::new(HashMap::new())
+        };
         [$($key:tt => $val:tt),*] => {
             {
                 let mut map = HashMap::new();
@@ -360,6 +372,18 @@ mod test {
 
     /* spellchecker: disable */
     match_tests! {
+        #[test(basic_1)]
+        "/" => [
+            "/"  => Some(match_result![]),
+            "/a" => None,
+            ""   => None
+        ],
+        #[test(basic_2)]
+        "/send-2" => [
+            "/send-2"  => Some(match_result![]),
+            "/send-2/" => None,
+            "/"        => None
+        ],
         #[test(parameters_1)]
         "/hello{world}world/E" => [
             "/hellopeople!worldworld/E" => Some(match_result!["world" => "people!world"]),
@@ -390,6 +414,14 @@ mod test {
             "/helloworld!"  => Some(match_result![]),
             "/helloworld"   => None,
             "/hello/world!" => None
+        ],
+        #[test(any_after_1)]
+        "/hello/**" => [
+            "/hello"         => None,
+            "/hello/"        => Some(match_result![]),
+            "/hello/world"   => Some(match_result![]),
+            "/hello/world/"  => Some(match_result![]),
+            "/hello/world/!" => Some(match_result![])
         ]
     }
     /* spellchecker: enable */

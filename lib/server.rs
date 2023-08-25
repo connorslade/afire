@@ -337,11 +337,10 @@ impl<State: Send + Sync> Server<State> {
         path: impl AsRef<str>,
         handler: impl Fn(&Context<State>) -> AnyResult<()> + Send + Sync + 'static,
     ) -> &mut Self {
-        let path = path.as_ref().to_owned();
-        trace!("{}Adding Route {} {}", emoji("🚗"), method, path);
+        trace!("{}Adding Route {} {}", emoji("🚗"), method, path.as_ref());
 
         self.routes
-            .push(Route::new(method, path, Box::new(handler)));
+            .push(Route::new(method, path.as_ref(), Box::new(handler)));
         self
     }
 

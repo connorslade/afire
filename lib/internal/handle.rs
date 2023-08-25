@@ -88,7 +88,7 @@ where
             continue 'outer;
         };
 
-        ctx.path_params = params;
+        ctx.path_params = Some(params);
         let result = (route.handler)(&ctx);
         let sent_response = ctx.flags.get(ContextFlag::ResponseSent);
 

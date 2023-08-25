@@ -20,7 +20,7 @@ pub mod internal;
 
 // Import Internal Functions
 mod thread_pool;
-use internal::{encoding, handle, path};
+use internal::{encoding, handle, router};
 use proto::http::{self, *};
 
 #[macro_use]

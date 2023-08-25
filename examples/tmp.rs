@@ -34,7 +34,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Logger::new().attach(&mut server);
 
     server.get("/**", |ctx| {
-        ctx.text("Not found! UWU?").status(Status::NotFound).send()?;
+        ctx.text("Not found! UWU?")
+            .status(Status::NotFound)
+            .send()?;
         Ok(())
     });
 

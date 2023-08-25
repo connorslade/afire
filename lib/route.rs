@@ -3,7 +3,6 @@
 //! The context can include a message, status code, and headers.
 
 use std::{
-    collections::HashMap,
     error::Error,
     fmt::{self, Debug, Display},
     panic,
@@ -11,8 +10,8 @@ use std::{
 };
 
 use crate::{
-    error::AnyResult, path::Path, Content, Context, Header, HeaderType, Method, Request, Response,
-    Status,
+    error::AnyResult, internal::router::PathParameters, router::Path, Content, Context, Header,
+    HeaderType, Method, Request, Response, Status,
 };
 
 type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
@@ -32,7 +31,7 @@ pub struct Route<State: 'static + Send + Sync> {
 
 impl<State: Send + Sync> Debug for Route<State> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{} /{}", self.method, self.path.raw))
+        f.write_fmt(format_args!("{} {}", self.method, self.path))
     }
 }
 
@@ -76,7 +75,7 @@ pub trait AdditionalRouteContext<T> {
 
 impl<State: 'static + Send + Sync> Route<State> {
     /// Creates a new route.
-    pub(crate) fn new(method: Method, path: String, handler: Handler<State>) -> Self {
+    pub(crate) fn new(method: Method, path: &str, handler: Handler<State>) -> Self {
         Self {
             method,
             path: Path::new(path),
@@ -86,11 +85,12 @@ impl<State: 'static + Send + Sync> Route<State> {
 
     /// Checks if a Request matches the route.
     /// Returns the path parameters if it does.
-    pub(crate) fn matches(&self, req: Arc<Request>) -> Option<HashMap<String, String>> {
+    pub(crate) fn matches(&self, req: Arc<Request>) -> Option<PathParameters> {
         if self.method != Method::ANY && self.method != req.method {
             return None;
         }
-        self.path.match_path(req.path.clone())
+
+        self.path.matches(&req.path)
     }
 }
 

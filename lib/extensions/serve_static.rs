@@ -5,7 +5,6 @@ use std::{borrow::Cow, fs::File, sync::Arc};
 use crate::{
     error::{HandleError, Result},
     middleware::{MiddleResult, Middleware},
-    path::normalize_path,
     Error, HeaderType, Request, Response, Status,
 };
 
@@ -286,7 +285,8 @@ impl ServeStatic {
     /// ```
     pub fn path(self, path: impl AsRef<str>) -> Self {
         let mut serve_path = path.as_ref().to_owned();
-        normalize_path(&mut serve_path);
+        // TODO: Normalize path?
+        // normalize_path(&mut serve_path);
         Self { serve_path, ..self }
     }
 }
