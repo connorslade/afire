@@ -33,6 +33,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_log_formatter(LogFormatter);
     Logger::new().attach(&mut server);
 
+    server.get("/**", |ctx| {
+        ctx.text("Not found! UWU?").status(Status::NotFound).send()?;
+        Ok(())
+    });
+
     server.get("/yt/{id}", |ctx| {
         let id = ctx.param("id");
         ctx.redirect(format!("https://youtube.com/watch?v={id}"))

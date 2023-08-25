@@ -1,3 +1,5 @@
+//! Shorthand methods for sending redirects.
+
 use crate::{Context, HeaderType, Status};
 
 /// Types of redirects that can be sent.
@@ -49,9 +51,35 @@ pub enum RedirectType {
     SeeOther,
 }
 
+/// Shorthand methods for sending redirects.
 pub trait RedirectResponse<State: Send + Sync> {
+    /// Creates a redirect response with the default 302 Found status code.
+    /// No body is added to the response.
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # use afire::extensions::RedirectResponse;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/redirect", |ctx| {
+    ///     ctx.redirect("/").send()?;
+    ///     Ok(())
+    /// });
+    /// # }
     fn redirect(&self, url: impl AsRef<str>) -> &Context<State>;
 
+    /// Creates a redirect response with the specified redirect type.
+    /// No body is added to the response.
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # use afire::extensions::{RedirectResponse, RedirectType};
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/redirect_permanent", |ctx| {
+    ///     ctx.redirect_type(RedirectType::MovedPermanently, "/").send()?;
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
     fn redirect_type(&self, redirect_type: RedirectType, url: impl AsRef<str>) -> &Context<State>;
 }
 
