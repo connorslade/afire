@@ -109,7 +109,7 @@ where
 
             // TODO: account for guaranteed send
             // TODO: Run through `write` for middleware
-            let error = RouteError::downcast_error(&e).unwrap_or_else(|| RouteError::from_error(e));
+            let error = RouteError::downcast_error(e);
             if let Err(e) = error
                 .to_response()
                 .write(req.socket.clone(), &this.default_headers)

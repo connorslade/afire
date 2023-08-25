@@ -114,12 +114,15 @@ impl RouteError {
     }
 
     /// Tries to downcast a `Box<dyn Error>` into a RouteError.
-    pub fn downcast_error(e: &Box<dyn Error>) -> Option<RouteError> {
-        e.downcast_ref::<RouteError>().cloned()
+    /// If that doesn't work, it will create a new RouteError with the error message.
+    pub fn downcast_error(e: Box<dyn Error>) -> RouteError {
+        e.downcast_ref::<RouteError>()
+            .cloned()
+            .unwrap_or_else(|| Self::from_error(e))
     }
 
     /// Converts any error type (`Box<dyn Error>`) into a RouteError.
-    pub fn from_error(e: Box<dyn Error>) -> Self {
+    fn from_error(e: Box<dyn Error>) -> Self {
         Self {
             status: Status::InternalServerError,
             message: format!("{:?}", e),
@@ -265,6 +268,6 @@ mod test {
         };
         let error = Box::new(route_error.clone()) as Box<dyn Error>;
 
-        assert_eq!(RouteError::downcast_error(&error).unwrap(), route_error);
+        assert_eq!(RouteError::downcast_error(error), route_error);
     }
 }

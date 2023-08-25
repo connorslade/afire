@@ -56,6 +56,7 @@ Coming Soon
   - `/file/{name}.{ext}`
   - `/hello*world`
 - Internal `url::decode` will not hard fail in the case of invalid url encoded strings.
+- Add `PathNormalizer` middleware that removes trailing and repeating slashes from paths.
 
 # 2.2.1
 
