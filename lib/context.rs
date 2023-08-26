@@ -66,7 +66,7 @@ impl<State: 'static + Send + Sync> Context<State> {
             .expect("Server does not have a state.")
     }
 
-    /// Gets a path parameter.
+    /// Gets a path parameter by na,e.
     /// If the parameter does not exist, it **will panic**.
     /// Because any path parameters are guaranteed to exist if the route matches, there is no need to be able to check if a parameter exists.
     /// ## Example
@@ -80,11 +80,20 @@ impl<State: 'static + Send + Sync> Context<State> {
     /// });
     /// # }
     pub fn param(&self, name: impl AsRef<str>) -> &str {
-        self.path_params
-            .as_ref()
-            .unwrap()
-            .get(name.as_ref())
-            .unwrap_or_else(|| panic!("Path parameter {} does not exist.", name.as_ref()))
+        let name = name.as_ref();
+        let params = self.path_params.as_ref().unwrap();
+        params
+            .get(name, &self.req.path)
+            .unwrap_or_else(|| panic!("Path parameter {} does not exist.", name))
+    }
+
+    /// Gets a path parameter by index.
+    // TODO: docs
+    pub fn param_idx(&self, idx: usize) -> &str {
+        let params = self.path_params.as_ref().unwrap();
+        params
+            .get_index(idx, &self.req.path)
+            .unwrap_or_else(|| panic!("Path parameter #{} does not exist.", idx))
     }
 
     /// Sends the response to the client.

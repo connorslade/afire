@@ -1,8 +1,9 @@
 //! A router for matching request paths against routes.
 
 use std::{
-    collections::HashMap,
     fmt::{self, Display},
+    ops::Range,
+    sync::Arc,
 };
 
 use crate::error::{PathError, Result, StartupError};
@@ -26,6 +27,7 @@ use crate::error::{PathError, Result, StartupError};
 #[derive(Debug)]
 pub struct Path {
     segments: Vec<Segment>,
+    parameters: Arc<[String]>,
 }
 
 /// A segment of a path.
@@ -36,7 +38,7 @@ enum Segment {
     /// A literal string that must match exactly.
     Literal(String),
     /// A named parameter that can be matched to any string before the next separator, including empty strings.
-    Parameter(String),
+    Parameter,
     /// A wildcard that matches any string before the next separator, including empty strings.
     /// Just like a parameter, but does not capture a value.
     Any,
@@ -50,7 +52,8 @@ enum Segment {
 /// Values are automatically url-decoded.
 #[derive(Debug, PartialEq, Eq)]
 pub struct PathParameters {
-    params: HashMap<String, String>,
+    params: Vec<Range<usize>>,
+    names: Arc<[String]>,
 }
 
 impl Path {
@@ -65,9 +68,7 @@ impl Path {
             .into());
         };
 
-        let path = Path {
-            segments: dbg!(tokenizer.tokens),
-        };
+        let path = tokenizer.into_path();
 
         let mut last_special = false;
         for i in &path.segments {
@@ -88,59 +89,60 @@ impl Path {
     /// Try to match a path against this route.
     /// Returns `None` if the path does not match.
     /// Returns `Some` with a `PathParameters` if the path matches.
-    pub fn matches(&self, path: &str) -> Option<PathParameters> {
-        let mut matcher = matcher::Matcher::new(&self.segments, path);
-        matcher.matches().map(|params| PathParameters { params })
+    pub fn matches<'a>(&'a self, path: &'a str) -> Option<PathParameters> {
+        let mut matcher = matcher::Matcher::new(self, path);
+        let names = self.parameters.clone();
+        matcher
+            .matches()
+            .map(|params| PathParameters { params, names })
     }
 }
 
 impl Segment {
     fn disallow_adjacent(&self) -> bool {
-        matches!(
-            self,
-            Segment::Any | Segment::AnyAfter | Segment::Parameter(_)
-        )
+        matches!(self, Segment::Any | Segment::AnyAfter | Segment::Parameter)
     }
 }
 
 impl PathParameters {
-    #[cfg(test)]
-    pub(crate) fn new(params: HashMap<String, String>) -> PathParameters {
-        PathParameters { params }
+    /// Get a parameter by name.
+    /// - Key is the name of the parameter (case sensitive).
+    /// - Path is the path that was matched. It is used to get a reference to the parameter value.
+    pub(crate) fn get<'a>(&self, key: &str, path: &'a str) -> Option<&'a str> {
+        let index = self.names.iter().position(|i| i == key)?;
+        let range = self.params[index].clone();
+        Some(&path[range])
     }
 
-    pub(crate) fn get(&self, key: &str) -> Option<&str> {
-        self.params.get(key).map(|x| x.as_str())
-    }
-}
-
-impl Display for Segment {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Segment::Separator => f.write_str("/"),
-            Segment::Literal(l) => f.write_str(l),
-            Segment::Parameter(p) => f.write_fmt(format_args!("{{{}}}", p)),
-            Segment::Any => f.write_str("*"),
-            Segment::AnyAfter => f.write_str("**"),
-        }
+    pub(crate) fn get_index<'a>(&self, index: usize, path: &'a str) -> Option<&'a str> {
+        let range = self.params[index].clone();
+        Some(&path[range])
     }
 }
 
 impl Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut pi = 0;
         for i in &self.segments {
-            write!(f, "{}", i)?;
+            match i {
+                Segment::Separator => f.write_str("/")?,
+                Segment::Literal(l) => f.write_str(l)?,
+                Segment::Parameter => {
+                    f.write_fmt(format_args!("{{{}}}", self.parameters[pi]))?;
+                    pi += 1
+                }
+                Segment::Any => f.write_str("*")?,
+                Segment::AnyAfter => f.write_str("**")?,
+            }
         }
         Ok(())
     }
 }
 
 mod matcher {
-    use std::{collections::HashMap, ops::Range};
+    use std::ops::Range;
 
-    use crate::internal::encoding::url;
-
-    use super::Segment;
+    use super::{Path, Segment};
 
     pub struct Matcher<'a> {
         segments: &'a [Segment],
@@ -148,34 +150,28 @@ mod matcher {
 
         seg_index: usize,
         path_index: usize,
-        params: Option<HashMap<String, String>>,
+        params: Option<Vec<Range<usize>>>,
     }
 
     impl<'a> Matcher<'a> {
-        pub(super) fn new(segments: &'a [Segment], path: &'a str) -> Matcher<'a> {
+        pub(super) fn new(route: &'a Path, path: &'a str) -> Matcher<'a> {
             Matcher {
-                segments,
+                segments: &route.segments,
                 path: path.chars().collect(),
 
                 seg_index: 0,
                 path_index: 0,
-                params: Some(HashMap::new()),
+                params: Some(Vec::with_capacity(route.parameters.len())),
             }
         }
 
-        pub fn matches(&mut self) -> Option<HashMap<String, String>> {
+        pub fn matches(&mut self) -> Option<Vec<Range<usize>>> {
             while self.seg_index < self.segments.len() {
                 match &self.segments[self.seg_index] {
                     Segment::AnyAfter => return Some(self.params.take().unwrap()),
                     Segment::Literal(l) => self.take_str(l)?,
                     Segment::Any => self.match_any()?,
-                    Segment::Parameter(p) => {
-                        let val = self.match_parameter()?;
-                        self.params
-                            .as_mut()
-                            .unwrap()
-                            .insert(p.to_owned(), url::decode(&val));
-                    }
+                    Segment::Parameter => self.match_parameter()?,
                     Segment::Separator => self.take('/')?,
                 }
 
@@ -254,7 +250,7 @@ mod matcher {
                     i
                 }
                 None | Some(Segment::Separator) => self.next_separator(),
-                Some(Segment::Any | Segment::AnyAfter | Segment::Parameter(_)) => unreachable!(),
+                Some(Segment::Any | Segment::AnyAfter | Segment::Parameter) => unreachable!(),
             };
 
             Some(self.path_index..end_pos)
@@ -266,11 +262,11 @@ mod matcher {
             Some(())
         }
 
-        fn match_parameter(&mut self) -> Option<String> {
+        fn match_parameter(&mut self) -> Option<()> {
             let range = self.match_around()?;
             self.path_index = range.end;
-            let val = &self.path[range];
-            Some(val.iter().collect::<String>())
+            self.params.as_mut().unwrap().push(range);
+            Some(())
         }
     }
 }
@@ -278,13 +274,14 @@ mod matcher {
 mod tokenizer {
     use crate::error::PathError;
 
-    use super::Segment;
+    use super::{Path, Segment};
 
     pub(super) struct Tokenizer {
         chars: Vec<char>,
         index: usize,
 
         pub tokens: Vec<Segment>,
+        pub parameters: Vec<String>,
         buffer: String,
     }
 
@@ -295,6 +292,7 @@ mod tokenizer {
                 index: 0,
 
                 tokens: Vec::new(),
+                parameters: Vec::new(),
                 buffer: String::new(),
             }
         }
@@ -335,6 +333,13 @@ mod tokenizer {
             self.flush_buffer();
             Ok(())
         }
+
+        pub fn into_path(self) -> Path {
+            Path {
+                segments: self.tokens,
+                parameters: self.parameters.into(),
+            }
+        }
     }
 
     impl Tokenizer {
@@ -365,7 +370,8 @@ mod tokenizer {
                         return Err(PathError::NestedParameter);
                     }
                     '}' => {
-                        self.tokens.push(Segment::Parameter(self.buffer.clone()));
+                        self.tokens.push(Segment::Parameter);
+                        self.parameters.push(self.buffer.clone());
                         self.buffer.clear();
                         return Ok(());
                     }
@@ -382,20 +388,20 @@ mod tokenizer {
 
 #[cfg(test)]
 mod test {
-    use super::{Path, PathParameters};
+    use super::Path;
     use std::collections::HashMap;
 
     macro_rules! match_result {
         [] => {
-            PathParameters::new(HashMap::new())
+            HashMap::<String, String>::new()
         };
         [$($key:tt => $val:tt),*] => {
             {
-                let mut map = HashMap::new();
+                let mut map = HashMap::<String, String>::new();
                 $(
-                    map.insert($key.to_owned(), $val.to_owned());
+                    map.insert($key.to_string(), $val.to_string());
                 )*
-                PathParameters::new(map)
+                map
             }
         };
     }
@@ -409,7 +415,25 @@ mod test {
                     $(
                         let path = Path::new($path).unwrap();
                         $(
-                            assert_eq!(path.matches($test), $result, "`{}`.matches(`{}`)", $path, $test);
+                            let res = path.matches($test);
+                            println!("CASE: `{}`.matches(`{}`)", $path, $test);
+                            let result: Option<HashMap<String, String>> = $result;
+                            match (&res, &result) {
+                                (None, None) => println!(" \\ PASSED"),
+                                (Some(res), Some(result)) => {
+                                    for (key, val) in result {
+                                        assert_eq!(
+                                            res.get(key, $test)
+                                                .unwrap_or_else(|| panic!(" \\ Failed: Argument `{}` was not captured.", key)),
+                                            val,
+                                            " \\ Failed: Argument `{}` did not match.",
+                                            key
+                                        );
+                                    }
+                                    println!(" \\ PASSED")
+                                },
+                                (a, b) => panic!(" \\ FAILED: {:?} != {:?}", a, b)
+                            }
                         )*
                     )+
                 }
@@ -478,4 +502,20 @@ mod test {
         ]
     }
     /* spellchecker: enable */
+
+    #[test]
+    fn test_path_display() {
+        const CASES: &[&str] = &[
+            "/",
+            "/hello",
+            "/hello/world",
+            "/hello/{name}",
+            "/hello/{name}/",
+        ];
+
+        for i in CASES {
+            let path = Path::new(i).unwrap();
+            assert_eq!(path.to_string(), *i);
+        }
+    }
 }
