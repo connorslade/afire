@@ -1,5 +1,40 @@
 //! WebSocket support.
-//! Work in progress.
+//! # Example
+//!
+//! Note: For a more complete chat app example, including a small web client, see [`examples/chat_app.rs`](https://github.com/Basicprogrammer10/afire/blob/main/examples/chat_app.rs).
+//!
+//! ```rust
+//! # use afire::{prelude::*, websocket::TxType};
+//! # use std::{thread, time::Duration};
+//! # fn test(server: &mut Server) {
+//! server.route(Method::GET, "/ws", move |ctx| {
+//!     // Switch to the websocket protocol
+//!     // And split stream into rx and tx
+//!     let (tx, rx) = ctx.ws()?.split();
+//!
+//!     // In one thread print all received messages
+//!     thread::spawn(move || {
+//!         for i in rx.into_iter() {
+//!             match i {
+//!                 TxType::Close => break,
+//!                 TxType::Binary(b) => println!("Received: {:?}", b),
+//!                 TxType::Text(t) => println!("Received: {}", t),
+//!             }
+//!         }
+//!     });
+//!
+//!     // In another, send a message every 3 seconds
+//!     let mut i = 0;
+//!     while tx.is_open() {
+//!         thread::sleep(Duration::from_secs(3));
+//!         tx.send(format!("Hello, world! (#{})", i));
+//!         i += 1;
+//!     }
+//!
+//!     Ok(())
+//! });
+//! # }
+//! ```
 
 use std::{
     fmt::Display,

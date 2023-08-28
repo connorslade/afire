@@ -66,9 +66,13 @@ impl<State: 'static + Send + Sync> Context<State> {
             .expect("Server does not have a state.")
     }
 
-    /// Gets a path parameter by na,e.
+    /// Gets a path parameter by name.
     /// If the parameter does not exist, it **will panic**.
     /// Because any path parameters are guaranteed to exist if the route matches, there is no need to be able to check if a parameter exists.
+    ///
+    /// [`Context::param_idx`] is a more efficient way to get a path parameter.
+    /// If those nanoseconds matter to you, in a *web server*, you can use that instead.
+    ///
     /// ## Example
     /// ```
     /// # use afire::prelude::*;
@@ -88,7 +92,22 @@ impl<State: 'static + Send + Sync> Context<State> {
     }
 
     /// Gets a path parameter by index.
-    // TODO: docs
+    /// If the parameter does not exist, it **will panic**.
+    /// Because any path parameters are guaranteed to exist if the route matches, there is no need to be able to check if a parameter exists.
+    ///
+    /// Because [`Context::param`] needs to linearly search for the parameter's name, this method is faster.
+    /// You can even use this method if the parameter has a name.
+    ///
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/greet/{}", |ctx| {
+    ///     let name = ctx.param_idx(0);
+    ///     ctx.text(format!("Hello, {}!", name)).send()?;
+    ///     Ok(())
+    /// });
+    /// # }
     pub fn param_idx(&self, idx: usize) -> &str {
         let params = self.path_params.as_ref().unwrap();
         params
@@ -188,7 +207,6 @@ impl<State: 'static + Send + Sync> Context<State> {
 /// # }
 /// ```
 impl<State: 'static + Send + Sync> Context<State> {
-    // TODO: Maybe rename this?
     /// Overwrites the response with a new one.
     pub fn with_response(&self, res: Response) -> &Self {
         self.response.force_lock().data = res.data;
