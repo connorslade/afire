@@ -161,9 +161,9 @@ fn write<State: 'static + Send + Sync>(
         Ok(i) => i,
         Err(e) => {
             if let Err(ref r) = request {
-                error_response(r, server.clone())
+                error_response(r)
             } else {
-                error_response(&e, server.clone())
+                error_response(&e)
             }
         }
     };
@@ -204,10 +204,7 @@ fn close<State: 'static + Send + Sync>(
 }
 
 /// Gets a response if there is an error.
-pub fn error_response<State>(err: &Error, server: Arc<Server<State>>) -> Response
-where
-    State: 'static + Send + Sync,
-{
+pub fn error_response(err: &Error) -> Response {
     match err {
         Error::None | Error::Startup(_) => {
             unreachable!("None and Startup errors should not be here")
@@ -237,9 +234,6 @@ where
                 .status(Status::NotFound)
                 .text(format!("Cannot {method} {path}"))
                 .content(Content::TXT),
-            HandleError::Panic(r, e) => {
-                (server.error_handler)(server.state.clone(), r, e.to_owned())
-            }
             HandleError::ResponseAlreadySent => unreachable!(),
         },
         Error::Io(e) => Response::new().status(500).text(e),

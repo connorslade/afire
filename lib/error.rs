@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{HeaderType, Method, Request};
+use crate::{HeaderType, Method};
 
 /// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
@@ -67,7 +67,7 @@ pub enum StartupError {
 /// Errors that can occur while parsing a route path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathError {
-    /// Parameter, Wildcard and Any segments cannot be adjacent in route paths as they make matching ambiguous.
+    /// Parameter, Wildcard and AnyAfter segments cannot be adjacent in route paths as they make matching ambiguous.
     /// For example, `/hello{a}{b}` is ambiguous because it could match `/helloworld!` as:
     /// - { a: 'world!', b: '' }
     /// - { a: 'world', b: '!' }
@@ -97,10 +97,6 @@ pub enum HandleError {
 
     /// Route matching request path not found.
     NotFound(Method, String),
-
-    /// A route or middleware panicked while running.
-    // TODO: Remove this?
-    Panic(Box<Result<Arc<Request>>>, String),
 }
 
 /// Error that can occur while parsing the HTTP of a request
@@ -190,9 +186,6 @@ impl Display for HandleError {
             }
             HandleError::NotFound(method, path) => {
                 f.write_fmt(format_args!("No route found at {method} {path}"))
-            }
-            HandleError::Panic(_req, err) => {
-                f.write_fmt(format_args!("Route handler panicked: {err}"))
             }
         }
     }
@@ -307,7 +300,6 @@ impl PartialEq for HandleError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (HandleError::NotFound(m1, p1), HandleError::NotFound(m2, p2)) => m1 == m2 && p1 == p2,
-            (HandleError::Panic(_, s1), HandleError::Panic(_, s2)) => s1 == s2,
             _ => false,
         }
     }
