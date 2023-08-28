@@ -134,12 +134,8 @@ impl Header {
     ///
     /// assert_eq!(header1, header2);
     /// ```
-    pub fn from_string(header: impl AsRef<str>) -> Result<Header> {
-        let header = header.as_ref();
+    pub fn from_string(header: &str) -> Result<Header> {
         let mut split_header = header.splitn(2, ':');
-        if split_header.clone().count() != 2 {
-            return Err(ParseError::InvalidHeader.into());
-        }
 
         let name = split_header
             .next()

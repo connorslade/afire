@@ -67,7 +67,7 @@ pub enum StartupError {
 /// Errors that can occur while parsing a route path.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathError {
-    /// Any, AnyAfter, and Parameter segments cannot be adjacent in route paths as they make matching ambiguous.
+    /// Parameter, Wildcard and Any segments cannot be adjacent in route paths as they make matching ambiguous.
     /// For example, `/hello{a}{b}` is ambiguous because it could match `/helloworld!` as:
     /// - { a: 'world!', b: '' }
     /// - { a: 'world', b: '!' }
@@ -75,10 +75,6 @@ pub enum PathError {
     /// - { a: 'wor', b: 'ld!' }
     /// - etc.
     AmbiguousPath,
-
-    /// Because AnyAfter match any path after the segment, putting one before another segment does not make sense.
-    // TODO: make AnyAfter work like any but it just ignores separators?
-    NonTerminatingAnyAfter,
 
     /// Parameter segments must be terminated with a closing curly-bracket.
     UnterminatedParameter,
@@ -224,9 +220,6 @@ impl Display for PathError {
         match self {
             PathError::AmbiguousPath => f.write_str(
                 "Any, AnyAfter, and Parameter segments cannot be adjacent as they make matching ambiguous"
-            ),
-            PathError::NonTerminatingAnyAfter => f.write_str(
-                "AnyAfter segments must be the last segment in a route path"
             ),
             PathError::UnterminatedParameter => f.write_str(
                 "Parameter segments must be terminated with a closing curly-bracket",
