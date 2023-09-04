@@ -32,4 +32,16 @@ macro_rules! mime {
     };
 }
 
-pub const TEXT: Mime = mime!(text / plain);
+macro_rules! define_mimes {
+    ($($name:ident => $_type:ident / $_subtype:ident),*) => {
+        $( pub const $name: Mime = mime!($_type / $_subtype); )*
+    };
+}
+
+define_mimes! {
+    HTML => text/html,
+    TEXT => text/plain,
+    CSV  => text/csv,
+    JSON => application/json,
+    XML  => application/xml
+}

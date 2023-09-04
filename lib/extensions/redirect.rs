@@ -12,12 +12,14 @@ use crate::{header::Location, Context, Status};
 /// | SeeOther         | 303    | Temporary  | Never          | Always GET                        |
 /// | Temporary        | 307    | Temporary  | Not by default | May not change                    |
 /// | Permanent        | 308    | Permanent  | By default     | May not change                    |
+///
 /// (Source: [Redirects & SEO](https://audisto.com/guides/redirects))
 ///
 /// ## Examples
 /// ```
 /// # use afire::prelude::*;
 /// # use afire::extensions::{RedirectResponse, RedirectType};
+/// # use afire::header::Location;
 /// # fn test(server: &mut Server) {
 /// // Use the default 302 Found redirect
 /// server.route(Method::GET, "/redirect", |ctx| {
@@ -33,7 +35,7 @@ use crate::{header::Location, Context, Status};
 ///
 /// // Set the Location header and status code manually
 /// server.route(Method::GET, "/redirect_manual", |ctx| {
-///     ctx.header(HeaderName::Location, "/").status(RedirectType::Found).send()?;
+///     ctx.header(Location::new("/")).status(RedirectType::Found).send()?;
 ///     Ok(())
 /// });
 /// # }

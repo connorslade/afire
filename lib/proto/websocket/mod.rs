@@ -115,7 +115,7 @@ impl WebSocketStream {
 
         let mut upgrade = Response::new()
             .status(Status::SwitchingProtocols)
-            .header(Connection::Upgrade)
+            .header(Connection::upgrade())
             .header((HeaderName::Upgrade, "websocket"))
             .header(("Sec-WebSocket-Accept", &accept))
             .header(("Sec-WebSocket-Version", "13"));

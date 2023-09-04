@@ -80,6 +80,8 @@ headers! {
     /// Sent with requests to indicate the host and port of the server to which the request is being sent.
     /// This allows for reverse proxies to forward requests to the correct server.
     Host             => "Host",              "host",
+    /// Allows the sender of a HTTP message to hint about how the connection may be used and set a timeout and a maximum amount of requests.
+    KeepAlive        => "Keep-Alive",        "keep-alive",
     /// Used with redirection status codes (301, 302, 303, 307, 308) to indicate the URL to redirect to.
     Location         => "Location",          "location",
     /// Contains the address of the webpage that linked to the resource being requested.

@@ -200,7 +200,7 @@ impl<State: 'static + Send + Sync> Context<State> {
 /// server.route(Method::GET, "/", |ctx| {
 ///     // Because the internal response is mutated,
 ///     // the sent response will have the "X-Test" header.
-///     ctx.header("X-Test", "Test");
+///     ctx.header(("X-Test", "Test"));
 ///     ctx.text("Hello World!").send()?;
 ///     Ok(())
 /// });

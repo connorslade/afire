@@ -1,4 +1,8 @@
-use crate::Header;
+use std::ops::Deref;
+
+use crate::{header::ContentType, Header};
+
+use super::mime::{self, Mime};
 
 /// Common MIME types for HTTP responses.
 /// Used with the [`crate::Context::content`] and [`crate::Response::content`] methods.
@@ -31,14 +35,15 @@ pub enum Content<'a> {
 
 impl Content<'_> {
     /// Get Content as a MIME Type
-    pub fn as_type(&self) -> &str {
+    #[rustfmt::skip]
+    pub fn as_type(&self) -> Mime {
         match self {
-            Content::HTML => "text/html",
-            Content::TXT => "text/plain",
-            Content::CSV => "text/csv",
-            Content::JSON => "application/json",
-            Content::XML => "application/xml",
-            Content::Custom(i) => i,
+            Content::HTML => mime::HTML,
+            Content::TXT  => mime::TEXT,
+            Content::CSV  => mime::CSV,
+            Content::JSON => mime::JSON,
+            Content::XML  => mime::XML,
+            Content::Custom(i) => i.deref().into(),
         }
     }
 }
@@ -46,17 +51,6 @@ impl Content<'_> {
 impl From<Content<'_>> for Header {
     // Convert Content to a Content-Type Header
     fn from(x: Content<'_>) -> Self {
-        Header::new(
-            "Content-Type",
-            format!(
-                "{}{}",
-                x.as_type(),
-                if !matches!(x, Content::Custom(_)) {
-                    "; charset=utf-8"
-                } else {
-                    ""
-                }
-            ),
-        )
+        ContentType::new(x.as_type()).into()
     }
 }
