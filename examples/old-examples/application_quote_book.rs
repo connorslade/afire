@@ -17,7 +17,7 @@ use afire::{
     internal::encoding::url,
     trace,
     trace::{set_log_level, Level},
-    Content, HeaderType, Method, Query, Response, Server, Status,
+    Content, HeaderName, Method, Query, Response, Server, Status,
 };
 
 struct App {
@@ -68,7 +68,7 @@ fn main() {
         app.save();
         Response::new()
             .status(Status::SeeOther)
-            .header(HeaderType::Location, format!("/quote/{id}"))
+            .header(HeaderName::Location, format!("/quote/{id}"))
             .text("Redirecting to quote page.")
     });
 

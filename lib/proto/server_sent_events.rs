@@ -38,8 +38,9 @@ use std::{
 use crate::{
     context::ContextFlag,
     error::Result,
+    header::{CacheControl, ContentType},
     internal::sync::{ForceLockMutex, SingleBarrier},
-    Context, Error, Header, HeaderType, Request, Response,
+    Context, Error, Header, HeaderName, Request, Response,
 };
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
@@ -115,8 +116,8 @@ impl ServerSentEventStream {
 
         let socket = this.socket.clone();
         let mut res = Response::new()
-            .header(HeaderType::ContentType, "text/event-stream")
-            .header(HeaderType::CacheControl, "no-cache");
+            .header(ContentType::new("text/event-stream"))
+            .header(CacheControl::no_cache());
         res.write(socket.clone(), headers)?;
 
         let (tx, rx) = mpsc::channel::<EventType>();

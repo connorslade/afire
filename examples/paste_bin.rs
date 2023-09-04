@@ -9,10 +9,11 @@
 use std::{error, sync::RwLock, time::Instant};
 
 use afire::{
+    header::Location,
     internal::{encoding::url, sync::ForceLockRwLock},
     route::RouteContext,
     trace::{set_log_level, Level},
-    Content, Error, HeaderType, Method, Query, Server, Status,
+    Content, Error, Method, Query, Server, Status,
 };
 
 // Maximum size of a paste in bytes
@@ -46,10 +47,15 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         let body_str = String::from_utf8_lossy(&ctx.req.body);
 
         // Get the name from the Name header
-        let name = ctx.req.headers.get("Name").unwrap_or("Untitled");
+        let name = ctx
+            .req
+            .headers
+            .get("Name")
+            .map(|x| x.to_string())
+            .unwrap_or_else(|| "Untitled".into());
 
         let paste = Paste {
-            name: name.to_owned(),
+            name,
             body: body_str.to_string(),
             time: Instant::now(),
         };
@@ -63,7 +69,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
         // Send Redirect response
         ctx.status(Status::SeeOther)
-            .header(HeaderType::Location, format!("/p/{id}"))
+            .header(Location::new(format!("/p/{id}")))
             .text(format!("Redirecting to /p/{id}."))
             .send()?;
         Ok(())
@@ -96,7 +102,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
         // Send Redirect response
         ctx.status(Status::SeeOther)
-            .header(HeaderType::Location, format!("/p/{}", id))
+            .header(Location::new(format!("/p/{id}")))
             .text("Ok")
             .send()?;
         Ok(())

@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{HeaderType, Method};
+use crate::{HeaderName, Method};
 
 /// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
@@ -52,7 +52,7 @@ pub enum StartupError {
     /// A [forbidden header][`crate::header::FORBIDDEN_HEADERS`] was set as a default header.
     ForbiddenDefaultHeader {
         /// The header in question.
-        header: HeaderType,
+        header: HeaderName,
     },
 
     /// Errors that can occur while parsing a route path.

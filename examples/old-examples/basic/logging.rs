@@ -1,6 +1,6 @@
 use afire::{
     extensions::logger::{Level, Logger},
-    Content, HeaderType, Method, Middleware, Response, Server,
+    Content, HeaderName, Method, Middleware, Response, Server,
 };
 
 use crate::Example;
@@ -37,7 +37,7 @@ impl Example for Logging {
             .level(Level::Info)
             // This will have Logger make use of the RealIp extention,
             // which will allow logging the correct IP when using a reverse proxy.
-            .real_ip(HeaderType::XForwardedFor)
+            .real_ip(HeaderName::XForwardedFor)
             // The file argument tells the logger if it should save to a file
             // Only one file can be defined per logger
             // With logging to file it will write to the file on every request... (for now)

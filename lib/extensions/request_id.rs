@@ -5,14 +5,14 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::{
     middleware::{MiddleResult, Middleware},
-    HeaderType, Request,
+    HeaderName, Request,
 };
 
 /// Add an id to every incoming Request
 ///
 /// The ID is just incremented on each request to not have to worry about collisions
 pub struct RequestId {
-    id_header: HeaderType,
+    id_header: HeaderName,
     id: AtomicUsize,
 }
 
@@ -30,7 +30,7 @@ impl RequestId {
     /// // Start Server
     /// server.run().unwrap();
     ///```
-    pub fn new(header: impl Into<HeaderType>) -> Self {
+    pub fn new(header: impl Into<HeaderName>) -> Self {
         Self {
             id: AtomicUsize::new(0),
             id_header: header.into(),

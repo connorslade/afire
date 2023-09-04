@@ -1,6 +1,6 @@
 use crate::{
     middleware::{MiddleResult, Middleware},
-    Content, Header, HeaderType, Method, Request, Response,
+    Content, Header, HeaderName, Method, Request, Response,
 };
 
 /// Adds support for the [HTTP TRACE](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/TRACE) method.
@@ -9,7 +9,7 @@ use crate::{
 /// The `Cookie` header is excluded by default because it could contain sensitive information.
 /// Read more about it in [RFC-9110](https://www.rfc-editor.org/rfc/rfc9110#TRACE).
 pub struct Trace {
-    exclude_headers: Vec<HeaderType>,
+    exclude_headers: Vec<HeaderName>,
 }
 
 impl Trace {
@@ -18,25 +18,25 @@ impl Trace {
     /// If you want to include it, use the [`include`] method.
     pub fn new() -> Self {
         Self {
-            exclude_headers: vec![HeaderType::Cookie],
+            exclude_headers: vec![HeaderName::Cookie],
         }
     }
 
     /// Adds a header to the list of headers to exclude from the response.
-    pub fn exclude(mut self, header: HeaderType) -> Self {
+    pub fn exclude(mut self, header: HeaderName) -> Self {
         self.exclude_headers.push(header);
         self
     }
 
     /// Adds a list of headers to the list of headers to exclude from the response.
-    pub fn exclude_all(mut self, headers: &[HeaderType]) -> Self {
+    pub fn exclude_all(mut self, headers: &[HeaderName]) -> Self {
         self.exclude_headers.extend_from_slice(headers);
         self
     }
 
     /// Removes a header from the list of headers to exclude from the response.
     /// Likely to be used with for allowing the `Cookie` header to be sent, as it is excluded by default.
-    pub fn include(mut self, header: HeaderType) -> Self {
+    pub fn include(mut self, header: HeaderName) -> Self {
         self.exclude_headers.retain(|h| *h != header);
         self
     }

@@ -4,8 +4,9 @@ use std::{borrow::Cow, fs::File, sync::Arc};
 
 use crate::{
     error::{HandleError, Result},
+    header::ContentType,
     middleware::{MiddleResult, Middleware},
-    Error, HeaderType, Request, Response, Status,
+    Error, HeaderName, Request, Response, Status,
 };
 
 type SSMiddleware = Box<dyn Fn(Arc<Request>, &mut Response, &mut bool) + Send + Sync>;
@@ -85,7 +86,7 @@ impl ServeStatic {
                 Response::new()
                     .status(Status::NotFound)
                     .text(format!("The page `{}` was not found...", req.path))
-                    .header(HeaderType::ContentType, "text/plain")
+                    .header(ContentType::text())
             },
             types: Vec::new(),
         }
@@ -329,10 +330,13 @@ fn process_req(req: Arc<Request>, this: &ServeStatic) -> (Response, bool) {
     let mut res = Response::new();
     if let Ok(i) = file.metadata() {
         res.headers
-            .add(HeaderType::ContentLength, i.len().to_string());
+            .add(HeaderName::ContentLength, i.len().to_string());
     }
 
-    (res.stream(file).header("Content-Type", content_type), true)
+    (
+        res.stream(file).header(ContentType::new(content_type)),
+        true,
+    )
 }
 
 /// Prevents path traversals.

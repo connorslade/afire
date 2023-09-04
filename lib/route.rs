@@ -13,7 +13,7 @@ use crate::{
     error::{self, AnyResult},
     internal::router::PathParameters,
     router::Path,
-    Content, Context, Header, HeaderType, Method, Request, Response, Status,
+    Content, Context, Header, HeaderName, Method, Request, Response, Status,
 };
 
 type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
@@ -66,11 +66,11 @@ pub trait AdditionalRouteContext<T> {
     fn with_status(self, status: impl Fn() -> Status) -> Result<T, RouteError>;
 
     /// Add a header to a `Result<T, RouteError>`.
-    fn header(self, name: impl Into<HeaderType>, value: impl AsRef<str>) -> Result<T, RouteError>;
+    fn header(self, name: impl Into<HeaderName>, value: impl AsRef<str>) -> Result<T, RouteError>;
     /// Add a header to a `Result<T, RouteError>` with a lazy-evaluated value.
     fn with_header(
         self,
-        name: impl Into<HeaderType>,
+        name: impl Into<HeaderName>,
         value: impl Fn() -> String,
     ) -> Result<T, RouteError>;
 }
@@ -106,7 +106,7 @@ impl RouteError {
             .text(&self.message)
             .headers(self.headers);
 
-        if !res.headers.has(HeaderType::ContentType) {
+        if !res.headers.has(HeaderName::ContentType) {
             res = res.content(Content::TXT);
         }
 
@@ -200,7 +200,7 @@ impl<T> AdditionalRouteContext<T> for Result<T, RouteError> {
         }
     }
 
-    fn header(self, name: impl Into<HeaderType>, value: impl AsRef<str>) -> Result<T, RouteError> {
+    fn header(self, name: impl Into<HeaderName>, value: impl AsRef<str>) -> Result<T, RouteError> {
         match self {
             Ok(x) => Ok(x),
             Err(mut e) => {
@@ -212,7 +212,7 @@ impl<T> AdditionalRouteContext<T> for Result<T, RouteError> {
 
     fn with_header(
         self,
-        name: impl Into<HeaderType>,
+        name: impl Into<HeaderName>,
         value: impl Fn() -> String,
     ) -> Result<T, RouteError> {
         match self {

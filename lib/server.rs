@@ -18,7 +18,7 @@ use crate::{
     route::Route,
     thread_pool::ThreadPool,
     trace::emoji,
-    Content, Context, Header, HeaderType, Method, Middleware, Request, Response, Status, VERSION,
+    Content, Context, Header, HeaderName, Method, Middleware, Request, Response, Status, VERSION,
 };
 
 type ErrorHandler<State> =
@@ -201,7 +201,7 @@ impl<State: Send + Sync> Server<State> {
     ///     // Add a default header to the response
     ///     .default_header("X-Server", "afire");
     /// ```
-    pub fn default_header(self, key: impl Into<HeaderType>, value: impl AsRef<str>) -> Self {
+    pub fn default_header(self, key: impl Into<HeaderName>, value: impl AsRef<str>) -> Self {
         let mut headers = self.default_headers;
         let header = Header::new(key, value);
         trace!("{}Adding Server Header ({})", emoji("😀"), header);

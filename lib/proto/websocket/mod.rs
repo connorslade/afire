@@ -52,13 +52,14 @@ use crate::{
     consts::BUFF_SIZE,
     context::ContextFlag,
     error::Result,
+    header::Connection,
     internal::{
         encoding::{base64, sha1},
         sync::ForceLockMutex,
     },
     trace::LazyFmt,
     websocket::{frame::OpCode, frame_stack::FrameStack},
-    Context, Error, Header, HeaderType, Request, Response, Status,
+    Context, Error, Header, HeaderName, Request, Response, Status,
 };
 
 use self::{
@@ -114,10 +115,10 @@ impl WebSocketStream {
 
         let mut upgrade = Response::new()
             .status(Status::SwitchingProtocols)
-            .header(HeaderType::Upgrade, "websocket")
-            .header(HeaderType::Connection, "Upgrade")
-            .header("Sec-WebSocket-Accept", &accept)
-            .header("Sec-WebSocket-Version", "13");
+            .header(Connection::Upgrade)
+            .header((HeaderName::Upgrade, "websocket"))
+            .header(("Sec-WebSocket-Accept", &accept))
+            .header(("Sec-WebSocket-Version", "13"));
 
         upgrade.write(req.socket.clone(), headers)?;
         trace!(Level::Debug, "[WS] Upgraded socket #{}", req.socket.id);

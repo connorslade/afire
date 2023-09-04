@@ -11,7 +11,7 @@ use crate::{
     consts::BUFF_SIZE,
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
-    header::{HeaderType, Headers},
+    header::{HeaderName, Headers},
     internal::sync::ForceLockMutex,
     socket::Socket,
     Cookie, Error, Header, Method, Query,
@@ -62,7 +62,7 @@ pub enum HttpVersion {
 
 impl Request {
     pub(crate) fn keep_alive(&self) -> bool {
-        let connection = self.headers.get(HeaderType::Connection);
+        let connection = self.headers.get(HeaderName::Connection);
         match self.version {
             // Only keep-alive if the connection header specifies
             HttpVersion::Http10 => connection
@@ -109,7 +109,7 @@ impl Request {
             }
 
             let header = Header::from_string(&line[..line.len() - 2])?;
-            if header.name != HeaderType::Cookie {
+            if header.name != HeaderName::Cookie {
                 headers.push(header);
                 continue;
             }
@@ -119,7 +119,7 @@ impl Request {
 
         let content_len = headers
             .iter()
-            .find(|i| i.name == HeaderType::ContentLength)
+            .find(|i| i.name == HeaderName::ContentLength)
             .map(|i| i.value.parse::<usize>().unwrap_or(0))
             .unwrap_or(0);
         let mut body = vec![0; content_len];
@@ -133,7 +133,7 @@ impl Request {
         drop(stream);
 
         let headers = Headers(headers);
-        if version >= HttpVersion::Http11 && !headers.has(HeaderType::Host) {
+        if version >= HttpVersion::Http11 && !headers.has(HeaderName::Host) {
             return Err(Error::Parse(ParseError::NoHostHeader));
         }
 

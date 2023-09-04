@@ -1,4 +1,4 @@
-use afire::{Content, HeaderType, Method, Response, Server, Status};
+use afire::{Content, HeaderName, Method, Response, Server, Status};
 
 use crate::Example;
 
@@ -33,9 +33,9 @@ impl Example for Basic {
                 // So for example numbers, or a serde_json::Value will work
                 .text("Hi :P")
                 // You can also add headers
-                // The header method will take a HeaderType, String, or &str and the value can be a String or &str
+                // The header method will take a HeaderName, String, or &str and the value can be a String or &str
                 // (this is not the proper way to use the Date header, but it works for this example)
-                .header(HeaderType::Date, "today")
+                .header(HeaderName::Date, "today")
                 // Now we will set the content type to text/plain; charset=utf-8
                 // The content method just adds a Content-Type header
                 .content(Content::TXT)

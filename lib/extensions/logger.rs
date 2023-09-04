@@ -6,7 +6,7 @@ use std::io::{self, prelude::*};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use crate::{extensions::RealIp, HeaderType, Middleware, Request, Response};
+use crate::{extensions::RealIp, HeaderName, Middleware, Request, Response};
 
 /// Define Log Levels
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub struct Logger {
     level: Level,
 
     /// What header to use to get the clients actual IP
-    real_ip: Option<HeaderType>,
+    real_ip: Option<HeaderName>,
 
     /// Optional file to write logs to
     file: Option<Mutex<File>>,
@@ -80,10 +80,10 @@ impl Logger {
     }
 
     /// Uses the [`crate::extensions::RealIp`] extension for log IPs.
-    /// You will need to supply the header that will contain the IP address, for example the [X-Forwarded-For header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) ([`HeaderType::XForwardedFor`])
+    /// You will need to supply the header that will contain the IP address, for example the [X-Forwarded-For header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For) ([`HeaderName::XForwardedFor`])
     ///
     /// **Warning**: Make sure your reverse proxy is overwriting the specified header on the incoming requests so clients cant spoof their original Ips.
-    pub fn real_ip(self, real_ip: HeaderType) -> Self {
+    pub fn real_ip(self, real_ip: HeaderName) -> Self {
         Self {
             real_ip: Some(real_ip),
             ..self

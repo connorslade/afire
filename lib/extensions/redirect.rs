@@ -1,6 +1,6 @@
 //! Shorthand methods for sending redirects.
 
-use crate::{Context, HeaderType, Status};
+use crate::{header::Location, Context, Status};
 
 /// Types of redirects that can be sent.
 /// This type can be passed to [`RedirectResponse::redirect_type`] to send a redirect with a specific status code, or to the plain [`Context::header`] where you will need to manually define the 'Location' header.
@@ -33,7 +33,7 @@ use crate::{Context, HeaderType, Status};
 ///
 /// // Set the Location header and status code manually
 /// server.route(Method::GET, "/redirect_manual", |ctx| {
-///     ctx.header(HeaderType::Location, "/").status(RedirectType::Found).send()?;
+///     ctx.header(HeaderName::Location, "/").status(RedirectType::Found).send()?;
 ///     Ok(())
 /// });
 /// # }
@@ -65,7 +65,7 @@ pub trait RedirectResponse<State: Send + Sync> {
     ///     Ok(())
     /// });
     /// # }
-    fn redirect(&self, url: impl AsRef<str>) -> &Context<State>;
+    fn redirect(&self, url: impl ToString) -> &Context<State>;
 
     /// Creates a redirect response with the specified redirect type.
     /// No body is added to the response.
@@ -80,16 +80,18 @@ pub trait RedirectResponse<State: Send + Sync> {
     /// });
     /// # }
     /// ```
-    fn redirect_type(&self, redirect_type: RedirectType, url: impl AsRef<str>) -> &Context<State>;
+    fn redirect_type(&self, redirect_type: RedirectType, url: impl ToString) -> &Context<State>;
 }
 
 impl<State: Send + Sync> RedirectResponse<State> for Context<State> {
-    fn redirect(&self, url: impl AsRef<str>) -> &Context<State> {
-        self.status(Status::Found).header(HeaderType::Location, url)
+    fn redirect(&self, url: impl ToString) -> &Context<State> {
+        self.status(Status::Found)
+            .header(Location::new(url.to_string()))
     }
 
-    fn redirect_type(&self, redirect_type: RedirectType, url: impl AsRef<str>) -> &Context<State> {
-        self.status(redirect_type).header(HeaderType::Location, url)
+    fn redirect_type(&self, redirect_type: RedirectType, url: impl ToString) -> &Context<State> {
+        self.status(redirect_type)
+            .header(Location::new(url.to_string()))
     }
 }
 

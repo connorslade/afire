@@ -1,7 +1,7 @@
 use crate::{
     middleware::{MiddleResult, Middleware},
     response::ResponseBody,
-    HeaderType, Method, Request, Response,
+    HeaderName, Method, Request, Response,
 };
 
 /// Middleware to add support for the HTTP [HEAD](https://developer.mozilla.org/en-US/docs/web/http/methods/head) method.
@@ -52,7 +52,7 @@ impl Middleware for Head {
         }
 
         let len = match &mut res.data {
-            _ if res.headers.has(HeaderType::ContentLength) => None,
+            _ if res.headers.has(HeaderName::ContentLength) => None,
             ResponseBody::Static(d) => Some(d.len()),
             ResponseBody::Stream(s) if self.streaming => {
                 let mut buf = Vec::new();
@@ -63,7 +63,7 @@ impl Middleware for Head {
         };
 
         if let Some(i) = len {
-            res.headers.add(HeaderType::ContentLength, i.to_string());
+            res.headers.add(HeaderName::ContentLength, i.to_string());
         }
         res.data = ResponseBody::Empty;
         MiddleResult::Continue

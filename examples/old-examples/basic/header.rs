@@ -1,4 +1,4 @@
-use afire::{Content, HeaderType, Method, Response, Server, Status};
+use afire::{Content, HeaderName, Method, Response, Server, Status};
 
 use crate::Example;
 
@@ -20,18 +20,18 @@ impl Example for Header {
             // Although it is not guaranteed to be the one picked by the client it usually is
             // At the bottom of this file is a representation of the order of the headers
             .default_header("X-Server-Header", "This is a server wide header")
-            // You can also use the HeaderType enum to define a header type
+            // You can also use the HeaderName enum to define a header type
             // This is also true with the .header method on the Response struct
-            .default_header(HeaderType::Server, "afire");
+            .default_header(HeaderName::Server, "afire");
 
         // Define a route to redirect to another website
         server.route(Method::GET, "/", |_req| {
             // Because this is all bout headers I have put the header vector here
             let headers = vec![
                 // Tell the client what type of data we are sending
-                afire::Header::new(HeaderType::ContentType, "text/html"),
+                afire::Header::new(HeaderName::ContentType, "text/html"),
                 // Tell the client to redirect to another website
-                afire::Header::new(HeaderType::Location, "https://connorcode.com"),
+                afire::Header::new(HeaderName::Location, "https://connorcode.com"),
                 // Custom header
                 afire::Header::new("X-Custom-Header", "This is a custom header"),
             ];

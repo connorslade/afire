@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use afire::{Content, HeaderType, Method, Query, Response, Server};
+use afire::{Content, HeaderName, Method, Query, Response, Server};
 
 use crate::Example;
 
@@ -52,7 +52,7 @@ impl Example for Data {
                 .text(text)
                 // Set the `Content-Type` header to be `text/html`
                 // Note: This could also be set with the Response::content method
-                .header(HeaderType::ContentType, "text/html")
+                .header(HeaderName::ContentType, "text/html")
         });
 
         // Define webpage with form

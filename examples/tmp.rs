@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let content_type = ctx
             .req
             .headers
-            .get(HeaderType::ContentType)
+            .get(HeaderName::ContentType)
             .context("No content type")?;
         println!("Received {} bytes", ctx.req.body.len());
         ctx.bytes(&**ctx.req.body)
@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let user_agent = ctx
             .req
             .headers
-            .get(HeaderType::UserAgent)
+            .get(HeaderName::UserAgent)
             .context("No User-Agent supplied.")?;
 
         ctx.text(format!("{addr}: {user_agent}"))
@@ -126,7 +126,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .content(Content::Custom(
                 ctx.req
                     .headers
-                    .get(HeaderType::ContentType)
+                    .get(HeaderName::ContentType)
                     .context("No Content-Type")?,
             ))
             .send()?;
@@ -234,7 +234,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let threads = ctx.server.thread_pool.threads();
         let thread = ctx.server.thread_pool.current_thread().unwrap();
         ctx.text(format!("Ok!\nThreads: {threads}\nCurrent Thread: {thread}"))
-            .header(HeaderType::ContentType, "text/plain")
+            .header((HeaderName::ContentType, "text/plain"))
             .send()?;
 
         Ok(())
@@ -279,7 +279,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .get("Header")
             .context("No `Header` header")?;
 
-        ctx.header("Header", header.replace(r"\n", "\n"))
+        ctx.header(("Header", header.replace(r"\n", "\n")))
             .text("Ok!")
             .send()?;
         Ok(())

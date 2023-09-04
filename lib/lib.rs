@@ -39,7 +39,7 @@ pub use self::{
     context::Context,
     cookie::{Cookie, SetCookie},
     error::Error,
-    header::{Header, HeaderType},
+    header::{Header, HeaderName},
     http::{cookie, header, multipart},
     method::Method,
     middleware::Middleware,
@@ -59,7 +59,7 @@ pub mod prelude {
         middleware::{MiddleResult, Middleware},
         proto::server_sent_events::ServerSentEventsExt,
         proto::websocket::WebSocketExt,
-        Content, Cookie, Header, HeaderType, Method, Query, Request, Response, Server, SetCookie,
+        Content, Cookie, Header, HeaderName, Method, Query, Request, Response, Server, SetCookie,
         Status,
     };
 }

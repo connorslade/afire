@@ -5,7 +5,7 @@ use std::net::TcpStream;
 use std::sync::Arc;
 
 use crate::consts;
-use crate::header::{HeaderType, Headers};
+use crate::header::{HeaderName, Headers};
 use crate::http::status::Status;
 use crate::internal::sync::ForceLockMutex;
 use crate::socket::Socket;
@@ -174,17 +174,18 @@ impl Response {
         }
     }
 
-    /// Add a Header to a Response.
-    /// Will accept any type that implements `AsRef<str>`, so [`String`], [`str`], [`&str`], etc.
-    /// ## Example
-    /// ```rust
-    /// # use afire::{Response, Header};
-    /// // Create Response
-    /// let response = Response::new()
-    ///    .header("Test-Header", "Test-Value");
-    /// ```
-    pub fn header(mut self, key: impl Into<HeaderType>, value: impl AsRef<str>) -> Self {
-        self.headers.push(Header::new(key, value));
+    // /// Add a Header to a Response.
+    // /// Will accept any type that implements `AsRef<str>`, so [`String`], [`str`], [`&str`], etc.
+    // /// ## Example
+    // /// ```rust
+    // /// # use afire::{Response, Header};
+    // /// // Create Response
+    // /// let response = Response::new()
+    // ///    .header("Test-Header", "Test-Value");
+    // /// ```
+
+    pub fn header(mut self, header: impl Into<Header>) -> Self {
+        self.headers.push(header.into());
         self
     }
 
@@ -294,19 +295,19 @@ impl Response {
         let static_body = self.data.is_static();
 
         // Add content-length header to response if we are sending a static body
-        if static_body && !self.headers.has(HeaderType::ContentLength) {
+        if static_body && !self.headers.has(HeaderName::ContentLength) {
             self.headers.push(self.data.content_len());
         }
 
         // Add Connection: close if response is set to close
-        if self.flag == ResponseFlag::Close && !self.headers.has(HeaderType::Connection) {
+        if self.flag == ResponseFlag::Close && !self.headers.has(HeaderName::Connection) {
             self.headers
-                .push(Header::new(HeaderType::Connection, "close"));
+                .push(Header::new(HeaderName::Connection, "close"));
         }
 
-        if !static_body && !self.headers.has(HeaderType::TransferEncoding) {
+        if !static_body && !self.headers.has(HeaderName::TransferEncoding) {
             self.headers
-                .push(Header::new(HeaderType::TransferEncoding, "chunked"));
+                .push(Header::new(HeaderName::TransferEncoding, "chunked"));
         }
 
         // Convert the response to a string
