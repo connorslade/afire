@@ -5,7 +5,6 @@ use std::{
 };
 
 use crate::trace::LazyFmt;
-
 use super::xor_mask;
 
 /// ## Frame Layout
@@ -33,7 +32,7 @@ use super::xor_mask;
 pub struct Frame {
     pub fin: bool,
     /// RSV1, RSV2, RSV3
-    /// BitPacked into one byte (0xRRR)
+    /// BitPacked into one byte (0x123)
     pub rsv: u8,
     pub opcode: u8,
     pub payload_len: u64,
@@ -68,8 +67,6 @@ impl Frame {
 
         if payload_len == 0 {
             trace!(Level::Debug, "[WS] Empty payload");
-            // Are empty payloads not allowed?
-            // return None;
         }
 
         if !mask {

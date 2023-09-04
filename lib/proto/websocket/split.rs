@@ -25,7 +25,7 @@ pub struct WebSocketStreamReceiver {
 }
 
 impl WebSocketStreamSender {
-    /// Sends 'text' data to the client.
+    /// Sends text data to the client.
     pub fn send(&self, data: impl Display) {
         let _ = self.tx.send(TxType::Text(data.to_string()).into());
     }
@@ -47,10 +47,12 @@ impl WebSocketStreamReceiver {
         self.open.load(Ordering::Relaxed)
     }
 
+    /// Blocks until a message is received.
     pub fn recv(&self) -> Result<TxType, RecvError> {
         self.rx.recv()
     }
 
+    /// Returns a message if one is available.
     pub fn try_recv(&self) -> Result<TxType, TryRecvError> {
         self.rx.try_recv()
     }

@@ -1,4 +1,27 @@
 //! A router for matching request paths against routes.
+//! To find the route that should process a request, all added routes are checked in reverse order.
+//! The first route that matches the request path is used.
+//!
+//!There are 5 types of segments that can be used to make up a path.
+//! Note that 'Any string' includes empty strings.
+//!
+//!| Name      | Syntax | Description                                                                                        |
+//!| --------- | :----: | -------------------------------------------------------------------------------------------------- |
+//!| Separator | `/`    | Matches the slash character.                                                                       |
+//!| Literal   | `...`  | A literal string that must match exactly.                                                          |
+//!| Parameter | `{...}`| A named parameter that can be matched to any string before the next separator.                     |
+//!| Wildcard  | `*`    | Matches any string before the next separator. Just like a parameter, but does not capture a value. |
+//!| AnyAfter  | `**`   | Matches the rest of the path, regardless of its contents.                                          |
+//!
+//! ## Examples
+//!| Route             | Explanation                                                                                                              |
+//!| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+//!| `/hello/world`    | Matches `/hello/world` exactly. Will not match if path has a trailing slash.                                         |
+//!| `/hello/world/`   | Matches `/hello/world/`, will not match `/hello/world`                                                                   |
+//!| `/hello/{name}`   | Matches `/hello/` followed by any string before a separator. Will match `/hello/darren` and `/hello/` but not `/hello/`. |
+//!| `/hello/*`        | Matches `/hello/` followed by any string. Will match `/hello/world` but not `/hello/world/test` or `/hello/world/`.      |
+//!| `/hello/**/world` | Matches `/hello/` followed by anything, followed by `/world`. Will match `/hello/everybody/world`.                       |
+//!| `/**`             | Matches any path. This is useful for 404 pages.    
 
 use std::{
     fmt::{self, Display},
@@ -8,25 +31,11 @@ use std::{
 
 use crate::error::{PathError, Result, StartupError};
 
-/// A route path.
-/// There are 5 types of segments that can be used to make up a path:
-/// - Literal: A literal string that must match exactly.
-/// - Parameter: A named parameter that can be matched to any string before the next separator, including empty strings.
-/// - Any: A wildcard that matches any string before the next separator, including empty strings. Just like a parameter, but does not capture a value.
-/// - AnyAfter: A wildcard that matches anything after the current segment. Must only ever be used as the last segment.
-/// - Separator: A separator that must be matched exactly (/).
-///
-/// ## Examples
-/// | Route           | Explanation                                                                                                              |
-/// | --------------- | ------------------------------------------------------------------------------------------------------------------------ |
-/// | `/hello/world`  | Matches `/hello/world` exactly. Will not match if path has a trailing separator.                                         |
-/// | `/hello/world/` | Matches `/hello/world/`, will not match `/hello/world`                                                                   |
-/// | `/hello/{name}` | Matches `/hello/` followed by any string before a separator. Will match `/hello/darren` and `/hello/` but not `/hello/`. |
-/// | `/hello/*`      | Matches `/hello/` followed by any string. Will match `/hello/world` but not `/hello/world/test` or `/hello/world/`.      |
-/// | `/**`           | Matches any path. This is useful for 404 pages.                                                                          |
+/// A parsed route path.
+/// String path can be matched against it with [`Path::matches`].
 #[derive(Debug)]
 pub struct Path {
-    segments: Vec<Segment>,
+    segments: Box<[Segment]>,
     parameters: Arc<[String]>,
 }
 
@@ -36,23 +45,21 @@ enum Segment {
     /// A separator that must be matched exactly (/).
     Separator,
     /// A literal string that must match exactly.
-    Literal(String),
+    Literal(Box<str>),
     /// A named parameter that can be matched to any string before the next separator, including empty strings.
     Parameter,
     /// A wildcard that matches any string before the next separator, including empty strings.
     /// Just like a parameter, but does not capture a value.
-    Any,
-    /// A wildcard that matches anything after the current segment.
-    /// Must only ever be used as the last segment.
+    Wildcard,
+    /// Matches the rest of the path, regardless of its contents.
     AnyAfter,
 }
 
 /// A container for path parameters.
-/// Created when a path matches a route with [`Path::matches`].
-/// Values are automatically url-decoded.
+/// Because the parameters are stored in a slice, it also hold the names of each parameter if the user uses [`Context::param`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct PathParameters {
-    params: Vec<Range<usize>>,
+    params: Box<[Range<usize>]>,
     names: Arc<[String]>,
 }
 
@@ -71,7 +78,7 @@ impl Path {
         let path = tokenizer.into_path();
 
         let mut last_special = false;
-        for i in &path.segments {
+        for i in path.segments.iter() {
             if last_special && i.disallow_adjacent() {
                 return Err(StartupError::Path {
                     error: PathError::AmbiguousPath,
@@ -92,15 +99,19 @@ impl Path {
     pub fn matches<'a>(&'a self, path: &'a str) -> Option<PathParameters> {
         let mut matcher = matcher::Matcher::new(self, path);
         let names = self.parameters.clone();
-        matcher
-            .matches()
-            .map(|params| PathParameters { params, names })
+        matcher.matches().map(|params| PathParameters {
+            params: params.into(),
+            names,
+        })
     }
 }
 
 impl Segment {
     fn disallow_adjacent(&self) -> bool {
-        matches!(self, Segment::Any | Segment::AnyAfter | Segment::Parameter)
+        matches!(
+            self,
+            Segment::Wildcard | Segment::AnyAfter | Segment::Parameter
+        )
     }
 }
 
@@ -123,7 +134,7 @@ impl PathParameters {
 impl Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut pi = 0;
-        for i in &self.segments {
+        for i in self.segments.iter() {
             match i {
                 Segment::Separator => f.write_str("/")?,
                 Segment::Literal(l) => f.write_str(l)?,
@@ -131,7 +142,7 @@ impl Display for Path {
                     f.write_fmt(format_args!("{{{}}}", self.parameters[pi]))?;
                     pi += 1
                 }
-                Segment::Any => f.write_str("*")?,
+                Segment::Wildcard => f.write_str("*")?,
                 Segment::AnyAfter => f.write_str("**")?,
             }
         }
@@ -168,11 +179,11 @@ mod matcher {
         pub fn matches(&mut self) -> Option<Vec<Range<usize>>> {
             while self.seg_index < self.segments.len() {
                 match &self.segments[self.seg_index] {
-                    Segment::AnyAfter => return Some(self.params.take().unwrap()),
                     Segment::Literal(l) => self.take_str(l)?,
-                    Segment::Any => self.match_any()?,
-                    Segment::Parameter => self.match_parameter()?,
                     Segment::Separator => self.take('/')?,
+                    Segment::Wildcard => self.match_wildcard()?,
+                    Segment::Parameter => self.match_parameter()?,
+                    Segment::AnyAfter => return Some(self.params.take().unwrap()),
                 }
 
                 self.seg_index += 1;
@@ -223,6 +234,19 @@ mod matcher {
                 .unwrap_or(self.path.len())
         }
 
+        fn match_wildcard(&mut self) -> Option<()> {
+            let range = self.match_around()?;
+            self.path_index = range.end;
+            Some(())
+        }
+
+        fn match_parameter(&mut self) -> Option<()> {
+            let range = self.match_around()?;
+            self.path_index = range.end;
+            self.params.as_mut().unwrap().push(range);
+            Some(())
+        }
+
         // Find last occurrence of next literal without passing any separators.
         fn match_around(&mut self) -> Option<Range<usize>> {
             let end_pos = match self.segments.get(self.seg_index + 1) {
@@ -250,23 +274,10 @@ mod matcher {
                     i
                 }
                 None | Some(Segment::Separator) => self.next_separator(),
-                Some(Segment::Any | Segment::AnyAfter | Segment::Parameter) => unreachable!(),
+                Some(Segment::Wildcard | Segment::AnyAfter | Segment::Parameter) => unreachable!(),
             };
 
             Some(self.path_index..end_pos)
-        }
-
-        fn match_any(&mut self) -> Option<()> {
-            let range = self.match_around()?;
-            self.path_index = range.end;
-            Some(())
-        }
-
-        fn match_parameter(&mut self) -> Option<()> {
-            let range = self.match_around()?;
-            self.path_index = range.end;
-            self.params.as_mut().unwrap().push(range);
-            Some(())
         }
     }
 }
@@ -313,16 +324,10 @@ mod tokenizer {
                         self.flush_buffer();
                         self.tokens.push(Segment::AnyAfter);
                         self.index += 1;
-
-                        if self.index < self.chars.len() {
-                            return Err(PathError::NonTerminatingAnyAfter);
-                        }
-
-                        return Ok(());
                     }
                     '*' => {
                         self.flush_buffer();
-                        self.tokens.push(Segment::Any);
+                        self.tokens.push(Segment::Wildcard);
                     }
                     _ => {
                         self.buffer.push(chr);
@@ -336,7 +341,7 @@ mod tokenizer {
 
         pub fn into_path(self) -> Path {
             Path {
-                segments: self.tokens,
+                segments: self.tokens.into(),
                 parameters: self.parameters.into(),
             }
         }
@@ -358,7 +363,8 @@ mod tokenizer {
                 return;
             }
 
-            self.tokens.push(Segment::Literal(self.buffer.clone()));
+            let val = self.buffer.as_str().into();
+            self.tokens.push(Segment::Literal(val));
             self.buffer.clear();
         }
 
@@ -391,9 +397,9 @@ mod test {
     use super::Path;
     use std::collections::HashMap;
 
-    macro_rules! match_result {
+    macro_rules! result {
         [] => {
-            HashMap::<String, String>::new()
+            Some(HashMap::<String, String>::new())
         };
         [$($key:tt => $val:tt),*] => {
             {
@@ -401,7 +407,7 @@ mod test {
                 $(
                     map.insert($key.to_string(), $val.to_string());
                 )*
-                map
+                Some(map)
             }
         };
     }
@@ -445,24 +451,24 @@ mod test {
     match_tests! {
         #[test(basic_1)]
         "/" => [
-            "/"  => Some(match_result![]),
+            "/"  => result![],
             "/a" => None,
             ""   => None
         ],
         #[test(basic_2)]
         "/send-2" => [
-            "/send-2"  => Some(match_result![]),
+            "/send-2"  => result![],
             "/send-2/" => None,
             "/"        => None
         ],
         #[test(parameters_1)]
         "/hello{world}world/E" => [
-            "/hellopeople!worldworld/E" => Some(match_result!["world" => "people!world"]),
-            "/helloworld/E"             => Some(match_result!["world" => ""])
+            "/hellopeople!worldworld/E" => result!["world" => "people!world"],
+            "/helloworld/E"             => result!["world" => ""]
         ],
         #[test(parameters_2)]
         "/file/{name}.{ext}" => [
-            "/file/hello.txt"  => Some(match_result!["name" => "hello", "ext" => "txt"]),
+            "/file/hello.txt"  => result!["name" => "hello", "ext" => "txt"],
             "/file/hello"      => None,
             "/file/hello.txt/" => None
         ],
@@ -470,35 +476,35 @@ mod test {
         "/file/{name}.{ext}/" => [
             "/file/hello.txt"  => None,
             "/file/hello"      => None,
-            "/file/hello.txt/" => Some(match_result!["name" => "hello", "ext" => "txt"])
+            "/file/hello.txt/" => result!["name" => "hello", "ext" => "txt"]
         ],
         #[test(parameters_3)]
         "/api/get/{name}" => [
-            "/api/get/john" => Some(match_result!["name" => "john"]),
-            "/api/get/"     => Some(match_result!["name" => ""]),
+            "/api/get/john" => result!["name" => "john"],
+            "/api/get/"     => result!["name" => ""],
             "/api/get"      => None
         ],
         #[test(wildcard_1)]
         "/hello*!" => [
-            "/hello!"       => Some(match_result![]),
+            "/hello!"       => result![],
             "/hello"        => None,
-            "/helloworld!"  => Some(match_result![]),
+            "/helloworld!"  => result![],
             "/helloworld"   => None,
             "/hello/world!" => None
         ],
         #[test(wildcard_2)]
         "/hello/*" => [
-            "/hello/"      => Some(match_result![]),
+            "/hello/"      => result![],
             "/hello"       => None,
-            "/hello/world" => Some(match_result![])
+            "/hello/world" => result![]
         ],
-        #[test(any_after_1)]
+        #[test(any_1)]
         "/hello/**" => [
             "/hello"         => None,
-            "/hello/"        => Some(match_result![]),
-            "/hello/world"   => Some(match_result![]),
-            "/hello/world/"  => Some(match_result![]),
-            "/hello/world/!" => Some(match_result![])
+            "/hello/"        => result![],
+            "/hello/world"   => result![],
+            "/hello/world/"  => result![],
+            "/hello/world/!" => result![]
         ]
     }
     /* spellchecker: enable */

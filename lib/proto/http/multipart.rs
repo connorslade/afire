@@ -131,7 +131,7 @@ impl<'a> TryFrom<&'a [u8]> for MultipartEntry<'a> {
             .map(|x| x.unwrap())
             .filter(|x| !x.is_empty())
         {
-            let header = Header::from_string(i)
+            let header = Header::from_string(&i)
                 .ok()
                 .ok_or(MultipartError::InvalidEntry)?;
             headers.push(header);

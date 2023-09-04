@@ -1,390 +1,234 @@
 //! HTTP status codes.
-//! Used in [`crate::Request`] and [`crate::Response`].
+//! Most functions that accept a [`Status`] will also accept any [`u16`] value, converting it to a Status::Custom if it is not a valid status code.s
 
-/// HTTP status codes.
-/// Used in [`crate::Request`] and [`crate::Response`].
-///
-/// Used to indicate the status of an HTTP response.
-/// Note: Methods that accept a [`Status`] will also accept any [`u16`] value, converting it to a Status::Custom if it is not a valid status code.
-///
-///  Supports Status:
-/// - 100-101
-/// - 200-206
-/// - 300-307
-/// - 400-417
-/// - 500-505
-///
-/// From <https://developer.mozilla.org/en-US/docs/Web/HTTP/Status>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Status {
+macro_rules! status {
+    {
+        $(
+            $(#[$attr:meta])*
+            $name:ident => $status:literal, $reason:literal
+        ),*
+    } => {
+        /// HTTP status codes.
+        ///
+        /// Used to indicate the status of an HTTP response.
+        /// Note: Methods that accept a [`Status`] will also accept any [`u16`] value, converting it to a [`Status::Custom`] if it is not a valid status code.
+        ///
+        ///  Supports Status:
+        /// - 100-101
+        /// - 200-206
+        /// - 300-307
+        /// - 400-417
+        /// - 500-505
+        ///
+        /// From <https://developer.mozilla.org/en-US/docs/Web/HTTP/Status>
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub enum Status {
+            $(
+                #[doc = concat!("**", $status, " ", $reason, "**")]
+                ///
+                $(#[$attr])*
+                ///
+                #[doc = concat!("[MDN Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/", $status, ")")]
+                $name
+            ),*,
+            /// Custom status code.
+            /// Only used when the status code is not a valid HTTP status code.
+            Custom(u16)
+        }
+
+        impl Status {
+            /// Gets the actual HTTP status code for the status.
+            pub fn code(&self) -> u16 {
+                match self {
+                    $(Status::$name => $status),*,
+                    Status::Custom(x) => *x
+                }
+            }
+
+            /// Gets the default reason phrase for the status.
+            /// For responses you can use the [`crate::Response::reason`] method to set a custom reason phrase.
+            pub fn reason_phrase(&self) -> &str {
+                match self.code() {
+                    $($status => $reason),*,
+                    _ => "OK"
+                }
+            }
+        }
+
+        impl From<u16> for Status {
+            fn from(code: u16) -> Self {
+                match code {
+                    $($status => Status::$name),*,
+                    x => Status::Custom(x)
+                }
+            }
+        }
+    };
+}
+
+status! {
     // == Informational ==
-    /// HTTP 100 Continue.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/100)
-    Continue,
-    /// HTTP 101 Switching Protocols.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/101)
-    SwitchingProtocols,
-    /// HTTP 103 Early Hints.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/103)
-    EarlyHints,
+
+    /// Indicates that everything so far is OK and that the client should continue with the request or ignore it if it is already finished.
+    /// To have a server check the request's headers, a client must send Expect: 100-continue as a header in its initial request and receive a 100 Continue status code in response before sending the body
+    Continue           => 100, "Continue",
+    /// Indicates a protocol to which the server switches. The protocol is specified in the Upgrade request header received from a client.
+    /// The server includes in this response an Upgrade response header to indicate the protocol it switched to.
+    SwitchingProtocols => 101, "Switching Protocols",
+    /// Sent by a server while it is still preparing a response, with hints about the resources that the server is expecting the final response will link.
+    /// This allows a browser to start preloading resources even before the server has prepared and sent that final response.
+    EarlyHints         => 103, "Early Hints",
 
     // == Success ==
-    /// HTTP 200 OK.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/200)
-    Ok,
-    /// HTTP 201 Created.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/201)
-    Created,
-    /// HTTP 202 Accepted.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/202)
-    Accepted,
-    /// HTTP 203 Non-Authoritative Information.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/203)
-    NonAuthoritativeInformation,
-    /// HTTP 204 No Content.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/204)
-    NoContent,
-    /// HTTP 205 Reset Content.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/205)
-    ResetContent,
-    /// HTTP 206 Partial Content.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/206)
-    PartialContent,
+
+    /// Success status response code indicates that the request has succeeded.
+    /// A 200 response is cacheable by default.
+    Ok                          => 200, "OK",
+    /// Indicates that the request has succeeded and has led to the creation of a resource.
+    /// The new resource, or a description and link to the new resource, is effectively created before the response is sent back and the newly created items are returned in the body of the message, located at either the URL of the request, or at the URL in the value of the Location header.
+    Created                     => 201, "Created",
+    /// Indicates that the request has been accepted for processing, but the processing has not been completed; in fact, processing may not have started yet.
+    /// The request might or might not eventually be acted upon, as it might be disallowed when processing actually takes place.
+    Accepted                    => 202, "Accepted",
+    /// Indicates that the request was successful but the enclosed payload has been modified by a transforming proxy from that of the origin server's 200 (OK) response.
+    NonAuthoritativeInformation => 203, "Non-Authoritative Information",
+    /// Indicates that a request has succeeded, but that the client doesn't need to navigate away from its current page.
+    NoContent                   => 204, "No Content",
+    /// Tells the client to reset the document view, so for example to clear the content of a form, reset a canvas state, or to refresh the UI.
+    ResetContent                => 205, "Reset Content",
+    /// Indicates that the request has succeeded and the body contains the requested ranges of data, as described in the Range header of the request.
+    PartialContent              => 206, "Partial Content",
 
     // == Redirection ==
-    /// HTTP 300 Multiple Choices.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/300)
-    MultipleChoices,
-    /// HTTP 301 Moved Permanently.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/301)
-    MovedPermanently,
-    /// HTTP 302 Found.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/302)
-    Found,
-    /// HTTP 303 See Other.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/303)
-    SeeOther,
-    /// HTTP 304 Not Modified.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/304)
-    NotModified,
-    /// HTTP 305 Use Proxy.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/305)
-    UseProxy,
-    /// HTTP 307 Temporary Redirect.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/307)
-    TemporaryRedirect,
-    /// HTTP 308 Permanent Redirect.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/308)
-    PermanentRedirect,
+
+    /// Indicates that the request has more than one possible response.
+    /// The user-agent or the user should choose one of them.
+    /// As there is no standardized way of choosing one of the responses, this response code is very rarely used.
+    MultipleChoices   => 300, "Multiple Choices",
+    /// Redirect status response code indicates that the requested resource has been definitively moved to the URL given by the Location headers.
+    /// A browser redirects to the new URL and search engines update their links to the resource.
+    MovedPermanently  => 301, "Moved Permanently",
+    /// Indicates that the resource requested has been temporarily moved to the URL given by the Location header.
+    /// A browser redirects to this page but search engines don't update their links to the resource (in 'SEO-speak', it is said that the 'link-juice' is not sent to the new URL).
+    Found             => 302, "Found",
+    /// Indicates that the redirects don't link to the requested resource itself, but to another page (such as a confirmation page, a representation of a real-world object or an upload-progress page).
+    /// This response code is often sent back as a result of PUT or POST.
+    /// The method used to display this redirected page is always GET.
+    SeeOther          => 303, "See Other",
+    /// Indicates that there is no need to retransmit the requested resources.
+    /// It is an implicit redirection to a cached resource.
+    /// This happens when the request method is a safe method, such as GET or HEAD, or when the request is conditional and uses an If-None-Match or an If-Modified-Since header.
+    NotModified       => 304, "Not Modified",
+    /// Indicates that the resource requested has been temporarily moved to the URL given by the Location headers.
+    TemporaryRedirect => 307, "Temporary Redirect",
+    /// Indicates that the resource requested has been definitively moved to the URL given by the Location headers.
+    /// A browser redirects to this page and search engines update their links to the resource (in 'SEO-speak', it is said that the 'link-juice' is sent to the new URL).
+    PermanentRedirect => 308, "Permanent Redirect",
 
     // == Client Error ==
-    /// HTTP 400 Bad Request.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400)
-    BadRequest,
-    /// HTTP 401 Unauthorized.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401)
-    Unauthorized,
-    /// HTTP 402 Payment Required.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402)
-    PaymentRequired,
-    /// HTTP 403 Forbidden.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403)
-    Forbidden,
-    /// HTTP 404 Not Found.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404)
-    NotFound,
-    /// HTTP 405 Method Not Allowed.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405)
-    MethodNotAllowed,
-    /// HTTP 406 Not Acceptable.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/406)
-    NotAcceptable,
-    /// HTTP 407 Proxy Authentication Required.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/407)
-    ProxyAuthenticationRequired,
-    /// HTTP 408 Request Time-out.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/408)
-    RequestTimeOut,
-    /// HTTP 409 Conflict.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409)
-    Conflict,
-    /// HTTP 410 Gone.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/410)
-    Gone,
-    /// HTTP 411 Length Required.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/411)
-    LengthRequired,
-    /// HTTP 412 Precondition Failed.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/412)
-    PreconditionFailed,
-    /// HTTP 413 Payload Too Large.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/413)
-    PayloadTooLarge,
-    /// HTTP 414 URI Too Large.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/414)
-    URITooLarge,
-    /// HTTP 415 Unsupported Media Type.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/415)
-    UnsupportedMediaType,
-    /// HTTP 416 Range Not Satisfiable.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/416)
-    RangeNotSatisfiable,
-    /// HTTP 417 Expectation Failed.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/417)
-    ExpectationFailed,
-    /// HTTP 418 I'm a teapot.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/418)
-    ImaTeapot,
-    /// HTTP 421 Misdirected Request.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/421)
-    MisdirectedRequest,
-    /// HTTP 425 Too Early.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/425)
-    TooEarly,
-    /// HTTP 426 Upgrade Required.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/426)
-    UpgradeRequired,
-    /// HTTP 428 Precondition Required.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/428)
-    PreconditionRequired,
-    /// HTTP 429 Too Many Requests.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429)
-    TooManyRequests,
-    /// HTTP 431 Request Header Fields Too Large.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/431)
-    RequestHeaderFieldsTooLarge,
-    /// HTTP 451 Unavailable For Legal Reasons.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/451)
-    UnavailableForLegalReasons,
+
+    /// Indicates that the server cannot or will not process the request due to something that is perceived to be a client error (for example, malformed request syntax, invalid request message framing, or deceptive request routing).
+    BadRequest                  => 400, "Bad Request",
+    /// Indicates that the client request has not been completed because it lacks valid authentication credentials for the requested resource.
+    /// This status code is sent with an HTTP WWW-Authenticate response header that contains information on how the client can request for the resource again after prompting the user for authentication credentials.
+    Unauthorized                => 401, "Unauthorized",
+    /// Nonstandard response status code that is reserved for future use.
+    /// This status code was created to enable digital cash or (micro) payment systems and would indicate that the requested content is not available until the client makes a payment.
+    PaymentRequired             => 402, "Payment Required",
+    /// Indicates that the server understands the request but refuses to authorize it.
+    Forbidden                   => 403, "Forbidden",
+    /// Indicates that the server cannot find the requested resource.
+    /// Links that lead to a 404 page are often called broken or dead links and can be subject to link rot.
+    /// A truly *iconic* HTTP status code.
+    NotFound                    => 404, "Not Found",
+    /// indicates that the server knows the request method, but the target resource doesn't support this method.
+    /// The server must generate an Allow header field in a 405 status code response.
+    /// The field must contain a list of methods that the target resource currently supports.
+    MethodNotAllowed            => 405, "Method Not Allowed",
+    /// Indicates that the server cannot produce a response matching the list of acceptable values defined in the request's proactive content negotiation headers, and that the server is unwilling to supply a default representation.
+    NotAcceptable               => 406, "Not Acceptable",
+    /// Indicates that the server cannot produce a response matching the list of acceptable values defined in the request's proactive content negotiation headers, and that the server is unwilling to supply a default representation.
+    ProxyAuthenticationRequired => 407, "Proxy Authentication Required",
+    /// Indicates that the server would like to shut down this unused connection. It is sent on an idle connection by some servers, even without any previous request by the client.
+    /// A server should send the "close" Connection header field in the response, since 408 implies that the server has decided to close the connection rather than continue waiting.
+    RequestTimeOut              => 408, "Request Time-out",
+    /// Indicates a request conflict with the current state of the target resource.
+    /// Conflicts are most likely to occur in response to a PUT request.
+    /// For example, you may get a 409 response when uploading a file that is older than the existing one on the server, resulting in a version control conflict.
+    Conflict                    => 409, "Conflict",
+    /// Indicates that access to the target resource is no longer available at the origin server and that this condition is likely to be permanent.
+    /// If you don't know whether this condition is temporary or permanent, a 404 status code should be used instead.
+    Gone                        => 410, "Gone",
+    /// Indicates that the server refuses to accept the request without a defined Content-Length header.
+    LengthRequired              => 411, "Length Required",
+    /// Indicates that access to the target resource has been denied.
+    /// This happens with conditional requests on methods other than GET or HEAD when the condition defined by the If-Unmodified-Since or If-None-Match headers is not fulfilled.
+    /// In that case, the request, usually an upload or a modification of a resource, cannot be made and this error response is sent back.
+    PreconditionFailed          => 412, "Precondition Failed",
+    /// Indicates that the request entity is larger than limits defined by server;
+    /// the server might close the connection or return a Retry-After header field.
+    /// Prior to RFC 9110 the response phrase for the status was Payload Too Large.
+    /// That name is still widely used.
+    ContentTooLarge             => 413, "Content Too Large",
+    /// Indicates that the URI requested by the client is longer than the server is willing to interpret.
+    URITooLarge                 => 414, "Request-URI Too Large",
+    /// Indicates that the server refuses to accept the request because the payload format is in an unsupported format.
+    /// The format problem might be due to the request's indicated Content-Type or Content-Encoding, or as a result of inspecting the data directly.
+    UnsupportedMediaType        => 415, "Unsupported Media Type",
+    /// Indicates that a server cannot serve the requested ranges.
+    /// The most likely reason is that the document doesn't contain such ranges, or that the Range header value, though syntactically correct, doesn't make sense.
+    /// The 416 response message contains a Content-Range indicating an unsatisfied range (that is a '*') followed by a '/' and the current length of the resource.
+    /// E.g. `Content-Range: bytes */12777`.
+    RangeNotSatisfiable         => 416, "Requested range not satisfiable",
+    /// Indicates that the expectation given in the request's Expect header could not be met.
+    ExpectationFailed           => 417, "Expectation Failed",
+    /// Indicates that the server refuses to brew coffee because it is, permanently, a teapot.
+    /// A combined coffee/tea pot that is temporarily out of coffee should instead return 503.
+    /// This error is a reference to Hyper Text Coffee Pot Control Protocol defined in April Fools' jokes in 1998 and 2014.
+    ImaTeapot                   => 418, "I'm a teapot",
+    /// Indicates that the request was directed to a server that is not able to produce a response.
+    /// This might be possible if a connection is reused or if an alternative service is selected.
+    MisdirectedRequest          => 421, "Misdirected Request",
+    /// Indicates that the server understands the content type of the request entity, and the syntax of the request entity is correct, but it was unable to process the contained instructions.
+    UnprocessableContent        => 422, "Unprocessable Content",
+    /// Indicates that the server is unwilling to risk processing a request that might be replayed, which creates the potential for a replay attack.
+    TooEarly                    => 425, "Too Early",
+    /// Indicates that the server refuses to perform the request using the current protocol but might be willing to do so after the client upgrades to a different protocol.
+    UpgradeRequired             => 426, "Upgrade Required",
+    /// Indicates that the server requires the request to be conditional.
+    /// Typically, this means that a required precondition header, such as If-Match, is missing.
+    /// When a precondition header is not matching the server side state, the response should be 412 Precondition Failed.
+    PreconditionRequired        => 428, "Precondition Required",
+    /// Response status code indicates the user has sent too many requests in a given amount of time ("rate limiting").
+    /// A Retry-After header might be included to this response indicating how long to wait before making a new request.
+    TooManyRequests             => 429, "Too Many Requests",
+    /// Indicates that the server refuses to process the request because the request's HTTP headers are too long.
+    /// The request may be resubmitted after reducing the size of the request headers.
+    RequestHeaderFieldsTooLarge => 431, "Request Header Fields Too Large",
+    /// Indicates that the user requested a resource that is not available due to legal reasons, such as a web page for which a legal action has been issued.
+    UnavailableForLegalReasons  => 451, "Unavailable For Legal Reasons",
 
     // == Server Error ==
-    /// HTTP 500 Internal Server Error.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-    InternalServerError,
-    /// HTTP 501 Not Implemented.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/501)
-    NotImplemented,
-    /// HTTP 502 Bad Gateway.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502)
-    BadGateway,
-    /// HTTP 503 Service Unavailable.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503)
-    ServiceUnavailable,
-    /// HTTP 504 Gateway Time-out.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/504)
-    GatewayTimeOut,
-    /// HTTP 505 HTTP Version Not Supported.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/505)
-    HTTPVersionNotSupported,
-    /// HTTP 506 Variant Also Negotiates.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/506)
-    VariantAlsoNegotiates,
-    /// HTTP 510 Not Extended.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/510)
-    NotExtended,
-    /// HTTP 511 Network Authentication Required.
-    /// [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/511)
-    NetworkAuthenticationRequired,
 
-    // == Custom ==
-    /// Custom status code
-    Custom(u16),
-}
-
-impl Status {
-    /// Gets the actual HTTP status code for the status.
-    pub fn code(&self) -> u16 {
-        match self {
-            Status::Continue => 100,
-            Status::SwitchingProtocols => 101,
-            Status::EarlyHints => 103,
-
-            Status::Ok => 200,
-            Status::Created => 201,
-            Status::Accepted => 202,
-            Status::NonAuthoritativeInformation => 203,
-            Status::NoContent => 204,
-            Status::ResetContent => 205,
-            Status::PartialContent => 206,
-
-            Status::MultipleChoices => 300,
-            Status::MovedPermanently => 301,
-            Status::Found => 302,
-            Status::SeeOther => 303,
-            Status::NotModified => 304,
-            Status::UseProxy => 305,
-            Status::TemporaryRedirect => 307,
-            Status::PermanentRedirect => 308,
-
-            Status::BadRequest => 400,
-            Status::Unauthorized => 401,
-            Status::PaymentRequired => 402,
-            Status::Forbidden => 403,
-            Status::NotFound => 404,
-            Status::MethodNotAllowed => 405,
-            Status::NotAcceptable => 406,
-            Status::ProxyAuthenticationRequired => 407,
-            Status::RequestTimeOut => 408,
-            Status::Conflict => 409,
-            Status::Gone => 410,
-            Status::LengthRequired => 411,
-            Status::PreconditionFailed => 412,
-            Status::PayloadTooLarge => 413,
-            Status::URITooLarge => 414,
-            Status::UnsupportedMediaType => 415,
-            Status::RangeNotSatisfiable => 416,
-            Status::ExpectationFailed => 417,
-            Status::ImaTeapot => 418,
-            Status::MisdirectedRequest => 421,
-            Status::TooEarly => 425,
-            Status::UpgradeRequired => 426,
-            Status::PreconditionRequired => 428,
-            Status::TooManyRequests => 429,
-            Status::RequestHeaderFieldsTooLarge => 431,
-            Status::UnavailableForLegalReasons => 451,
-
-            Status::InternalServerError => 500,
-            Status::NotImplemented => 501,
-            Status::BadGateway => 502,
-            Status::ServiceUnavailable => 503,
-            Status::GatewayTimeOut => 504,
-            Status::HTTPVersionNotSupported => 505,
-            Status::VariantAlsoNegotiates => 506,
-            Status::NotExtended => 510,
-            Status::NetworkAuthenticationRequired => 511,
-
-            Status::Custom(x) => *x,
-        }
-    }
-
-    /// Gets the default reason phrase for the status.
-    /// For responses you can use the [`crate::Response::reason`] method to set a custom reason phrase.
-    pub fn reason_phrase(&self) -> &str {
-        match self.code() {
-            100 => "Continue",
-            101 => "Switching Protocols",
-            103 => "Early Hints",
-
-            200 => "OK",
-            201 => "Created",
-            202 => "Accepted",
-            203 => "Non-Authoritative Information",
-            204 => "No Content",
-            205 => "Reset Content",
-            206 => "Partial Content",
-
-            300 => "Multiple Choices",
-            301 => "Moved Permanently",
-            302 => "Found",
-            303 => "See Other",
-            304 => "Not Modified",
-            305 => "Use Proxy",
-            307 => "Temporary Redirect",
-            308 => "Permanent Redirect",
-
-            400 => "Bad Request",
-            401 => "Unauthorized",
-            402 => "Payment Required",
-            403 => "Forbidden",
-            404 => "Not Found",
-            405 => "Method Not Allowed",
-            406 => "Not Acceptable",
-            407 => "Proxy Authentication Required",
-            408 => "Request Time-out",
-            409 => "Conflict",
-            410 => "Gone",
-            411 => "Length Required",
-            412 => "Precondition Failed",
-            413 => "Request Entity Too Large",
-            414 => "Request-URI Too Large",
-            415 => "Unsupported Media Type",
-            416 => "Requested range not satisfiable",
-            417 => "Expectation Failed",
-            418 => "I'm a teapot",
-            421 => "Misdirected Request",
-            425 => "Too Early",
-            426 => "Upgrade Required",
-            428 => "Precondition Required",
-            429 => "Too Many Requests",
-            431 => "Request Header Fields Too Large",
-            451 => "Unavailable For Legal Reasons",
-
-            500 => "Internal Server Error",
-            501 => "Not Implemented",
-            502 => "Bad Gateway",
-            503 => "Service Unavailable",
-            504 => "Gateway Time-out",
-            505 => "HTTP Version not supported",
-            506 => "Variant Also Negotiates",
-            510 => "Not Extended",
-            511 => "Network Authentication Required",
-            _ => "OK",
-        }
-    }
-}
-
-impl From<u16> for Status {
-    fn from(code: u16) -> Self {
-        match code {
-            100 => Status::Continue,
-            101 => Status::SwitchingProtocols,
-            103 => Status::EarlyHints,
-
-            200 => Status::Ok,
-            201 => Status::Created,
-            202 => Status::Accepted,
-            203 => Status::NonAuthoritativeInformation,
-            204 => Status::NoContent,
-            205 => Status::ResetContent,
-            206 => Status::PartialContent,
-
-            300 => Status::MultipleChoices,
-            301 => Status::MovedPermanently,
-            302 => Status::Found,
-            303 => Status::SeeOther,
-            304 => Status::NotModified,
-            305 => Status::UseProxy,
-            307 => Status::TemporaryRedirect,
-            308 => Status::PermanentRedirect,
-
-            400 => Status::BadRequest,
-            401 => Status::Unauthorized,
-            402 => Status::PaymentRequired,
-            403 => Status::Forbidden,
-            404 => Status::NotFound,
-            405 => Status::MethodNotAllowed,
-            406 => Status::NotAcceptable,
-            407 => Status::ProxyAuthenticationRequired,
-            408 => Status::RequestTimeOut,
-            409 => Status::Conflict,
-            410 => Status::Gone,
-            411 => Status::LengthRequired,
-            412 => Status::PreconditionFailed,
-            413 => Status::PayloadTooLarge,
-            414 => Status::URITooLarge,
-            415 => Status::UnsupportedMediaType,
-            416 => Status::RangeNotSatisfiable,
-            417 => Status::ExpectationFailed,
-            418 => Status::ImaTeapot,
-            421 => Status::MisdirectedRequest,
-            425 => Status::TooEarly,
-            426 => Status::UpgradeRequired,
-            428 => Status::PreconditionRequired,
-            429 => Status::TooManyRequests,
-            431 => Status::RequestHeaderFieldsTooLarge,
-            451 => Status::UnavailableForLegalReasons,
-
-            500 => Status::InternalServerError,
-            501 => Status::NotImplemented,
-            502 => Status::BadGateway,
-            503 => Status::ServiceUnavailable,
-            504 => Status::GatewayTimeOut,
-            505 => Status::HTTPVersionNotSupported,
-            506 => Status::VariantAlsoNegotiates,
-            510 => Status::NotExtended,
-            511 => Status::NetworkAuthenticationRequired,
-
-            x => Status::Custom(x),
-        }
-    }
+    /// Indicates that the server encountered an unexpected condition that prevented it from fulfilling the request.
+    InternalServerError           => 500, "Internal Server Error",
+    /// Indicates that the server does not support the functionality required to fulfill the request.
+    NotImplemented                => 501, "Not Implemented",
+    /// Indicates that the server, while acting as a gateway or proxy, received an invalid response from the upstream server.
+    BadGateway                    => 502, "Bad Gateway",
+    /// Indicates that the server is not ready to handle the request
+    ServiceUnavailable            => 503, "Service Unavailable",
+    /// Indicates that the server, while acting as a gateway or proxy, did not get a response in time from the upstream server that it needed in order to complete the request.
+    GatewayTimeOut                => 504, "Gateway Time-out",
+    /// Indicates that the HTTP version used in the request is not supported by the server.
+    HTTPVersionNotSupported       => 505, "HTTP Version not supported",
+    /// Code may be given in the context of Transparent Content Negotiation (see RFC 2295).
+    /// This protocol enables a client to retrieve the best variant of a given resource, where the server supports multiple variants.
+    VariantAlsoNegotiates         => 506, "Variant Also Negotiates",
+    /// A client may send a request that contains an extension declaration, that describes the extension to be used.
+    /// If the server receives such a request, but any described extensions are not supported for the request, then the server responds with the 510 status code.
+    NotExtended                   => 510, "Not Extended",
+    /// Indicates that the client needs to authenticate to gain network access.
+    /// This status is not generated by origin servers, but by intercepting proxies that control access to the network.
+    NetworkAuthenticationRequired => 511, "Network Authentication Required"
 }

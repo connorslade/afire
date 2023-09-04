@@ -10,61 +10,6 @@ use crate::{
     internal::misc::filter_crlf,
 };
 
-/// [Forbidden headers](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) are headers that should not be set by the user as they have special meaning in the HTTP protocol.
-///
-/// These headers are allowed to be set by the user in routes, but will throw an error if added to default headers.
-/// This is because it may make sense to set these headers in a route in some cases, but it is never a good idea to set them in default headers.
-///
-/// Also note that entries ending with a dash (`-`) are prefixes, so any header that starts with that prefix is forbidden.
-///
-/// ## The Headers
-/// - Accept-Charset
-/// - Accept-Encoding
-/// - Access-Control-Request-Headers
-/// - Access-Control-Request-Method
-/// - Connection
-/// - Content-Length
-/// - Cookie
-/// - Date
-/// - DNT
-/// - Expect
-/// - Host
-/// - Keep-Alive
-/// - Origin
-/// - Permissions-Policy
-/// - Proxy-
-/// - Sec-
-/// - Referer
-/// - TE
-/// - Trailer
-/// - Transfer-Encoding
-/// - Upgrade
-/// - Via
-pub const FORBIDDEN_HEADERS: &[&str] = &[
-    "accept-charset",
-    "accept-encoding",
-    "access-control-request-headers",
-    "access-control-request-method",
-    "connection",
-    "content-length",
-    "cookie",
-    "date",
-    "dnt",
-    "expect",
-    "host",
-    "keep-alive",
-    "origin",
-    "permissions-policy",
-    "proxy-",
-    "sec-",
-    "referer",
-    "te",
-    "trailer",
-    "transfer-encoding",
-    "upgrade",
-    "via",
-];
-
 /// Http header.
 /// Has a name and a value.
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -134,12 +79,8 @@ impl Header {
     ///
     /// assert_eq!(header1, header2);
     /// ```
-    pub fn from_string(header: impl AsRef<str>) -> Result<Header> {
-        let header = header.as_ref();
+    pub fn from_string(header: &str) -> Result<Header> {
         let mut split_header = header.splitn(2, ':');
-        if split_header.clone().count() != 2 {
-            return Err(ParseError::InvalidHeader.into());
-        }
 
         let name = split_header
             .next()
@@ -350,82 +291,164 @@ pub(crate) fn headers_to_string(headers: &[Header]) -> String {
     out[..out.len() - 2].to_owned()
 }
 
-// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
-/// Common HTTP headers.
-/// Just the 'common' ones, which are ones that I use semi-frequently, or that are used internally.
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub enum HeaderType {
+/// [Forbidden headers](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name) are headers that should not be set by the user as they have special meaning in the HTTP protocol.
+///
+/// These headers are allowed to be set by the user in routes, but will throw an error if added to default headers.
+/// This is because it may make sense to set these headers in a route in some cases, but it is never a good idea to set them in default headers.
+///
+/// Also note that entries ending with a dash (`-`) are prefixes, so any header that starts with that prefix is forbidden.
+///
+/// ## The Headers
+/// - Accept-Charset
+/// - Accept-Encoding
+/// - Access-Control-Request-Headers
+/// - Access-Control-Request-Method
+/// - Connection
+/// - Content-Length
+/// - Cookie
+/// - Date
+/// - DNT
+/// - Expect
+/// - Host
+/// - Keep-Alive
+/// - Origin
+/// - Permissions-Policy
+/// - Proxy-
+/// - Sec-
+/// - Referer
+/// - TE
+/// - Trailer
+/// - Transfer-Encoding
+/// - Upgrade
+/// - Via
+pub const FORBIDDEN_HEADERS: &[&str] = &[
+    "accept-charset",
+    "accept-encoding",
+    "access-control-request-headers",
+    "access-control-request-method",
+    "connection",
+    "content-length",
+    "cookie",
+    "date",
+    "dnt",
+    "expect",
+    "host",
+    "keep-alive",
+    "origin",
+    "permissions-policy",
+    "proxy-",
+    "sec-",
+    "referer",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    "via",
+];
+
+macro_rules! headers {
+    {
+        $(
+            $(#[$attr:meta])*
+            $name:ident => $header:literal, $header_lower:literal
+        ),*
+    } => {
+        /// HTTP header names.
+        ///
+        /// Headers are used for passing additional information in a HTTP message.
+        #[derive(Debug, Hash, Clone, PartialEq, Eq)]
+        pub enum HeaderType {
+            $(
+                $(#[$attr])*
+                ///
+                #[doc = concat!("[MDN Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/", $header, ")")]
+                $name
+            ),*,
+            /// Custom header type.
+            /// Only used when the header type is unknown to afire.
+            Custom(String),
+        }
+
+        impl HeaderType {
+            fn from_str(s: &str) -> Self {
+                use HeaderType::*;
+                match s.to_ascii_lowercase().as_str() {
+                    $($header_lower => $name),*,
+                    _ => HeaderType::Custom(filter_crlf(s)),
+                }
+            }
+        }
+
+        impl Display for HeaderType {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                use HeaderType::*;
+                f.write_str(match self {
+                    $($name => $header),*,
+                    HeaderType::Custom(c) => c,
+                })
+            }
+        }
+    }
+}
+
+headers! {
     /// Indicates what content types (MIME types) are acceptable for the client.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept))
-    Accept,
+    Accept           => "Accept",            "accept",
     /// Indicates what character sets are acceptable for the client.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Charset))
-    AcceptCharset,
+    AcceptCharset    => "Accept-Charset",    "accept-charset",
     /// Indicates what content encodings (usually compression algorithms) are acceptable for the client.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding))
-    AcceptEncoding,
+    AcceptEncoding   => "Accept-Encoding",   "accept-encoding",
     /// Indicates what languages are acceptable for the client.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language))
-    AcceptLanguage,
+    AcceptLanguage   => "Accept-Language",   "accept-language",
+    /// Indicates whether the response can be shared with requesting code from the given origin.
+    AccessControlAllowOrigin => "Access-Control-Allow-Origin", "access-control-allow-origin",
+    /// Used to provide credentials that authenticate a user agent with a server, allowing access to a protected resource.
+    Authorization    => "Authorization",     "authorization",
+    /// Controls caching in browsers and shared caches like proxies and CDNs.
+    CacheControl     => "Cache-Control",     "cache-control",
     /// Allows re-using a socket for multiple requests with `keep-alive`, or closing the sockets with `close`.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection))
-    Connection,
+    Connection       => "Connection",        "connection",
     /// Lists the encodings that have been applied to the entity body.
     /// See [`HeaderType::AcceptEncoding`]
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding))
-    ContentEncoding,
+    ContentEncoding  => "Content-Encoding",  "content-encoding",
     /// An integer indicating the size of the entity body in bytes.
     /// This is only required when the body is not chunked.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Length))
-    ContentLength,
+    ContentLength    => "Content-Length",    "content-length",
     /// Indicates the media type of the entity body.
     /// This can be set on a response with the [`crate::Response::content`] method.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type))
-    ContentType,
+    ContentType      => "Content-Type",      "content-type",
     /// Contains cookies from the client.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cookie))
-    Cookie,
+    Cookie           => "Cookie",            "cookie",
     /// The date and time at which the message was originated.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Date))
-    Date,
+    Date             => "Date",              "date",
     /// Sent with requests to indicate the host and port of the server to which the request is being sent.
     /// This allows for reverse proxies to forward requests to the correct server.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Host))
-    Host,
+    Host             => "Host",              "host",
     /// Used with redirection status codes (301, 302, 303, 307, 308) to indicate the URL to redirect to.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Location))
-    Location,
+    Location         => "Location",          "location",
     /// Contains the address of the webpage that linked to the resource being requested.
-    /// Note the misspelling of referrer as 'referer' in the HTTP spec.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer))
-    Referer,
+    /// Note the misspelling of referrer as 'referer' in the HTTP spec. so silly.
+    Referer          => "Referer",           "referer",
     /// An identifier for a specific name / version of the web server software.
-    /// This is set to `afire/VERSION` by default.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server))
-    Server,
+    #[doc = concat!("This is set to `afire/", env!("CARGO_PKG_VERSION"), "` by default.")]
+    Server           => "Server",            "server",
     /// Used to send cookies from the server to the client.
     /// Its recommended to use the [`crate::SetCookie`] builder instead of this directly.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie))
-    SetCookie,
+    SetCookie        => "Set-Cookie",        "set-cookie",
     /// Specifies the transfer encoding of the message body.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding))
-    TransferEncoding,
+    TransferEncoding => "Transfer-Encoding", "transfer-encoding",
     /// Used to switch from HTTP to a different protocol on the same socket, often used for websockets.
     /// Note that afire *currently* does not have built-in support for websockets.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Upgrade))
-    Upgrade,
+    Upgrade          => "Upgrade",           "upgrade",
     /// Contains information about the client application, operating system, vendor, etc. that is making the request.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent))
-    UserAgent,
+    UserAgent        => "User-Agent",        "user-agent",
     /// A header added by proxies to track message forewords, avoid request loops, and identifying protocol capabilities.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Via))
-    Via,
+    Via              => "Via",               "via",
+    /// Defines the HTTP authentication methods ("challenges") that might be used to gain access to a specific resource.
+    WWWAuthenticate  => "WWW-Authenticate",  "www-authenticate",
     /// A header often added by reverse proxies to allow web servers to know from which IP a request is originating.
     /// This is not an official HTTP header, but is still widely used.
-    /// ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For))
-    XForwardedFor,
-    /// Any other header that is not in this enum.
-    Custom(String),
+    XForwardedFor    => "X-Forwarded-For",   "x-forwarded-for"
 }
 
 impl From<&HeaderType> for HeaderType {
@@ -437,67 +460,5 @@ impl From<&HeaderType> for HeaderType {
 impl<T: AsRef<str>> From<T> for HeaderType {
     fn from(s: T) -> Self {
         HeaderType::from_str(s.as_ref())
-    }
-}
-
-impl HeaderType {
-    #[rustfmt::skip]
-    fn from_str(s: &str) -> Self {
-        match s.to_ascii_lowercase().as_str() {
-            "accept"            => HeaderType::Accept,
-            "accept-charset"    => HeaderType::AcceptCharset,
-            "accept-encoding"   => HeaderType::AcceptEncoding,
-            "accept-language"   => HeaderType::AcceptLanguage,
-            "connection"        => HeaderType::Connection,
-            "content-encoding"  => HeaderType::ContentEncoding,
-            "content-length"    => HeaderType::ContentLength,
-            "content-type"      => HeaderType::ContentType,
-            "cookie"            => HeaderType::Cookie,
-            "date"              => HeaderType::Date,
-            "host"              => HeaderType::Host,
-            "location"          => HeaderType::Location,
-            "referer"           => HeaderType::Referer,
-            "server"            => HeaderType::Server,
-            "set-cookie"        => HeaderType::SetCookie,
-            "transfer-encoding" => HeaderType::TransferEncoding,
-            "upgrade"           => HeaderType::Upgrade,
-            "user-agent"        => HeaderType::UserAgent,
-            "via"               => HeaderType::Via,
-            "x-forwarded-for"   => HeaderType::XForwardedFor,
-            _                   => HeaderType::Custom(filter_crlf(s)),
-        }
-    }
-}
-
-impl Display for HeaderType {
-    #[rustfmt::skip]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                HeaderType::Accept           => "Accept",
-                HeaderType::AcceptCharset    => "Accept-Charset",
-                HeaderType::AcceptEncoding   => "Accept-Encoding",
-                HeaderType::AcceptLanguage   => "Accept-Language",
-                HeaderType::Connection       => "Connection",
-                HeaderType::ContentEncoding  => "Content-Encoding",
-                HeaderType::ContentLength    => "Content-Length",
-                HeaderType::ContentType      => "Content-Type",
-                HeaderType::Cookie           => "Cookie",
-                HeaderType::Date             => "Date",
-                HeaderType::Host             => "Host",
-                HeaderType::Location         => "Location",
-                HeaderType::Referer          => "Referer",
-                HeaderType::Server           => "Server",
-                HeaderType::SetCookie        => "Set-Cookie",
-                HeaderType::TransferEncoding => "Transfer-Encoding",
-                HeaderType::Upgrade          => "Upgrade",
-                HeaderType::UserAgent        => "User-Agent",
-                HeaderType::Via              => "Via",
-                HeaderType::XForwardedFor    => "X-Forwarded-For",
-                HeaderType::Custom(s)        => s,
-            }
-        )
     }
 }

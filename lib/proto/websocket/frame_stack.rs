@@ -2,11 +2,15 @@ use std::convert::TryInto;
 
 use super::frame::{Frame, OpCode};
 
+/// Combines multiple frames into a single message.
+/// This is used to handle fragmented messages.
 pub struct Message {
     pub opcode: OpCode,
     pub payload: Vec<u8>,
 }
 
+/// Holds non-final frames until the final frame is received.
+/// Then combines the frames into a single [`Message`].
 pub struct FrameStack {
     frames: Vec<Frame>,
 }
@@ -16,6 +20,8 @@ impl FrameStack {
         Self { frames: Vec::new() }
     }
 
+    /// Adds a frame to the stack.
+    /// Returns a [`Message`] if the frame is the final frame in the message.
     pub fn push(&mut self, frame: Frame) -> Option<Message> {
         if !frame.fin {
             self.frames.push(frame);
