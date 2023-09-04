@@ -12,7 +12,7 @@ use crate::{
     error::{HandleError, Result},
     internal::{router::PathParameters, sync::ForceLockMutex},
     response::ResponseBody,
-    Content, Header, HeaderName, Request, Response, Server, SetCookie, Status,
+    Content, Header, Request, Response, Server, SetCookie, Status,
 };
 
 /// A collection of data important for handling a request.
@@ -255,17 +255,21 @@ impl<State: 'static + Send + Sync> Context<State> {
         self
     }
 
-    // /// Add a Header to a Response.
-    // /// Will accept any type that implements `AsRef<str>`, so [`String`], [`str`], [`&str`], etc.
-    // pub fn header(&self, key: impl Into<HeaderName>, value: impl AsRef<str>) -> &Self {
-    //     self.response
-    //         .force_lock()
-    //         .headers
-    //         .push(Header::new(key, value));
-    //     self.flags.set(ContextFlag::ResponseDirty);
-    //     self
-    // }
-
+    /// Add a Header to a Response.
+    /// Will accept any type that implements `Into<Header>`, so you can use a tuple of `(impl Into<HeaderName>, impl AsRef<str>)` like `(&str, &str)` or a [header struct][`crate::header`] (recommended).
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # use afire::header::Server;
+    /// # fn test(server: &mut Server) {
+    /// server.route(Method::GET, "/", |ctx| {
+    ///     ctx.header(("X-Test", "Test")); // Set 'X-Test' header to 'Test'
+    ///     ctx.header(Server::new("teapot")); // Set 'Server' header to 'teapot'
+    ///
+    ///     ctx.text("Hello World!").send()?;
+    /// });
+    /// # }
+    /// ```
     pub fn header(&self, header: impl Into<Header>) -> &Self {
         self.response.force_lock().headers.push(header.into());
         self.flags.set(ContextFlag::ResponseDirty);

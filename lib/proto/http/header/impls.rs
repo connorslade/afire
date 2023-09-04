@@ -533,12 +533,13 @@ mod server {
 }
 
 mod misc {
-    use std::str::FromStr;
-
     use super::*;
 
+    /// A character encoding standard.
     pub enum Charset {
+        /// UTF-8
         Utf8,
+        /// A custom charset.
         Custom(String),
     }
 

@@ -174,16 +174,20 @@ impl Response {
         }
     }
 
-    // /// Add a Header to a Response.
-    // /// Will accept any type that implements `AsRef<str>`, so [`String`], [`str`], [`&str`], etc.
-    // /// ## Example
-    // /// ```rust
-    // /// # use afire::{Response, Header};
-    // /// // Create Response
-    // /// let response = Response::new()
-    // ///    .header("Test-Header", "Test-Value");
-    // /// ```
-
+    /// Add a Header to a Response.
+    /// Will accept any type that implements `Into<Header>`, so you can use a tuple of `(impl Into<HeaderName>, impl AsRef<str>)` like `(&str, &str)` or a [header struct][`crate::header`] (recommended).
+    /// ## Example
+    /// ```
+    /// # use afire::prelude::*;
+    /// # use afire::header::Server;
+    /// // Create Response
+    /// let response = Response::new()
+    ///     // Set 'X-Test' header to 'Test'
+    ///    .header(("X-Test", "Test"))
+    ///     // Set 'Server' header to 'teapot'
+    ///    .header(Server::new("teapot"));
+    /// #
+    /// ```
     pub fn header(mut self, header: impl Into<Header>) -> Self {
         self.headers.push(header.into());
         self

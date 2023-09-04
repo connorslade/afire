@@ -1,4 +1,32 @@
 //! HTTP headers.
+//!
+//! When using headers in afire, many functions take [`Into<Header>`][`Header#impl-Into<Header>-for-(T,+K)`] as parameters.
+//! This allows you to use many different types as headers, including tuples, [`Header`]s, and *header structs*.
+//!
+//! ## Example
+//! ```rust
+//! # use afire::prelude::*;
+//! # use afire::header::Server;
+//! # fn test(server: &mut Server) {
+//! server.route(Method::GET, "/", |ctx| {
+//!     ctx.header(("X-Test", "Test")); // Set 'X-Test' header to 'Test'
+//!     ctx.header(Server::new("teapot")); // Set 'Server' header to 'teapot'
+//!
+//!     ctx.text("Hello World!").send()?;
+//! });
+//! # }
+//! ```
+//!
+//! ## Header Structs
+//!
+//! Header structs are structs that implement [`Into<Header>`][`Header#impl-Into<Header>-for-(T,+K)`] and make it easier to set headers.
+//! afire currently has the following header structs:
+//!
+//! |[`AccessControlAllowOrigin`]|[`ContentLength`]|
+//! | -------------------------- | --------------- |
+//! |[`CacheControl`]            |[`Date`]         |
+//! |[`Connection`]              |[`Location`]     |
+//! |[`ContentEncoding`]         |[`Server`]       |
 
 use std::{
     borrow::Cow,
