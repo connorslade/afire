@@ -40,7 +40,7 @@ use crate::{
     error::Result,
     header::{CacheControl, ContentType},
     internal::sync::{ForceLockMutex, SingleBarrier},
-    Context, Error, Header, HeaderName, Request, Response,
+    Context, Error, Header, Request, Response,
 };
 
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.

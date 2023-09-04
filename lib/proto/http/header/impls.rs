@@ -41,9 +41,9 @@ mod access_control_allow_origin {
         }
     }
 
-    impl Into<Header> for AccessControlAllowOrigin {
-        fn into(self) -> Header {
-            let value = match self {
+    impl From<AccessControlAllowOrigin> for Header {
+        fn from(value: AccessControlAllowOrigin) -> Self {
+            let value = match value {
                 AccessControlAllowOrigin::Any => "*".to_string(),
                 AccessControlAllowOrigin::Origin(origin) => filter_crlf(&origin),
             };
@@ -165,19 +165,11 @@ mod cache_control {
         }
     }
 
-    impl Into<Header> for CacheControl {
-        fn into(self) -> Header {
-            let out = self
-                .directives
-                .iter()
-                .fold(String::new(), |mut acc, directive| {
-                    acc += &format!(", {}", directive.value());
-                    acc
-                });
-
+    impl From<CacheControl> for Header {
+        fn from(value: CacheControl) -> Self {
             Header {
                 name: HeaderName::CacheControl,
-                value: Cow::Owned(out),
+                value: Cow::Owned(comma_separated(value.directives, |x| x.value())),
             }
         }
     }
@@ -249,11 +241,11 @@ mod connection {
         }
     }
 
-    impl Into<Header> for Connection {
-        fn into(self) -> Header {
-            let value = match self {
+    impl From<Connection> for Header {
+        fn from(value: Connection) -> Self {
+            let value = match value {
                 Connection::Close => Cow::Borrowed("close"),
-                Connection::Headers(h) => Cow::Owned(comma_separated(h)),
+                Connection::Headers(h) => Cow::Owned(comma_separated(h, |x| x.to_string().into())),
             };
 
             Header {
@@ -308,25 +300,17 @@ mod content_encoding {
         }
     }
 
-    impl Into<Header> for ContentEncoding {
-        fn into(self) -> Header {
-            let out = self
-                .encodings
-                .iter()
-                .fold(String::new(), |mut acc, encoding| {
-                    acc += &format!(", {}", encoding.value());
-                    acc
-                });
-
+    impl From<ContentEncoding> for Header {
+        fn from(value: ContentEncoding) -> Self {
             Header {
                 name: HeaderName::ContentEncoding,
-                value: Cow::Owned(out),
+                value: Cow::Owned(comma_separated(value.encodings, |x| x.value())),
             }
         }
     }
 
     impl Encoding {
-        /// Gets the text representaion of the encoding.
+        /// Gets the text representation of the encoding.
         pub fn value(&self) -> Cow<'static, str> {
             Cow::Borrowed(match self {
                 Encoding::Gzip => "gzip",
@@ -349,11 +333,11 @@ mod content_length {
     /// [MDN Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Length)
     pub struct ContentLength(u64);
 
-    impl Into<Header> for ContentLength {
-        fn into(self) -> Header {
+    impl From<ContentLength> for Header {
+        fn from(value: ContentLength) -> Self {
             Header {
                 name: HeaderName::ContentLength,
-                value: Cow::Owned(self.0.to_string()),
+                value: Cow::Owned(value.0.to_string()),
             }
         }
     }
@@ -414,17 +398,20 @@ mod content_type {
         ];
     }
 
-    impl Into<Header> for ContentType {
-        fn into(self) -> Header {
-            let mut out = self.mime.to_string();
-            if let Some(charset) = self.charset {
+    impl From<ContentType> for Header {
+        fn from(value: ContentType) -> Self {
+            let mut out = value.mime.to_string();
+            if let Some(charset) = value.charset {
                 out += &format!("; charset={}", charset);
             }
-            if let Some(boundary) = self.boundary {
+            if let Some(boundary) = value.boundary {
                 out += &format!("; boundary={}", boundary);
             }
 
-            Header::new(HeaderName::ContentType, out)
+            Header {
+                name: HeaderName::ContentType,
+                value: Cow::Owned(out),
+            }
         }
     }
 }
@@ -458,11 +445,11 @@ mod date {
         }
     }
 
-    impl Into<Header> for Date {
-        fn into(self) -> Header {
+    impl From<Date> for Header {
+        fn from(value: Date) -> Self {
             Header {
                 name: HeaderName::Date,
-                value: Cow::Owned(imp_date(self.time)),
+                value: Cow::Owned(imp_date(value.time)),
             }
         }
     }
@@ -489,11 +476,11 @@ mod location {
         }
     }
 
-    impl Into<Header> for Location {
-        fn into(self) -> Header {
+    impl From<Location> for Header {
+        fn from(value: Location) -> Self {
             Header {
                 name: HeaderName::Location,
-                value: self.url,
+                value: value.url,
             }
         }
     }
@@ -522,11 +509,11 @@ mod server {
         }
     }
 
-    impl Into<Header> for Server {
-        fn into(self) -> Header {
+    impl From<Server> for Header {
+        fn from(value: Server) -> Self {
             Header {
                 name: HeaderName::Server,
-                value: self.product,
+                value: value.product,
             }
         }
     }
@@ -564,11 +551,14 @@ mod misc {
 
 // todo: setcookie, TransferEncoding, Via, WWWAuthenticate
 
-fn comma_separated<T: Display>(values: impl Into<Box<[T]>>) -> String {
+fn comma_separated<T>(
+    values: impl Into<Box<[T]>>,
+    to_string: fn(&T) -> Cow<'static, str>,
+) -> String {
     values
         .into()
         .iter()
-        .map(|x| x.to_string())
+        .map(to_string)
         .collect::<Vec<_>>()
         .join(", ")
 }

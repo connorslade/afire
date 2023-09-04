@@ -56,7 +56,7 @@ enum Segment {
 }
 
 /// A container for path parameters.
-/// Because the parameters are stored in a slice, it also hold the names of each parameter if the user uses [`Context::param`].
+/// Because the parameters are stored in a slice, it also hold the names of each parameter if the user uses [`crate::Context::param`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct PathParameters {
     params: Box<[Range<usize>]>,

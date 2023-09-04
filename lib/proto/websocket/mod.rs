@@ -105,7 +105,7 @@ enum TxTypeInternal {
 impl WebSocketStream {
     /// Create a new WebSocket stream from a Request.
     pub fn from_request(req: &Request, headers: &[Header]) -> Result<Self> {
-        let Some(ws_key) = req.headers.get("Sec-WebSocket-Key").map(|x| x.to_owned()) else {
+        let Some(ws_key) = req.headers.get("Sec-WebSocket-Key").cloned() else {
             return Error::bail("Missing `Sec-WebSocket-Key` Header.");
         };
 

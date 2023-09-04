@@ -6,13 +6,14 @@
 //! ## Example
 //! ```rust
 //! # use afire::prelude::*;
-//! # use afire::header::Server;
+//! # use afire::header;
 //! # fn test(server: &mut Server) {
 //! server.route(Method::GET, "/", |ctx| {
 //!     ctx.header(("X-Test", "Test")); // Set 'X-Test' header to 'Test'
-//!     ctx.header(Server::new("teapot")); // Set 'Server' header to 'teapot'
+//!     ctx.header(header::Server::new("teapot")); // Set 'Server' header to 'teapot'
 //!
 //!     ctx.text("Hello World!").send()?;
+//!     Ok(())
 //! });
 //! # }
 //! ```
@@ -382,8 +383,8 @@ pub const FORBIDDEN_HEADERS: &[&str] = &[
     "via",
 ];
 
-impl<T: Into<HeaderName>, K: AsRef<str>> Into<Header> for (T, K) {
-    fn into(self) -> Header {
-        Header::new(self.0, self.1)
+impl<T: Into<HeaderName>, K: AsRef<str>> From<(T, K)> for Header {
+    fn from(value: (T, K)) -> Self {
+        Header::new(value.0, value.1)
     }
 }
