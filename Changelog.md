@@ -57,6 +57,10 @@ Coming Soon
   - `/hello*world`
 - Internal `url::decode` will not hard fail in the case of invalid url encoded strings.
 - Add `PathNormalizer` middleware that removes trailing and repeating slashes from paths.
+- Optimize router. Benchmarking is kinda hard but I _think_ this new router is faster even though it is significantly more flexible.
+- Rename HeaderType to HeaderName as that is the correct name.
+- Accept `Into<Header>` in `Context::header` and `Response::header`.
+- Create 'header structs' that can be converted into a `Header` and simplify working with headers in responses.
 
 # 2.2.1
 

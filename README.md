@@ -10,7 +10,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "3.0.0-alpha.1"
+afire = "3.0.0-alpha.2"
 ```
 
 ## 📄 Info
