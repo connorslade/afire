@@ -105,7 +105,6 @@ pub(crate) fn any_string(any: Box<dyn std::any::Any + Send>) -> Cow<'static, str
 
 /// Get the current time since the Unix Epoch.
 /// Will panic if the system time is before the Unix Epoch.
-#[cfg(feature = "extensions")]
 pub(crate) fn epoch() -> std::time::Duration {
     use std::time::{SystemTime, UNIX_EPOCH};
 
