@@ -40,6 +40,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
+    server.get("/{}/{}/{}", |ctx| {
+        let params = (0..3)
+            .map(|x| ctx.param_idx(x).to_string())
+            .collect::<Vec<_>>();
+        ctx.text(params.join(", ")).send()?;
+        Ok(())
+    });
+
     server.get("/yt/{id}", |ctx| {
         let id = ctx.param("id");
         ctx.redirect(format!("https://youtube.com/watch?v={id}"))

@@ -66,7 +66,7 @@ impl<State: 'static + Send + Sync> Context<State> {
             .expect("Server does not have a state.")
     }
 
-    /// Gets a path parameter by na,e.
+    /// Gets a path parameter by name.
     /// If the parameter does not exist, it **will panic**.
     /// Because any path parameters are guaranteed to exist if the route matches, there is no need to be able to check if a parameter exists.
     /// ## Example
