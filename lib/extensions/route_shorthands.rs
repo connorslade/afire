@@ -41,6 +41,7 @@ macro_rules! route_shorthands {
 }
 
 route_shorthands! {
+    any     => Method::ANY,
     get     => Method::GET,
     post    => Method::POST,
     put     => Method::PUT,
