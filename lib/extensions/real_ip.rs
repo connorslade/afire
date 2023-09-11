@@ -29,7 +29,7 @@ pub trait RealIp {
     }
 
     /// Gets the 'real IP' of a client by parsing the value of `header` into an IpAddr.
-    /// If the connection is not coming from localhost ([loopback](https://tools.ietf.org/html/rfc1122), [private](https://tools.ietf.org/html/rfc1918), or [unique local](https://tools.ietf.org/html/rfc4193)), the header isn't found or the header contains an invalid IP address, the raw socket address will be returned.
+    /// If the connection is not coming from localhost (    ), the header isn't found or the header contains an invalid IP address, the raw socket address will be returned.
     ///
     /// **Warning**: Make sure your reverse proxy is overwriting the specified header on the incoming requests so clients cant spoof their original Ips.
     fn real_ip_header(&self, header: impl Into<HeaderName>) -> IpAddr;
@@ -55,7 +55,7 @@ impl RealIp for Request {
 
 fn is_local(ip: IpAddr) -> bool {
     match ip {
-        IpAddr::V4(ip) => ip.is_loopback() || ip.is_private(),
+        IpAddr::V4(ip) => ip.is_loopback() || ip.octets()[0] == 172 || ip.is_private(),
         IpAddr::V6(ip) => ip.is_loopback() || ipv6_is_unique_local(ip),
     }
 }

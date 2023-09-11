@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::{header::ContentType, Header};
 
 use super::mime::{self, Mime};
@@ -43,7 +41,7 @@ impl Content<'_> {
             Content::CSV  => mime::CSV,
             Content::JSON => mime::JSON,
             Content::XML  => mime::XML,
-            Content::Custom(i) => i.deref().into(),
+            Content::Custom(i) => (*i).into(),
         }
     }
 }

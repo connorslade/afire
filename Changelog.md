@@ -61,6 +61,7 @@ Coming Soon
 - Rename HeaderType to HeaderName as that is the correct name.
 - Accept `Into<Header>` in `Context::header` and `Response::header`.
 - Create 'header structs' that can be converted into a `Header` and simplify working with headers in responses.
+- Use [loopback](https://tools.ietf.org/html/rfc1122), [private](https://tools.ietf.org/html/rfc1918), and [unique local](https://tools.ietf.org/html/rfc4193) addresses for RealIp
 
 # 2.2.1
 
