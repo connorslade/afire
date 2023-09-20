@@ -4,7 +4,7 @@
 
 use std::net::{IpAddr, Ipv6Addr};
 
-use crate::{HeaderName, Request};
+use crate::{Context, HeaderName, Request};
 
 /// Trait that adds methods for getting the real IP of a client through a reverse proxy.
 /// If you are using the "X-Forwarded-For" header you can use `req.real_ip()` but if you are using a different header you will have to use `req.real_ip_header(...)`.
@@ -50,6 +50,12 @@ impl RealIp for Request {
             .get(header.into())
             .and_then(|x| x.parse().ok())
             .unwrap_or(ip)
+    }
+}
+
+impl<State: Send + Sync> RealIp for Context<State> {
+    fn real_ip_header(&self, header: impl Into<HeaderName>) -> IpAddr {
+        self.req.real_ip_header(header)
     }
 }
 

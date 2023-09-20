@@ -43,6 +43,7 @@
 //! ```
 
 use std::{
+    borrow::Cow,
     fmt::{self, Arguments, Debug, Display},
     sync::{
         atomic::{AtomicBool, AtomicU8, Ordering},
@@ -149,11 +150,14 @@ pub fn _trace(level: Level, fmt: Arguments) {
 
 // TODO: convert to macro for compile time concat!
 // this is a totally normal and necessary function
-pub(crate) fn emoji(emoji: &str) -> String {
-    #[cfg(feature = "emoji-logging")]
-    return emoji.to_owned() + " ";
-    #[cfg(not(feature = "emoji-logging"))]
-    String::new()
+#[cfg(feature = "emoji-logging")]
+pub(crate) fn emoji(emoji: &str) -> Cow<str> {
+    Cow::Owned(emoji.to_owned() + " ")
+}
+
+#[cfg(not(feature = "emoji-logging"))]
+pub(crate) fn emoji(_emoji: &str) -> Cow<str> {
+    Cow::Borrowed("")
 }
 
 /// Simple logging system.

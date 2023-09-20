@@ -145,10 +145,17 @@ impl<State: 'static + Send + Sync> Context<State> {
             return Err(HandleError::ResponseAlreadySent.into());
         }
 
+        // TODO: Post middleware
         self.response
             .force_lock()
             .write(self.req.socket.clone(), &self.server.default_headers)?;
         self.flags.set(ContextFlag::ResponseSent);
+
+        // TODO: End middleware
+        let res = self.response.force_lock();
+        for i in self.server.middleware.iter() {
+            i.end_raw(Ok(self.req.clone()), &res);
+        }
 
         if self.flags.get(ContextFlag::GuaranteedSend) {
             self.req.socket.unlock();
