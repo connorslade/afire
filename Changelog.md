@@ -63,6 +63,7 @@ Coming Soon
 - Create 'header structs' that can be converted into a `Header` and simplify working with headers in responses.
 - Use [loopback](https://tools.ietf.org/html/rfc1122), [private](https://tools.ietf.org/html/rfc1918), and [unique local](https://tools.ietf.org/html/rfc4193) addresses for RealIp
 - Add is_informational, is_success, is_redirect, is_client_error, and is_server_error methods on status codes.
+- Use a Cow in HeaderName::Custom
 
 # 2.2.1
 

@@ -1,4 +1,7 @@
-use std::fmt::{self, Display};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display},
+};
 
 use crate::internal::misc::filter_crlf;
 
@@ -22,7 +25,7 @@ macro_rules! headers {
             ),*,
             /// Custom header type.
             /// Only used when the header type is unknown to afire.
-            Custom(String),
+            Custom(Cow<'static, str>),
         }
 
         impl HeaderName {
@@ -30,8 +33,18 @@ macro_rules! headers {
                 use HeaderName::*;
                 match s.to_ascii_lowercase().as_str() {
                     $($header_lower => $name),*,
-                    _ => HeaderName::Custom(filter_crlf(s)),
+                    _ => HeaderName::Custom(Cow::Owned(filter_crlf(s))),
                 }
+            }
+
+            /// A custom header name.
+            pub fn custom(s: impl Into<Cow<'static, str>>) -> Self {
+                HeaderName::Custom(s.into())
+            }
+
+            /// Create a custom header name from a static string.
+            pub const fn custom_str(s: &'static str) -> Self {
+                HeaderName::Custom(Cow::Borrowed(s))
             }
         }
 
