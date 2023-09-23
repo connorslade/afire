@@ -1,8 +1,12 @@
+use std::io::{ErrorKind, Read};
+
 use crate::{
     middleware::{MiddleResult, Middleware},
     response::ResponseBody,
     HeaderName, Method, Request, Response,
 };
+
+const CHUNK_SIZE: usize = 1024;
 
 /// Middleware to add support for the HTTP [HEAD](https://developer.mozilla.org/en-US/docs/web/http/methods/head) method.
 ///
@@ -55,9 +59,17 @@ impl Middleware for Head {
             _ if res.headers.has(HeaderName::ContentLength) => None,
             ResponseBody::Static(d) => Some(d.len()),
             ResponseBody::Stream(s) if self.streaming => {
-                let mut buf = Vec::new();
-                s.get_mut().read_to_end(&mut buf).unwrap();
-                Some(buf.len())
+                let mut len = 0;
+                let mut buffer = [0; CHUNK_SIZE];
+                let mut s = s.borrow_mut();
+                loop {
+                    match s.read(&mut buffer) {
+                        Ok(0) => break Some(len),
+                        Ok(n) => len += n,
+                        Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+                        Err(_) => break None,
+                    }
+                }
             }
             _ => None,
         };
