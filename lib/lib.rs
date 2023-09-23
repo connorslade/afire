@@ -28,7 +28,7 @@ pub mod trace;
 mod context;
 pub mod error;
 pub mod middleware;
-mod proto;
+pub mod proto;
 mod request;
 mod response;
 pub mod route;

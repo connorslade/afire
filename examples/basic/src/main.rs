@@ -23,6 +23,8 @@ struct App {
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     // Show some helpful information during startup.
+    // afire log level is global and will affect all afire servers in your application
+    // (although there is usually only one)
     set_log_level(Level::Trace);
 
     // Create a new afire server on localhost:8080 with 4 worker threads and the App state.

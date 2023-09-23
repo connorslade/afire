@@ -1,0 +1,7 @@
+[server]
+host = "localhost"
+port = 8080
+workers = 4
+
+[database]
+path = "data.db"
