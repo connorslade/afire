@@ -11,14 +11,17 @@ struct PageTemplate {
 
 pub fn attach(server: &mut Server<App>) {
     server.get("/", |ctx| {
+        // Get the 10 most recent pastes from the database
         let recent_pastes = ctx.app().db.recent_pastes(10)?;
         let page = PageTemplate { recent_pastes };
 
+        // Render the page and send it to the client
         ctx.text(page.render()?).content(Content::HTML).send()?;
         Ok(())
     })
 }
 
+// These filters are used in the askama templates (see templates/index.html)
 mod filters {
     use afire::proto::http::date::imp_date;
     use askama::Result;

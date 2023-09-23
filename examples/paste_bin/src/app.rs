@@ -12,10 +12,12 @@ pub struct App {
 
 impl App {
     pub fn new() -> Result<Self> {
+        // Load the config from config.toml
         let raw_config = fs::read_to_string("config.toml").context("Failed to read config.toml")?;
         let config =
             toml::from_str::<Config>(&raw_config).context("Failed to parse config.toml")?;
 
+        // Open the database connection and initialize it
         let connection = Connection::open(&config.database.path)
             .context("Failed to open database connection")?;
         let db = Db::new(connection);
@@ -24,6 +26,7 @@ impl App {
         Ok(Self { config, db })
     }
 
+    // Cleanup the database if it is still active
     pub fn cleanup(&self) -> Result<()> {
         if !self.db.is_active() {
             println!("[!] Already shuting down");

@@ -16,6 +16,7 @@ mod routes;
 fn main() -> Result<()> {
     let app = App::new()?;
 
+    // Create a new server with values loaded from config.toml
     let mut server = Server::new(&app.config.server.host, app.config.server.port)
         .workers(app.config.server.workers)
         .state(app);
