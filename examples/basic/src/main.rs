@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    error,
     sync::{Arc, RwLock},
 };
 
@@ -10,6 +9,7 @@ use afire::{
     trace::{set_log_level, Level},
     Content, Method, Request, Response, Server,
 };
+use anyhow::Result;
 use rand::Rng;
 use serde::Deserialize;
 use serde_json::json;
@@ -21,7 +21,7 @@ struct App {
     analytics: RwLock<HashMap<String, u64>>,
 }
 
-fn main() -> Result<(), Box<dyn error::Error>> {
+fn main() -> Result<()> {
     // Show some helpful information during startup.
     // afire log level is global and will affect all afire servers in your application
     // (although there is usually only one)

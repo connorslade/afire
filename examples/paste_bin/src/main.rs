@@ -1,8 +1,8 @@
 use std::process;
 
 use afire::{
-    extensions::{Date, Head, Logger},
-    Middleware, Server,
+    extensions::{Date, Head, Logger, RouteShorthands},
+    Content, Middleware, Server, Status,
 };
 use anyhow::Result;
 
@@ -25,6 +25,18 @@ fn main() -> Result<()> {
     Date.attach(&mut server);
     Head::new().attach(&mut server);
     Logger::new().attach(&mut server);
+
+    // Add a 404 handler
+    // This works because routes are checked in the reverse order they are added
+    // So more recently added routes are checked first
+    // This means if we add a catch all route first, it will only be called if no other routes match
+    server.any("/**", |ctx| {
+        ctx.status(Status::NotFound)
+            .text(format!("Page `{}` not found", ctx.req.path))
+            .content(Content::TXT)
+            .send()?;
+        Ok(())
+    });
 
     // Add all the api routes and pages
     routes::attach(&mut server);
