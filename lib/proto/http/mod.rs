@@ -4,6 +4,7 @@ pub mod content_type;
 pub mod cookie;
 pub mod date;
 pub mod header;
+pub mod headers;
 pub mod method;
 pub mod mime;
 pub mod multipart;

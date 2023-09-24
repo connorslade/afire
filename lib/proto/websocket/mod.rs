@@ -52,7 +52,7 @@ use crate::{
     consts::BUFF_SIZE,
     context::ContextFlag,
     error::Result,
-    header::Connection,
+    headers::Connection,
     internal::{
         encoding::{base64, sha1},
         sync::ForceLockMutex,

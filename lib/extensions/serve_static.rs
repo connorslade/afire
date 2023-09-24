@@ -4,7 +4,7 @@ use std::{borrow::Cow, fs::File, sync::Arc};
 
 use crate::{
     error::{HandleError, Result},
-    header::ContentType,
+    headers::ContentType,
     middleware::{MiddleResult, Middleware},
     Error, HeaderName, Request, Response, Status,
 };

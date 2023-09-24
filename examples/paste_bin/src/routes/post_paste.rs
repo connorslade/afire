@@ -2,7 +2,7 @@ use std::error;
 
 use afire::{
     extensions::{RedirectResponse, RouteShorthands},
-    header::Vary,
+    headers::Vary,
     route::RouteContext,
     Content, Context, HeaderName, Query, Server, Status,
 };

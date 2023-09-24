@@ -40,7 +40,7 @@ pub use self::{
     cookie::{Cookie, SetCookie},
     error::Error,
     header::{Header, HeaderName},
-    http::{cookie, header, multipart},
+    http::{cookie, header, headers, multipart},
     method::Method,
     middleware::Middleware,
     proto::{server_sent_events, websocket},

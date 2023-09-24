@@ -1,4 +1,4 @@
-use crate::{header::ContentType, Header};
+use crate::{headers::ContentType, Header};
 
 use super::mime::{self, Mime};
 

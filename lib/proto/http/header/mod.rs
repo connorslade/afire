@@ -31,7 +31,7 @@
 
 use std::{
     borrow::Cow,
-    fmt::{self, Display},
+    fmt::{self},
     ops::{Deref, DerefMut},
 };
 
@@ -41,10 +41,8 @@ use crate::{
 };
 
 mod header_name;
-mod impls;
 
 pub use header_name::HeaderName;
-pub use impls::*;
 
 /// Http header.
 /// Has a name and a value.
