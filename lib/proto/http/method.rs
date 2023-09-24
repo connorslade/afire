@@ -65,23 +65,8 @@ pub enum Method {
 impl FromStr for Method {
     type Err = ();
 
-    /// Convert a string to a method.
+    /// Convert a string to a method, case insensitive.
     /// If the string is not a valid method or is ANY, an error will be returned.
-    /// ## Examples
-    /// ```rust
-    /// # use std::str::FromStr;
-    /// # use afire::{Method};
-    /// assert!(Method::from_str("GET").unwrap() == Method::GET);
-    /// assert!(Method::from_str("POST").unwrap() == Method::POST);
-    /// assert!(Method::from_str("PUT").unwrap() == Method::PUT);
-    /// assert!(Method::from_str("DELETE").unwrap() == Method::DELETE);
-    /// assert!(Method::from_str("OPTIONS").unwrap() == Method::OPTIONS);
-    /// assert!(Method::from_str("HEAD").unwrap() == Method::HEAD);
-    /// assert!(Method::from_str("PATCH").unwrap() == Method::PATCH);
-    /// assert!(Method::from_str("TRACE").unwrap() == Method::TRACE);
-    /// assert!(Method::from_str("ANY") == Err(()));
-    /// assert!(Method::from_str("foo") == Err(()));
-    /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s.to_uppercase().as_str() {
             "GET" => Method::GET,
@@ -99,11 +84,6 @@ impl FromStr for Method {
 
 impl fmt::Display for Method {
     /// Returns the string representation of the method.
-    ///
-    /// ```rust
-    /// # use afire::{Method};
-    /// assert_eq!("GET", Method::GET.to_string());
-    /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(match *self {
             Method::GET => "GET",

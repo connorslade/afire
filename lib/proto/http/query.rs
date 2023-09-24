@@ -147,8 +147,8 @@ impl fmt::Display for Query {
         for i in &self.0 {
             output.push_str(&format!("{}={}&", i[0], i[1]));
         }
-        output.pop();
-        f.write_str(&output)
+
+        f.write_str(&output[..output.len() - 1])
     }
 }
 

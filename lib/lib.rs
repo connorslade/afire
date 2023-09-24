@@ -54,16 +54,17 @@ pub use self::{
     server::Server,
 };
 
-/// The Prelude is a collection of very commonly used *things* in afire.
-/// Unless you are using middleware, extensions or internal lower level stuff this should be all you need!
+/// The prelude is a collection of types and traits that are commonly used in most afire applications.
 pub mod prelude {
     pub use crate::{
         error::{self, Error},
+        headers::{self, *},
         middleware::{MiddleResult, Middleware},
         proto::server_sent_events::ServerSentEventsExt,
         proto::websocket::WebSocketExt,
-        Content, Cookie, Header, HeaderName, Method, Query, Request, Response, Server, SetCookie,
-        Status,
+        route::{AdditionalRouteContext, RouteContext},
+        Content, Context, Cookie, Header, HeaderName, Method, Query, Request, Response, Server,
+        SetCookie, Status,
     };
 }
 
