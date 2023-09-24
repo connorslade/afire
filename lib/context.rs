@@ -267,11 +267,11 @@ impl<State: 'static + Send + Sync> Context<State> {
     /// ## Example
     /// ```
     /// # use afire::prelude::*;
-    /// # use afire::header;
+    /// # use afire::headers;
     /// # fn test(server: &mut Server) {
     /// server.route(Method::GET, "/", |ctx| {
     ///     ctx.header(("X-Test", "Test")); // Set 'X-Test' header to 'Test'
-    ///     ctx.header(header::Server::new("teapot")); // Set 'Server' header to 'teapot'
+    ///     ctx.header(headers::Server::new("teapot")); // Set 'Server' header to 'teapot'
     ///
     ///     ctx.text("Hello World!").send()?;
     ///     Ok(())   

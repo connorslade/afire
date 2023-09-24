@@ -19,7 +19,7 @@ use crate::{headers::Location, Context, Status};
 /// ```
 /// # use afire::prelude::*;
 /// # use afire::extensions::{RedirectResponse, RedirectType};
-/// # use afire::header::Location;
+/// # use afire::headers::Location;
 /// # fn test(server: &mut Server) {
 /// // Use the default 302 Found redirect
 /// server.route(Method::GET, "/redirect", |ctx| {

@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use crate::consts;
 use crate::header::{HeaderName, Headers};
-use crate::http::status::Status;
 use crate::internal::sync::ForceLockMutex;
+use crate::proto::http::status::Status;
 use crate::socket::Socket;
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
@@ -179,7 +179,7 @@ impl Response {
     /// ## Example
     /// ```
     /// # use afire::prelude::*;
-    /// # use afire::header::Server;
+    /// # use afire::headers::Server;
     /// // Create Response
     /// let response = Response::new()
     ///     // Set 'X-Test' header to 'Test'

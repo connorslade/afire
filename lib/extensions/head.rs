@@ -1,4 +1,6 @@
-use std::io::{ErrorKind, Read};
+//! Middleware to add support for the HTTP [HEAD](https://developer.mozilla.org/en-US/docs/web/http/methods/head) method.
+
+use std::io::ErrorKind;
 
 use crate::{
     middleware::{MiddleResult, Middleware},

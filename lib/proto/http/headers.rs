@@ -146,7 +146,7 @@ mod cache_control {
         /// Creates a new `CacheControl` header with the given directives.
         /// ## Example
         /// ```
-        /// # use afire::header::{CacheControl, CacheDirective};
+        /// # use afire::headers::{CacheControl, CacheDirective};
         /// CacheControl::new([CacheDirective::MaxAge(3600), CacheDirective::NoTransform]);
         /// ```
         pub fn new(directives: impl Into<Box<[CacheDirective]>>) -> Self {

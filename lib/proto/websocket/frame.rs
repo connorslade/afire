@@ -4,8 +4,8 @@ use std::{
     net::TcpStream,
 };
 
-use crate::trace::LazyFmt;
 use super::xor_mask;
+use crate::trace::LazyFmt;
 
 /// ## Frame Layout
 /// ```plain

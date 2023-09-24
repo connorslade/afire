@@ -1,3 +1,5 @@
+//! Adds support for the [HTTP TRACE](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/TRACE) method.
+
 use crate::{
     middleware::{MiddleResult, Middleware},
     Content, Header, HeaderName, Method, Request, Response,
