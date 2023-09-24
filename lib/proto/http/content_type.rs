@@ -1,3 +1,5 @@
+//! Common MIME types for HTTP responses.
+
 use crate::{headers::ContentType, Header};
 
 use super::mime::{self, Mime};

@@ -1,3 +1,5 @@
+//! Query parameters for HTTP requests.
+
 use std::{
     fmt,
     ops::{Deref, DerefMut},

@@ -1,3 +1,5 @@
+//! Contains all the header structs that can be used with HTTP requests and responses.
+
 use std::{borrow::Cow, fmt::Display};
 
 use crate::{

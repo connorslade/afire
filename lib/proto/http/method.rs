@@ -1,3 +1,5 @@
+//! HTTP Methods.
+
 use std::{fmt, str::FromStr};
 
 /// HTTP Methods.
