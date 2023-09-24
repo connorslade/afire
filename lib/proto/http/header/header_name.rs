@@ -112,6 +112,9 @@ headers! {
     Upgrade          => "Upgrade",           "upgrade",
     /// Contains information about the client application, operating system, vendor, etc. that is making the request.
     UserAgent        => "User-Agent",        "user-agent",
+    /// Informs clients and intermediaries about which headers affect the response.
+    /// This is used to determine whether a cached response is still valid.
+    Vary             => "Vary",              "vary",
     /// A header added by proxies to track message forewords, avoid request loops, and identifying protocol capabilities.
     Via              => "Via",               "via",
     /// Defines the HTTP authentication methods ("challenges") that might be used to gain access to a specific resource.

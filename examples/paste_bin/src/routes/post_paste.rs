@@ -2,6 +2,7 @@ use std::error;
 
 use afire::{
     extensions::{RedirectResponse, RouteShorthands},
+    header::Vary,
     route::RouteContext,
     Content, Context, HeaderName, Query, Server, Status,
 };
@@ -23,7 +24,7 @@ pub fn attach(server: &mut Server<App>) {
         let content_type = ctx.req.headers.get(HeaderName::ContentType);
 
         // The vary header tells clients and proxies what headers can change the response
-        ctx.header(("Vary", "Content-Type"));
+        ctx.header(Vary::headers([HeaderName::ContentType]));
         match content_type {
             // Depending on the content type, call the correct handler
             Some(c) if c == MIME_JSON => post_api(ctx),

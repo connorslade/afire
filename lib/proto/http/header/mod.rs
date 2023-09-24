@@ -31,7 +31,7 @@
 
 use std::{
     borrow::Cow,
-    fmt::{self},
+    fmt::{self, Display},
     ops::{Deref, DerefMut},
 };
 

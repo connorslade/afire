@@ -15,6 +15,7 @@ pub use date::*;
 pub use location::*;
 pub use misc::*;
 pub use server::*;
+pub use vary::*;
 
 mod access_control_allow_origin {
     use crate::internal::misc::filter_crlf;
@@ -514,6 +515,46 @@ mod server {
             Header {
                 name: HeaderName::Server,
                 value: value.product,
+            }
+        }
+    }
+}
+
+mod vary {
+    use super::*;
+
+    /// `Vary` header for responses. ([RFC 9110 §10.2.6](https://www.rfc-editor.org/rfc/rfc9110#field.vary))
+    pub enum Vary {
+        /// List of headers that may cause a cache to change to a response.
+        Headers {
+            /// The headers that may cause a cache to change to a response.
+            headers: Box<[HeaderName]>,
+        },
+        /// Indicates that some non-header factor caused the response to change.
+        Wildcard,
+    }
+
+    impl Vary {
+        /// Create a new Vary header with the given header names.
+        pub fn headers(headers: impl Into<Box<[HeaderName]>>) -> Self {
+            Vary::Headers {
+                headers: headers.into(),
+            }
+        }
+    }
+
+    impl From<Vary> for Header {
+        fn from(value: Vary) -> Self {
+            let value = match value {
+                Vary::Headers { headers } => {
+                    Cow::Owned(comma_separated(headers, |x| x.to_string().into()))
+                }
+                Vary::Wildcard => Cow::Borrowed("*"),
+            };
+
+            Header {
+                name: HeaderName::Vary,
+                value,
             }
         }
     }
