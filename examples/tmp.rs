@@ -12,7 +12,9 @@ use std::{
 };
 
 use afire::{
-    extensions::{Date, Head, Logger, RedirectResponse, RouteShorthands, ServeStatic, Trace},
+    extensions::{
+        Date, Head, Logger, RedirectResponse, RouteShorthands, ServeStatic, SyncRoute, Trace,
+    },
     internal::sync::{ForceLockMutex, ForceLockRwLock},
     multipart::MultipartData,
     prelude::*,
@@ -313,6 +315,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         ctx.text("1").send()?;
         ctx.text("2").send()?;
         Ok(())
+    });
+
+    server.sync_route(Method::GET, "/sync-test", |_ctx| {
+        Ok(Response::new().text("Heyyyy"))
     });
 
     Test.attach(&mut server);

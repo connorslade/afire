@@ -65,6 +65,7 @@ Coming Soon
 - Add is_informational, is_success, is_redirect, is_client_error, and is_server_error methods on status codes.
 - Use a Cow in HeaderName::Custom
 - Don't store whole stream to get its length in Head ext
+- Added sync_route extension
 
 # 2.2.1
 

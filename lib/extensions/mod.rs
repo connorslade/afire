@@ -14,6 +14,7 @@
 //! | [`RequestId`]        | Add a Request-Id header to all requests.                                  |
 //! | [`RouteShorthands`]  | Shorthands for defining routes (`server.get(...)`).                       |
 //! | [`ServeStatic`]      | Serve static files from a dir.                                            |
+//! | [`SyncRoute`]        | Lets you make routes that return responses synchronously.                 |
 //! | [`Trace`]            | Add support for the HTTP `TRACE` method.                                  |
 
 pub mod date;
@@ -26,6 +27,7 @@ pub mod redirect;
 pub mod request_id;
 pub mod route_shorthands;
 pub mod serve_static;
+pub mod sync_route;
 pub mod trace;
 
 #[doc(inline)]
@@ -40,5 +42,6 @@ pub use self::{
     request_id::RequestId,
     route_shorthands::RouteShorthands,
     serve_static::ServeStatic,
+    sync_route::SyncRoute,
     trace::Trace,
 };

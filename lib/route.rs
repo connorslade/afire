@@ -227,17 +227,15 @@ impl<T> AdditionalRouteContext<T> for Result<T, RouteError> {
 
 impl<T> AdditionalRouteContext<T> for Result<T, Box<dyn Error>> {
     fn status(self, status: Status) -> Result<T, RouteError> {
-        self.map_err(|e| RouteError::from_error(e)).status(status)
+        self.map_err(RouteError::from_error).status(status)
     }
 
     fn with_status(self, status: impl Fn() -> Status) -> Result<T, RouteError> {
-        self.map_err(|e| RouteError::from_error(e))
-            .with_status(status)
+        self.map_err(RouteError::from_error).with_status(status)
     }
 
     fn header(self, name: impl Into<HeaderName>, value: impl AsRef<str>) -> Result<T, RouteError> {
-        self.map_err(|e| RouteError::from_error(e))
-            .header(name, value)
+        self.map_err(RouteError::from_error).header(name, value)
     }
 
     fn with_header(
@@ -245,7 +243,7 @@ impl<T> AdditionalRouteContext<T> for Result<T, Box<dyn Error>> {
         name: impl Into<HeaderName>,
         value: impl Fn() -> String,
     ) -> Result<T, RouteError> {
-        self.map_err(|e| RouteError::from_error(e))
+        self.map_err(RouteError::from_error)
             .with_header(name, value)
     }
 }
