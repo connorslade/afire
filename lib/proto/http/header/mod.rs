@@ -23,11 +23,12 @@
 //! Header structs are structs that implement [`Into<Header>`][`Header#impl-Into<Header>-for-(T,+K)`] and make it easier to set headers.
 //! afire currently has the following header structs:
 //!
-//! |[`AccessControlAllowOrigin`]|[`ContentLength`]|
-//! | -------------------------- | --------------- |
-//! |[`CacheControl`]            |[`Date`]         |
-//! |[`Connection`]              |[`Location`]     |
-//! |[`ContentEncoding`]         |[`Server`]       |
+//! |[AccessControlAllowOrigin][`crate::headers::AccessControlAllowOrigin`]|[ContentType][`crate::headers::ContentType`]|
+//! | -------------------------------------------------------------------- | ------------------------------------------ |
+//! |[CacheControl][`crate::headers::CacheControl`]                        |[Date][`crate::headers::Date`]              |
+//! |[Connection][`crate::headers::Connection`]                            |[Location][`crate::headers::Location`]      |
+//! |[ContentEncoding][`crate::headers::ContentEncoding`]                  |[Server][`crate::headers::Server`]          |
+//! |[ContentLength][`crate::headers::ContentLength`]                      |[Vary][`crate::headers::Vary`]              |
 
 use std::{
     borrow::Cow,
