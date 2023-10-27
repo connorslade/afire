@@ -185,7 +185,7 @@ impl<State: Send + Sync> Server<State> {
     ///     .workers(4);
     pub fn workers(self, threads: usize) -> Self {
         // TODO: only resize on start?
-        // self.thread_pool.resize(threads); // TODO: this
+        self.thread_pool.resize_exact(threads);
         self
     }
 

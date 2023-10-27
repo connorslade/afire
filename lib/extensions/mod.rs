@@ -21,6 +21,7 @@ pub mod date;
 pub mod head;
 pub mod logger;
 pub mod path_normalizer;
+pub mod range;
 pub mod ratelimit;
 pub mod real_ip;
 pub mod redirect;
@@ -36,6 +37,7 @@ pub use self::{
     head::Head,
     logger::Logger,
     path_normalizer::PathNormalizer,
+    range::Range,
     ratelimit::RateLimiter,
     real_ip::RealIp,
     redirect::{RedirectResponse, RedirectType},

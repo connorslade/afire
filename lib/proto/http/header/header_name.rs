@@ -71,6 +71,8 @@ headers! {
     AcceptLanguage   => "Accept-Language",   "accept-language",
     /// Indicates whether the response can be shared with requesting code from the given origin.
     AccessControlAllowOrigin => "Access-Control-Allow-Origin", "access-control-allow-origin",
+    /// Tells the server what range of bytes the client wants.
+    AcceptRanges     => "Accept-Ranges",     "accept-ranges",
     /// Used to provide credentials that authenticate a user agent with a server, allowing access to a protected resource.
     Authorization    => "Authorization",     "authorization",
     /// Controls caching in browsers and shared caches like proxies and CDNs.
@@ -83,6 +85,8 @@ headers! {
     /// An integer indicating the size of the entity body in bytes.
     /// This is only required when the body is not chunked.
     ContentLength    => "Content-Length",    "content-length",
+    /// Used to specify what part of a resource is returned when a range request is made.
+    ContentRange     => "Content-Range",     "content-range",
     /// Indicates the media type of the entity body.
     /// This can be set on a response with the [`crate::Response::content`] method.
     ContentType      => "Content-Type",      "content-type",
@@ -97,6 +101,8 @@ headers! {
     KeepAlive        => "Keep-Alive",        "keep-alive",
     /// Used with redirection status codes (301, 302, 303, 307, 308) to indicate the URL to redirect to.
     Location         => "Location",          "location",
+    /// Used to ask a server to respond with only part of an entity.
+    Range            => "Range",             "range",
     /// Contains the address of the webpage that linked to the resource being requested.
     /// Note the misspelling of referrer as 'referer' in the HTTP spec. so silly.
     Referer          => "Referer",           "referer",

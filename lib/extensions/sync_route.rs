@@ -7,7 +7,7 @@ use crate::{error::AnyResult, route::Route, trace::emoji, Context, Method, Respo
 pub trait SyncRoute<State> {
     /// Creates a new route on the server.
     /// Unlike [`Server::route`], you send your response by returning a Result<Response, Error> from your handler.
-    /// Because of this, you should refrain from using [`Context::send`] in your handler as it will throw an error when trying to send a response twice.]
+    /// Because of this, you should refrain from using [`Context::send`] in your handler as it will throw an error when trying to send a response twice.
     ///
     /// Refer to the [`Server::route`] docs for more information on making routes.
     ///
