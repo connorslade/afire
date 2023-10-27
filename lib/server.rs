@@ -121,7 +121,7 @@ impl<State: Send + Sync> Server<State> {
     pub fn run(self) -> Result<()> {
         let threads = self.thread_pool.threads();
         if threads == 0 {
-            self.thread_pool.resize(1);
+            // self.thread_pool.resize(1); // TODO: this
         }
 
         trace!(
@@ -185,7 +185,7 @@ impl<State: Send + Sync> Server<State> {
     ///     .workers(4);
     pub fn workers(self, threads: usize) -> Self {
         // TODO: only resize on start?
-        self.thread_pool.resize(threads);
+        // self.thread_pool.resize(threads); // TODO: this
         self
     }
 

@@ -4,10 +4,10 @@
 use std::{
     panic,
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-        mpsc, Arc, Barrier, Mutex,
+        atomic::{AtomicUsize, Ordering},
+        mpsc, Arc, Mutex,
     },
-    thread::{self, JoinHandle},
+    thread::{self, JoinHandle, ThreadId},
 };
 
 use crate::{
@@ -19,8 +19,6 @@ use crate::{
 enum Message {
     /// Stops the worker.
     Kill,
-    /// Stops the worker and waits for a barrier.
-    KillWait(Arc<Barrier>),
     /// A job to be executed by the worker.
     Job(Box<dyn FnOnce() + 'static + Send>),
 }
@@ -29,14 +27,54 @@ enum Message {
 pub struct ThreadPool {
     /// The number of threads in the pool.
     threads: AtomicUsize,
-    /// Next ID to use for a worker.
-    worker_id: AtomicUsize,
+
     /// Handle to each worker thread.
-    workers: Mutex<Vec<Worker>>,
+    workers: Workers,
+
     /// The channel used to send messages to the workers.
     sender: Mutex<mpsc::Sender<Message>>,
     /// The channel used to receive messages to the workers.
     receiver: Arc<Mutex<mpsc::Receiver<Message>>>,
+}
+
+#[derive(Clone)]
+pub struct Workers {
+    inner: Arc<Mutex<Vec<Worker>>>,
+}
+
+impl Workers {
+    fn new() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    fn push(&self, worker: Worker) {
+        self.inner.force_lock().push(worker);
+    }
+
+    fn remove(&self, id: usize) -> Option<()> {
+        let mut list = self.inner.force_lock();
+        let idx = list.iter().position(|x| x.id == id)?;
+        list.remove(idx);
+        Some(())
+    }
+
+    fn find(&self, handle: ThreadId) -> Option<usize> {
+        self.inner
+            .force_lock()
+            .iter()
+            .find(|x| x.handle.as_ref().unwrap().thread().id() == handle)
+            .map(|x| x.id)
+    }
+
+    fn join_all(&self) {
+        self.inner.force_lock().iter_mut().for_each(|x| {
+            if let Some(handle) = x.handle.take() {
+                handle.join().unwrap();
+            }
+        })
+    }
 }
 
 /// A worker thread.
@@ -44,7 +82,6 @@ pub struct ThreadPool {
 struct Worker {
     id: usize,
     handle: Option<JoinHandle<()>>,
-    dead: Arc<AtomicBool>,
 }
 
 impl ThreadPool {
@@ -54,18 +91,17 @@ impl ThreadPool {
         assert!(size > 0);
 
         let (sender, rx) = mpsc::channel();
-        let mut workers = Vec::with_capacity(size);
+        let workers = Workers::new();
 
         let receiver = Arc::new(Mutex::new(rx));
-        for i in 0..size {
-            workers.push(Worker::new(i, Arc::clone(&receiver)));
+        for _ in 0..size {
+            workers.push(Worker::new(Arc::clone(&receiver), workers.clone()));
         }
 
         Self {
             threads: AtomicUsize::new(size),
-            worker_id: AtomicUsize::new(size),
             sender: Mutex::new(sender),
-            workers: Mutex::new(workers),
+            workers: Workers::new(),
             receiver,
         }
     }
@@ -74,10 +110,9 @@ impl ThreadPool {
         let (sender, rx) = mpsc::channel();
         Self {
             threads: AtomicUsize::new(0),
-            worker_id: AtomicUsize::new(0),
             sender: Mutex::new(sender),
-            workers: Mutex::new(Vec::new()),
             receiver: Arc::new(Mutex::new(rx)),
+            workers: Workers::new(),
         }
     }
 
@@ -95,12 +130,7 @@ impl ThreadPool {
     /// Returns `None` if the thread is not a worker thread.
     pub fn current_thread(&self) -> Option<usize> {
         let thread = thread::current();
-        let workers = self.workers.force_lock();
-        let worker = workers
-            .iter()
-            .find(|worker| worker.handle.as_ref().unwrap().thread().id() == thread.id());
-
-        worker.map(|worker| worker.id)
+        self.workers.find(thread.id())
     }
 
     pub fn resize(&self, size: usize) {
@@ -111,61 +141,43 @@ impl ThreadPool {
             return;
         }
 
-        // Spawn new workers
+        // Spawn or remove  workers
         if size > threads {
             let to_add = size - threads;
-            let mut workers = self.workers.force_lock();
             for _ in 0..to_add {
-                let id = self.worker_id.fetch_add(1, Ordering::Relaxed);
-                workers.push(Worker::new(id, self.receiver.clone()));
+                self.increase();
             }
-            self.threads.store(size, Ordering::Relaxed);
-            return;
+        } else {
+            let to_remove = threads - size;
+            for _ in 0..to_remove {
+                self.decrease();
+            }
         }
-
-        // Remove workers
-        let to_remove = threads - size;
-        let sender = self.sender.force_lock();
-
-        // Kill workers
-        let barrier = Arc::new(Barrier::new(to_remove + 1));
-        (0..to_remove).for_each(|_| sender.send(Message::KillWait(barrier.clone())).unwrap());
-        barrier.wait();
-
-        // Remove dead workers
-        let mut workers = self.workers.force_lock();
-        workers.retain(|worker| !worker.is_dead());
-        self.threads.store(size, Ordering::Relaxed);
     }
 
     pub fn increase(&self) {
         trace!(Level::Debug, "Increasing thread pool size by 1");
-        let mut workers = self.workers.force_lock();
-        let id = self.worker_id.fetch_add(1, Ordering::Relaxed);
-        workers.push(Worker::new(id, self.receiver.clone()));
+        self.workers
+            .push(Worker::new(self.receiver.clone(), self.workers.clone()));
         self.threads.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn decrease(&self) {
         trace!(Level::Debug, "Decreasing thread pool size by 1");
         let sender = self.sender.force_lock();
-        let barrier = Arc::new(Barrier::new(2));
-        sender.send(Message::KillWait(barrier.clone())).unwrap();
-        barrier.wait();
-
-        let mut workers = self.workers.force_lock();
-        workers.retain(|worker| !worker.is_dead());
+        sender.send(Message::Kill).unwrap();
         self.threads.fetch_sub(1, Ordering::Relaxed);
     }
 }
 
 impl Worker {
     /// Creates a new worker thread.
-    fn new(id: usize, rx: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
-        let dead = Arc::new(AtomicBool::new(false));
-        let this_dead = dead.clone();
+    fn new(rx: Arc<Mutex<mpsc::Receiver<Message>>>, workers: Workers) -> Self {
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+
         let handle = thread::Builder::new()
-            .name(format!("Worker {id}"))
+            .name(format!("afire Worker {id}"))
             .spawn(move || loop {
                 let job = rx.force_lock().recv().unwrap();
                 match job {
@@ -180,13 +192,8 @@ impl Worker {
                             );
                         }
                     }
-                    Message::KillWait(barrier) => {
-                        this_dead.store(true, Ordering::Relaxed);
-                        barrier.wait();
-                        break;
-                    }
                     Message::Kill => {
-                        this_dead.store(true, Ordering::Relaxed);
+                        workers.remove(id);
                         break;
                     }
                 }
@@ -196,12 +203,7 @@ impl Worker {
         Self {
             id,
             handle: Some(handle),
-            dead,
         }
-    }
-
-    fn is_dead(&self) -> bool {
-        self.dead.load(Ordering::Relaxed)
     }
 }
 
@@ -214,11 +216,7 @@ impl Drop for ThreadPool {
             sender.send(Message::Kill).unwrap();
         }
 
-        for worker in self.workers.force_lock().iter_mut() {
-            if let Some(thread) = worker.handle.take() {
-                thread.join().unwrap();
-            }
-        }
+        self.workers.join_all();
         trace!(Level::Debug, "Thread pool shut down");
     }
 }
