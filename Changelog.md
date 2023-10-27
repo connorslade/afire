@@ -66,6 +66,7 @@ Coming Soon
 - Use a Cow in HeaderName::Custom
 - Don't store whole stream to get its length in Head ext
 - Added sync_route extension
+- Make threadpool more robust
 
 # 2.2.1
 

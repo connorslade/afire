@@ -25,11 +25,10 @@ enum Message {
 
 /// A thread pool.
 pub struct ThreadPool {
-    /// The number of threads in the pool.
-    threads: AtomicUsize,
-
     /// Handle to each worker thread.
     workers: Workers,
+    /// The number of threads in the pool.
+    threads: AtomicUsize,
 
     /// The channel used to send messages to the workers.
     sender: Mutex<mpsc::Sender<Message>>,
@@ -38,43 +37,8 @@ pub struct ThreadPool {
 }
 
 #[derive(Clone)]
-pub struct Workers {
+struct Workers {
     inner: Arc<Mutex<Vec<Worker>>>,
-}
-
-impl Workers {
-    fn new() -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(Vec::new())),
-        }
-    }
-
-    fn push(&self, worker: Worker) {
-        self.inner.force_lock().push(worker);
-    }
-
-    fn remove(&self, id: usize) -> Option<()> {
-        let mut list = self.inner.force_lock();
-        let idx = list.iter().position(|x| x.id == id)?;
-        list.remove(idx);
-        Some(())
-    }
-
-    fn find(&self, handle: ThreadId) -> Option<usize> {
-        self.inner
-            .force_lock()
-            .iter()
-            .find(|x| x.handle.as_ref().unwrap().thread().id() == handle)
-            .map(|x| x.id)
-    }
-
-    fn join_all(&self) {
-        self.inner.force_lock().iter_mut().for_each(|x| {
-            if let Some(handle) = x.handle.take() {
-                handle.join().unwrap();
-            }
-        })
-    }
 }
 
 /// A worker thread.
@@ -133,7 +97,7 @@ impl ThreadPool {
         self.workers.find(thread.id())
     }
 
-    pub fn resize(&self, size: usize) {
+    pub fn resize_exact(&self, size: usize) {
         assert!(size > 0);
         trace!(Level::Debug, "Resizing thread pool to {}", size);
         let threads = self.threads();
@@ -170,6 +134,40 @@ impl ThreadPool {
     }
 }
 
+impl Workers {
+    fn new() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    fn push(&self, worker: Worker) {
+        self.inner.force_lock().push(worker);
+    }
+
+    fn remove(&self, id: usize) -> Option<()> {
+        let mut list = self.inner.force_lock();
+        let idx = list.iter().position(|x| x.id == id)?;
+        list.remove(idx);
+        Some(())
+    }
+
+    fn find(&self, handle: ThreadId) -> Option<usize> {
+        self.inner
+            .force_lock()
+            .iter()
+            .find(|x| x.handle.as_ref().unwrap().thread().id() == handle)
+            .map(|x| x.id)
+    }
+
+    fn join_all(&self) {
+        self.inner.force_lock().iter_mut().for_each(|x| {
+            if let Some(handle) = x.handle.take() {
+                handle.join().unwrap();
+            }
+        })
+    }
+}
 impl Worker {
     /// Creates a new worker thread.
     fn new(rx: Arc<Mutex<mpsc::Receiver<Message>>>, workers: Workers) -> Self {
