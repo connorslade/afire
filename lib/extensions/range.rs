@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     io::{self, Read},
+    ops::RangeInclusive,
 };
 
 use crate::{
@@ -44,22 +45,16 @@ fn handle_range(ranges: &Cow<'static, str>, req: &Request, res: &mut Response) {
 
 #[derive(Debug)]
 struct Ranges {
-    ranges: Vec<RangePart>,
+    ranges: Vec<RangeInclusive<usize>>,
 }
 
 struct RangeResponse {
     entity_length: usize,
-    parts: Vec<RangePart>,
+    parts: Vec<RangeInclusive<usize>>,
     data: ResponseBody,
     //
     part: usize,
     byte: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct RangePart {
-    start: usize,
-    end: usize,
 }
 
 impl Ranges {
@@ -74,7 +69,7 @@ impl Ranges {
             let mut parts = raw_range.split('-');
             let start = parts.next()?.trim().parse().ok()?;
             let end = parts.next()?.trim().parse().ok()?;
-            ranges.push(RangePart::new(start, end));
+            ranges.push(start..=end);
         }
 
         if ranges.is_empty() {
@@ -146,38 +141,38 @@ impl RangeResponse {
     }
 }
 
-impl RangePart {
-    fn new(start: usize, end: usize) -> Self {
-        RangePart { start, end }
-    }
-
-    fn len(&self) -> usize {
-        self.end - self.start
-    }
-}
-
 // TODO: Pass headers?
 impl Into<Response> for RangeResponse {
     fn into(self) -> Response {
         if self.is_single() {
-            return singlepart_response(self);
+            singlepart_response(&self)
+        } else {
+            multipart_response(&self)
         }
-        multipart_response(self)
+        .stream(self)
     }
 }
 
-fn singlepart_response(res: RangeResponse) -> Response {
-    let part = res.parts.into_iter().next().unwrap();
+fn singlepart_response(res: &RangeResponse) -> Response {
+    let part = res.parts.iter().next().unwrap();
     Response::new()
         .status(Status::PartialContent)
-        .header((HeaderName::ContentLength, part.len().to_string()))
+        .header((
+            HeaderName::ContentLength,
+            (part.end() - part.start()).to_string(),
+        ))
         .header((
             HeaderName::ContentRange,
-            format!("bytes {}-{}/{}", part.start, part.end, res.entity_length),
+            format!(
+                "bytes {}-{}/{}",
+                part.start(),
+                part.end(),
+                res.entity_length
+            ),
         ))
 }
 
-fn multipart_response(res: RangeResponse) -> Response {
+fn multipart_response(res: &RangeResponse) -> Response {
     todo!()
 }
 
@@ -187,24 +182,25 @@ impl Read for RangeResponse {
             return Ok(0);
         }
 
-        let mut part = self.parts[self.part];
+        let mut part = self.parts[self.part].clone();
         let mut read = 0;
-        while read < buf.len() && self.byte < part.end {
+        while read < buf.len() {
             // Read until we reach the start of the part.
-            if self.byte < part.start {
-                if !self.seek(part.start) {
+            if self.byte < *part.start() {
+                if !self.seek(*part.start()) {
                     return Ok(0);
                 }
             }
 
             // Go to next part if we've reached the end of this one.
-            if self.byte >= part.end {
+            if self.byte >= *part.end() {
                 self.part += 1;
                 self.byte = 0;
-                part = self.parts[self.part];
+                part = self.parts[self.part].clone();
+                continue;
             }
 
-            let max = part.end.min(self.byte + buf.len() - read);
+            let max = (*part.end()).min(self.byte + buf.len() - read);
             let Ok(n) = self.read(&mut buf[read..], max) else {
                 break;
             };
@@ -223,10 +219,10 @@ mod test {
     #[test]
     fn test_range_parse() {
         let range = Ranges::from_header("bytes=0-1023").unwrap();
-        assert_eq!(range.ranges, vec![(0, 1023)]);
+        assert_eq!(range.ranges, vec![0..=1023]);
 
         let range = Ranges::from_header("bytes=0-50, 100-150").unwrap();
-        assert_eq!(range.ranges, vec![(0, 50), (100, 150)]);
+        assert_eq!(range.ranges, vec![0..=50, 100..=150]);
     }
 }
 
