@@ -5,8 +5,8 @@ use std::{
 };
 
 use crate::{
-    consts, prelude::MiddleResult, response::ResponseBody, trace::Level, HeaderName, Middleware,
-    Request, Response, Status,
+    consts, prelude::MiddleResult, response::ResponseBody, HeaderName, Middleware, Request,
+    Response, Status,
 };
 
 pub struct Range;
@@ -38,7 +38,6 @@ fn handle_range(ranges: &Cow<'static, str>, req: &Request, res: &mut Response) {
             .unwrap_or(0),
     };
 
-    dbg!(&ranges, entity_length);
     let range_response = RangeResponse::new(entity_length, ranges, res.data.take());
     *res = range_response.into();
 }
@@ -101,8 +100,10 @@ impl RangeResponse {
             let mut skip = start - self.byte;
             while skip > 0 {
                 let mut buf = [0; consts::CHUNK_SIZE];
-                let Ok(read) = stream.read(&mut buf) else {
-                    return false;
+                let read = match stream.read(&mut buf) {
+                    Ok(read) => read,
+                    Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(_) => return false,
                 };
                 if read == 0 {
                     return false;
@@ -115,26 +116,29 @@ impl RangeResponse {
         true
     }
 
-    fn read(&mut self, into: &mut [u8], max: usize) -> io::Result<usize> {
+    fn read(&mut self, into: &mut [u8], end: usize) -> io::Result<usize> {
         let mut read = 0;
-        while read < into.len() && self.byte < max {
+        while read < into.len() && self.byte < end {
             match &mut self.data {
                 ResponseBody::Stream(ref mut stream) => {
                     let stream = stream.get_mut();
-                    let n = stream.read(&mut into[read..])?;
-                    if n == 0 {
-                        break;
-                    }
+                    let n = match stream.read(&mut into[read..]) {
+                        Ok(0) => break,
+                        Ok(n) => n,
+                        Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                        Err(e) => return Err(e),
+                    };
                     read += n;
                     self.byte += n;
                 }
                 ResponseBody::Static(bytes) => {
-                    let [from, to] = [self.byte, max.min(self.byte + into.len() - read)];
-                    into[read..].copy_from_slice(&bytes[from..to]);
+                    let to = end.min(self.byte + into.len());
+                    let copied = (self.byte..=to).count();
+                    into[read..read + copied].copy_from_slice(&bytes[self.byte..=to]);
+                    read += copied;
+                    self.byte += copied;
                 }
-                ResponseBody::Empty => {
-                    todo!()
-                }
+                ResponseBody::Empty => return Ok(0),
             }
         }
         Ok(read)
@@ -196,12 +200,17 @@ impl Read for RangeResponse {
             if self.byte >= *part.end() {
                 self.part += 1;
                 self.byte = 0;
-                part = self.parts[self.part].clone();
-                continue;
+
+                if self.part >= self.parts.len() {
+                    break;
+                } else {
+                    part = self.parts[self.part].clone();
+                    continue;
+                }
             }
 
-            let max = (*part.end()).min(self.byte + buf.len() - read);
-            let Ok(n) = self.read(&mut buf[read..], max) else {
+            let end = (*part.end()).min(self.byte + buf.len());
+            let Ok(n) = self.read(&mut buf[read..], end) else {
                 break;
             };
             read += n;
@@ -223,6 +232,40 @@ mod test {
 
         let range = Ranges::from_header("bytes=0-50, 100-150").unwrap();
         assert_eq!(range.ranges, vec![0..=50, 100..=150]);
+    }
+
+    #[test]
+    fn test_range_read_static() {
+        let body = ResponseBody::Static(b"Hello, world!".to_vec());
+        let mut range = RangeResponse::new(13, Ranges::from_header("bytes=0-5").unwrap(), body);
+
+        let mut buf = [0; 6];
+        let n = range.read(&mut buf, 5).unwrap();
+
+        assert_eq!(&buf, b"Hello,");
+        assert_eq!(n, 6);
+    }
+
+    #[test]
+    fn test_range_read_static_empty() {
+        let body = ResponseBody::Static(b"Hello, world!".to_vec());
+        let mut range = RangeResponse::new(13, Ranges::from_header("bytes=0-0").unwrap(), body);
+
+        let mut buf = [0; 6];
+        let n = range.read(&mut buf, 0).unwrap();
+        assert!(buf.iter().all(|&b| b == 0), "buf: {:?}", buf);
+        assert_eq!(n, 0);
+    }
+
+    #[test]
+    fn test_static_response() {
+        let body = ResponseBody::Static(b"Hello, world!".to_vec());
+        let mut range = RangeResponse::new(13, Ranges::from_header("bytes=0-5").unwrap(), body);
+
+        let mut buf = [0; 6];
+        let n = Read::read(&mut range, &mut buf).unwrap();
+        assert_eq!(&buf, b"Hello,");
+        assert_eq!(n, 6);
     }
 }
 
