@@ -13,7 +13,7 @@ use std::{
 
 use afire::{
     extensions::{
-        Date, Head, Logger, RedirectResponse, RouteShorthands, ServeStatic, SyncRoute, Trace,
+        Date, Head, Logger, Range, RedirectResponse, RouteShorthands, ServeStatic, SyncRoute, Trace,
     },
     internal::sync::{ForceLockMutex, ForceLockRwLock},
     multipart::MultipartData,
@@ -33,7 +33,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut server = Server::<()>::new("localhost", 8081).workers(4);
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
-    Logger::new().attach(&mut server);
 
     server.get("/**", |ctx| {
         ctx.text("Not found! UWU?")
@@ -321,6 +320,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(Response::new().text("Heyyyy"))
     });
 
+    Range.attach(&mut server);
     Test.attach(&mut server);
     Date.attach(&mut server);
     Trace::new().attach(&mut server);

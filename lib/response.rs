@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{ErrorKind, Read, Write};
+use std::mem;
 use std::net::TcpStream;
 use std::sync::Arc;
 
@@ -343,6 +344,10 @@ impl Default for Response {
 }
 
 impl ResponseBody {
+    pub(crate) fn take(&mut self) -> ResponseBody {
+        mem::replace(self, ResponseBody::Empty)
+    }
+
     /// Checks if the ResponseBody is static.
     fn is_static(&self) -> bool {
         matches!(self, ResponseBody::Static(_) | ResponseBody::Empty)
