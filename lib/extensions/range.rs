@@ -95,12 +95,13 @@ impl RangeResponse {
     }
 
     fn seek(&mut self, start: usize) -> bool {
+        debug_assert!(start >= self.byte);
         if let ResponseBody::Stream(stream) = &mut self.data {
             let stream = stream.get_mut();
             let mut skip = start - self.byte;
             while skip > 0 {
                 let mut buf = [0; consts::CHUNK_SIZE];
-                let read = match stream.read(&mut buf) {
+                let read = match stream.read(&mut buf[0..skip.min(consts::CHUNK_SIZE)]) {
                     Ok(read) => read,
                     Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
                     Err(_) => return false,
@@ -119,10 +120,12 @@ impl RangeResponse {
     fn read(&mut self, into: &mut [u8], end: usize) -> io::Result<usize> {
         let mut read = 0;
         while read < into.len() && self.byte < end {
+            let to = end.min(self.byte + into.len());
+            let copied = (self.byte..=to).count();
             match &mut self.data {
                 ResponseBody::Stream(ref mut stream) => {
                     let stream = stream.get_mut();
-                    let n = match stream.read(&mut into[read..]) {
+                    let n = match stream.read(&mut into[read..read + copied]) {
                         Ok(0) => break,
                         Ok(n) => n,
                         Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
@@ -132,8 +135,6 @@ impl RangeResponse {
                     self.byte += n;
                 }
                 ResponseBody::Static(bytes) => {
-                    let to = end.min(self.byte + into.len());
-                    let copied = (self.byte..=to).count();
                     into[read..read + copied].copy_from_slice(&bytes[self.byte..=to]);
                     read += copied;
                     self.byte += copied;
