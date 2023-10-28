@@ -2,6 +2,7 @@
 //! Used for handling multiple connections at once.
 
 use std::{
+    fs::DirBuilder,
     panic,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -149,6 +150,7 @@ impl Workers {
         let mut list = self.inner.force_lock();
         let idx = list.iter().position(|x| x.id == id)?;
         list.remove(idx);
+        drop(list);
         Some(())
     }
 
@@ -161,11 +163,16 @@ impl Workers {
     }
 
     fn join_all(&self) {
-        self.inner.force_lock().iter_mut().for_each(|x| {
-            if let Some(handle) = x.handle.take() {
-                handle.join().unwrap();
-            }
-        })
+        let mut workers = self.inner.force_lock();
+        let handles = workers
+            .iter_mut()
+            .filter_map(|x| x.handle.take())
+            .collect::<Vec<_>>();
+        drop(workers);
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
     }
 }
 impl Worker {
@@ -192,7 +199,7 @@ impl Worker {
                     }
                     Message::Kill => {
                         workers.remove(id);
-                        break;
+                        return;
                     }
                 }
             })
@@ -208,11 +215,16 @@ impl Worker {
 impl Drop for ThreadPool {
     /// Stops all workers with a [`Message::Kill`] message, and waits for them to finish.
     fn drop(&mut self) {
-        trace!(Level::Debug, "Shutting down thread pool. (On Drop)");
+        trace!(
+            Level::Debug,
+            "Shutting down thread pool, {} threads. (On Drop)",
+            self.threads()
+        );
         let sender = self.sender.force_lock();
-        for _ in 0..self.threads() {
+        for _ in self.workers.inner.force_lock().iter() {
             sender.send(Message::Kill).unwrap();
         }
+        drop(sender);
 
         self.workers.join_all();
         trace!(Level::Debug, "Thread pool shut down");
