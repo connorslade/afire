@@ -320,7 +320,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(Response::new().text("Heyyyy"))
     });
 
-    Range.attach(&mut server);
+    Range::new().reject_invalid().attach(&mut server);
     Test.attach(&mut server);
     Date.attach(&mut server);
     Trace::new().attach(&mut server);

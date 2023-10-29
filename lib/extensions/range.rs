@@ -1,21 +1,54 @@
+//! Defined in [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#field.range).
+
 use std::{
     borrow::Cow,
+    fmt::{self, Display},
     io::{self, Read},
-    ops::RangeInclusive,
+    ops::{Deref, RangeInclusive},
 };
 
 use crate::{
-    consts, prelude::MiddleResult, response::ResponseBody, HeaderName, Middleware, Request,
+    consts, prelude::MiddleResult, response::ResponseBody, HeaderName, Method, Middleware, Request,
     Response, Status,
 };
 
-pub struct Range;
+pub struct Range {
+    reject_invalid: bool,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum RangeError {
+    MissingBytesPrefix,
+    MalformedRange,
+    InvalidNumber,
+    EmptyRange,
+    UnorderedRange,
+    OverlappingRange,
+    InvalidRange,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct Ranges {
+    ranges: Vec<RangeInclusive<usize>>,
+}
+
+struct RangeResponse {
+    entity_length: usize,
+    parts: Ranges,
+    data: ResponseBody,
+    part: usize,
+    byte: usize,
+}
 
 impl Middleware for Range {
     // Inject the Accept-Ranges header into the response.
     fn post(&self, req: &Request, res: &mut Response) -> MiddleResult {
+        if req.method != Method::GET || req.method != Method::GET {
+            return MiddleResult::Continue;
+        }
+
         if let Some(ranges) = req.headers.get(HeaderName::Range) {
-            handle_range(ranges, req, res);
+            self.handle_range(ranges, req, res);
         } else if !res.headers.has(HeaderName::AcceptRanges) {
             res.headers.push((HeaderName::AcceptRanges, "bytes").into());
         }
@@ -23,67 +56,103 @@ impl Middleware for Range {
     }
 }
 
-fn handle_range(ranges: &Cow<'static, str>, req: &Request, res: &mut Response) {
-    let Some(ranges) = Ranges::from_header(ranges) else {
-        trace!(Level::Debug, "Invalid range header: {ranges:?}");
-        return;
-    };
-    let entity_length = match &res.data {
-        ResponseBody::Empty => 0,
-        ResponseBody::Static(data) => data.len(),
-        ResponseBody::Stream(_) => res
-            .headers
-            .get(HeaderName::ContentLength)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0),
-    };
+impl Range {
+    /// Create a new Range middleware with default settings.
+    pub fn new() -> Self {
+        Range {
+            reject_invalid: false,
+        }
+    }
 
-    let range_response = RangeResponse::new(entity_length, ranges, res.data.take());
-    *res = range_response.into();
-}
+    /// Reject requests with invalid range headers.
+    /// This is disabled by default.
+    pub fn reject_invalid(mut self) -> Self {
+        self.reject_invalid = true;
+        self
+    }
 
-#[derive(Debug)]
-struct Ranges {
-    ranges: Vec<RangeInclusive<usize>>,
-}
+    fn handle_range(&self, ranges: &Cow<'static, str>, _req: &Request, res: &mut Response) {
+        let ranges = match Ranges::from_header(ranges) {
+            Ok(ranges) => ranges,
+            Err(e) => {
+                if self.reject_invalid {
+                    *res = Response::new().status(Status::RangeNotSatisfiable).text(e);
+                }
+                return;
+            }
+        };
+        let entity_length = match &res.data {
+            ResponseBody::Empty => 0,
+            ResponseBody::Static(data) => data.len(),
+            ResponseBody::Stream(_) => res
+                .headers
+                .get(HeaderName::ContentLength)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0),
+        };
 
-struct RangeResponse {
-    entity_length: usize,
-    parts: Vec<RangeInclusive<usize>>,
-    data: ResponseBody,
-    //
-    part: usize,
-    byte: usize,
+        let range_response = RangeResponse::new(entity_length, ranges, res.data.take());
+        *res = range_response.into();
+    }
 }
 
 impl Ranges {
-    fn from_header(raw: &str) -> Option<Self> {
+    fn from_header(raw: &str) -> Result<Self, RangeError> {
         // TODO: can you do 'bytes = '
         let Some(raw) = raw.strip_prefix("bytes=") else {
-            return None;
+            return Err(RangeError::MissingBytesPrefix);
         };
 
         let mut ranges = Vec::new();
         for raw_range in raw.split(',') {
             let mut parts = raw_range.split('-');
-            let start = parts.next()?.trim().parse().ok()?;
-            let end = parts.next()?.trim().parse().ok()?;
+            let mut parse = || {
+                Ok(parts
+                    .next()
+                    .ok_or(RangeError::MalformedRange)?
+                    .trim()
+                    .parse::<usize>()
+                    .or(Err(RangeError::InvalidNumber))?)
+            };
+            let (start, end) = (parse()?, parse()?);
             ranges.push(start..=end);
         }
 
+        // Validate ranges.
         if ranges.is_empty() {
-            return None;
+            return Err(RangeError::EmptyRange);
         }
 
-        Some(Ranges { ranges })
+        let mut last = ranges[0].clone();
+        if *last.start() > *last.end() {
+            return Err(RangeError::InvalidRange);
+        }
+
+        for range in ranges.iter().skip(1) {
+            if *range.start() > *range.end() {
+                return Err(RangeError::InvalidRange);
+            }
+
+            if *range.start() < *last.start() {
+                return Err(RangeError::UnorderedRange);
+            }
+
+            if *range.start() <= *last.end() {
+                return Err(RangeError::OverlappingRange);
+            }
+
+            last = range.clone();
+        }
+
+        Ok(Ranges { ranges })
     }
 }
 
 impl RangeResponse {
-    fn new(entity_length: usize, ranges: Ranges, data: ResponseBody) -> Self {
+    fn new(entity_length: usize, parts: Ranges, data: ResponseBody) -> Self {
         RangeResponse {
             entity_length,
-            parts: ranges.ranges,
+            parts,
             data,
             part: 0,
             byte: 0,
@@ -222,6 +291,29 @@ impl Read for RangeResponse {
     }
 }
 
+impl Display for RangeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Range header: ")?;
+        f.write_str(match self {
+            RangeError::MissingBytesPrefix => "Missing bytes prefix",
+            RangeError::MalformedRange => "Malformed range",
+            RangeError::InvalidNumber => "Invalid number",
+            RangeError::EmptyRange => "No ranges specified",
+            RangeError::UnorderedRange => "Ranges are not ordered",
+            RangeError::OverlappingRange => "Ranges overlap",
+            RangeError::InvalidRange => "Invalid range",
+        })
+    }
+}
+
+impl Deref for Ranges {
+    type Target = Vec<RangeInclusive<usize>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ranges
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -267,6 +359,22 @@ mod test {
         let n = Read::read(&mut range, &mut buf).unwrap();
         assert_eq!(&buf, b"Hello,");
         assert_eq!(n, 6);
+    }
+
+    #[test]
+    fn test_range_parse_errors() {
+        assert_eq!(
+            Ranges::from_header("bytes=0-50, 100-150, 100-200"),
+            Err(RangeError::OverlappingRange)
+        );
+        assert_eq!(
+            Ranges::from_header("bytes=0-50, 100-150, 50-200"),
+            Err(RangeError::UnorderedRange)
+        );
+        assert_eq!(
+            Ranges::from_header("bytes=100-150, 50-60"),
+            Err(RangeError::UnorderedRange)
+        );
     }
 }
 

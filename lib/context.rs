@@ -145,13 +145,16 @@ impl<State: 'static + Send + Sync> Context<State> {
             return Err(HandleError::ResponseAlreadySent.into());
         }
 
-        // TODO: Post middleware
+        // TODO: NOT CALLING POST_RAW
+        for i in &self.server.middleware {
+            i.post(&self.req.clone(), &mut *self.response.force_lock());
+        }
+
         self.response
             .force_lock()
             .write(self.req.socket.clone(), &self.server.default_headers)?;
         self.flags.set(ContextFlag::ResponseSent);
 
-        // TODO: End middleware
         let res = self.response.force_lock();
         for i in self.server.middleware.iter() {
             i.end_raw(Ok(self.req.clone()), &res);
