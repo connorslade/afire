@@ -1,5 +1,6 @@
 use std::{
-    net::TcpStream,
+    io::{self, Read, Write},
+    net::{IpAddr, Shutdown, SocketAddr, TcpStream},
     ops::Deref,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
@@ -12,10 +13,32 @@ use crate::{
     response::ResponseFlag,
 };
 
+pub type SocketStream = Box<dyn Stream + Send + Sync>;
+
+pub trait Stream: Read + Write {
+    fn peer_addr(&self) -> io::Result<SocketAddr>;
+    fn try_clone(&self) -> io::Result<SocketStream>;
+    fn shutdown(&self, shutdown: Shutdown) -> io::Result<()>;
+}
+
+impl Stream for TcpStream {
+    fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.peer_addr()
+    }
+
+    fn try_clone(&self) -> io::Result<SocketStream> {
+        Ok(self.try_clone().map(Box::new)?)
+    }
+
+    fn shutdown(&self, shutdown: Shutdown) -> io::Result<()> {
+        self.shutdown(shutdown)
+    }
+}
+
 /// Socket is a wrapper around TcpStream that allows for sending a response from other threads.
 pub struct Socket {
     /// The internal TcpStream.
-    pub socket: Mutex<TcpStream>,
+    pub socket: Mutex<Box<dyn Stream + Send + Sync>>,
     /// A unique identifier that uniquely identifies this socket.
     pub id: u64,
     /// A barrier that is used to wait for the response to be sent in the case of a guaranteed send.
@@ -32,10 +55,10 @@ pub struct Socket {
 impl Socket {
     /// Create a new `Socket` from a `TcpStream`.
     /// Will also create a new unique identifier for the socket.
-    pub(crate) fn new(socket: TcpStream) -> Self {
+    pub(crate) fn new(socket: impl Stream + Send + Sync + 'static) -> Self {
         static ID: AtomicU64 = AtomicU64::new(0);
         Self {
-            socket: Mutex::new(socket),
+            socket: Mutex::new(Box::new(socket)),
             id: ID.fetch_add(1, Ordering::Relaxed),
             barrier: Arc::new(SingleBarrier::new()),
             raw: AtomicBool::new(false),
@@ -76,7 +99,7 @@ impl Socket {
 }
 
 impl Deref for Socket {
-    type Target = Mutex<TcpStream>;
+    type Target = Mutex<Box<dyn Stream + Send + Sync>>;
 
     fn deref(&self) -> &Self::Target {
         &self.socket
