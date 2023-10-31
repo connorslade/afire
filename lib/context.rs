@@ -147,7 +147,7 @@ impl<State: 'static + Send + Sync> Context<State> {
 
         // TODO: NOT CALLING POST_RAW
         for i in &self.server.middleware {
-            i.post(&self.req.clone(), &mut *self.response.force_lock());
+            i.post(&self.req.clone(), &mut self.response.force_lock());
         }
 
         self.response

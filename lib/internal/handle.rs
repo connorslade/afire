@@ -23,18 +23,19 @@ pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 /// Handles a socket.
 ///
 /// <https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D>
-pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
+pub(crate) fn handle<State>(stream: Arc<Socket>, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
 {
+    let mut socket = stream.force_lock();
     trace!(
         Level::Debug,
         "Opening socket {:?}",
-        LazyFmt(|| stream.peer_addr())
+        LazyFmt(|| socket.peer_addr())
     );
-    stream.set_read_timeout(this.socket_timeout).unwrap();
-    stream.set_write_timeout(this.socket_timeout).unwrap();
-    let stream = Arc::new(Socket::new(stream));
+    socket.set_timeout(this.socket_timeout).unwrap();
+    drop(socket);
+    
     'outer: loop {
         let mut keep_alive = false;
         let mut req = Request::from_socket(stream.clone());

@@ -16,6 +16,7 @@ use crate::{
     header::Headers,
     internal::misc::ToHostAddress,
     route::Route,
+    socket::Socket,
     thread_pool::ThreadPool,
     trace::emoji,
     Content, Context, Header, HeaderName, Method, Middleware, Request, Response, Status, VERSION,
@@ -32,6 +33,8 @@ pub struct Server<State: 'static + Send + Sync = ()> {
 
     /// Ip address to listen on.
     pub ip: IpAddr,
+
+    pub event_loop: Box<dyn EventLoop>,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -83,6 +86,7 @@ impl<State: Send + Sync> Server<State> {
         Server {
             port,
             ip: raw_ip.to_address().unwrap(),
+            event_loop: TcpEventLoop,
             routes: Vec::new(),
             middleware: Vec::new(),
 
@@ -121,7 +125,7 @@ impl<State: Send + Sync> Server<State> {
     pub fn run(self) -> Result<()> {
         let threads = self.thread_pool.threads();
         if threads == 0 {
-            // self.thread_pool.resize(1); // TODO: this
+            self.thread_pool.resize_exact(1);
         }
 
         trace!(
@@ -144,31 +148,11 @@ impl<State: Send + Sync> Server<State> {
             .into());
         }
 
-        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
+        let addr = SocketAddr::new(self.ip, self.port);
         let this = Arc::new(self);
+        let event_loop = TcpEventLoop;
 
-        for event in listener.incoming() {
-            if !this.running.load(Ordering::Relaxed) {
-                trace!(
-                    Level::Debug,
-                    "Stopping event loop. No more connections will be accepted."
-                );
-                break;
-            }
-
-            let this2 = this.clone();
-            this.thread_pool.execute(move || {
-                let event = match event {
-                    Ok(event) => event,
-                    Err(err) => {
-                        trace!(Level::Error, "Error accepting connection: {err}");
-                        return;
-                    }
-                };
-
-                handle(event, this2)
-            });
-        }
+        event_loop.run(this, addr, |this, event| handle(event, this))?;
 
         trace!("{}Server Stopped", emoji("🛑"));
         Ok(())
@@ -369,5 +353,44 @@ impl<State: Send + Sync> Server<State> {
         self.running.store(false, Ordering::Relaxed);
         let addr = SocketAddr::new(self.ip, self.port);
         let _ = TcpStream::connect(addr);
+    }
+}
+
+pub trait EventLoop {
+    fn run<State: Send + Sync>(
+        &self,
+        addr: SocketAddr,
+    ) -> Result<()>;
+}
+
+pub struct TcpEventLoop;
+
+impl EventLoop for TcpEventLoop {
+    fn run<State: Send + Sync>(
+        &self,
+        addr: SocketAddr,
+    ) -> Result<()> {
+        let listener = TcpListener::bind(addr)?;
+        for i in listener.incoming() {
+            // if !this.running.load(Ordering::Relaxed) {
+            //     trace!(
+            //         Level::Debug,
+            //         "Stopping event loop. No more connections will be accepted."
+            //     );
+            //     break;
+            // }
+
+            let event = match i {
+                Ok(event) => event,
+                Err(err) => {
+                    trace!(Level::Error, "Error accepting connection: {err}");
+                    continue;
+                }
+            };
+
+            let event = Arc::new(Socket::new(event));
+            handle(this, event);
+        }
+        Ok(())
     }
 }

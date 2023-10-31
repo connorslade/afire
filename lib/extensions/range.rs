@@ -246,7 +246,7 @@ fn singlepart_response(res: &RangeResponse) -> Response {
         ))
 }
 
-fn multipart_response(res: &RangeResponse) -> Response {
+fn multipart_response(_res: &RangeResponse) -> Response {
     todo!()
 }
 

@@ -1,11 +1,11 @@
 use std::{
     io::{self, Read, Write},
-    net::{IpAddr, Shutdown, SocketAddr, TcpStream},
+    net::{Shutdown, SocketAddr, TcpStream},
     ops::Deref,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Mutex, RwLock,
-    },
+    }, time::Duration,
 };
 
 use crate::{
@@ -19,20 +19,7 @@ pub trait Stream: Read + Write {
     fn peer_addr(&self) -> io::Result<SocketAddr>;
     fn try_clone(&self) -> io::Result<SocketStream>;
     fn shutdown(&self, shutdown: Shutdown) -> io::Result<()>;
-}
-
-impl Stream for TcpStream {
-    fn peer_addr(&self) -> io::Result<SocketAddr> {
-        self.peer_addr()
-    }
-
-    fn try_clone(&self) -> io::Result<SocketStream> {
-        Ok(self.try_clone().map(Box::new)?)
-    }
-
-    fn shutdown(&self, shutdown: Shutdown) -> io::Result<()> {
-        self.shutdown(shutdown)
-    }
+    fn set_timeout(&self, duration: Option<Duration>) -> io::Result<()>;
 }
 
 /// Socket is a wrapper around TcpStream that allows for sending a response from other threads.
@@ -95,6 +82,26 @@ impl Socket {
     /// Set the socket as being handled by another system.
     pub(crate) fn set_raw(&self, raw: bool) {
         self.raw.store(raw, Ordering::Relaxed);
+    }
+}
+
+impl Stream for TcpStream {
+    fn peer_addr(&self) -> io::Result<SocketAddr> {
+        self.peer_addr()
+    }
+
+    fn try_clone(&self) -> io::Result<SocketStream> {
+        Ok(self.try_clone().map(Box::new)?)
+    }
+
+    fn shutdown(&self, shutdown: Shutdown) -> io::Result<()> {
+        self.shutdown(shutdown)
+    }
+
+    fn set_timeout(&self, duration: Option<Duration>) -> io::Result<()> {
+        self.set_read_timeout(duration)?;
+        self.set_write_timeout(duration)?;
+        Ok(())
     }
 }
 

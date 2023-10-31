@@ -1,11 +1,10 @@
 use std::{
     convert::{TryFrom, TryInto},
     io::{self, Write},
-    net::TcpStream,
 };
 
 use super::xor_mask;
-use crate::{trace::LazyFmt, socket::SocketStream};
+use crate::{socket::SocketStream, trace::LazyFmt};
 
 /// ## Frame Layout
 /// ```plain
