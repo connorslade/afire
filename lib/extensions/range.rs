@@ -5,6 +5,7 @@ use std::{
     fmt::{self, Display},
     io::{self, Read},
     ops::{Deref, RangeInclusive},
+    sync::Arc,
 };
 
 use crate::{
@@ -219,16 +220,15 @@ impl RangeResponse {
 impl Into<Response> for RangeResponse {
     fn into(self) -> Response {
         if self.is_single() {
-            singlepart_response(&self)
+            singlepart_response(self)
         } else {
-            multipart_response(&self)
+            multipart_response(self)
         }
-        .stream(self)
     }
 }
 
-fn singlepart_response(res: &RangeResponse) -> Response {
-    let part = res.parts.iter().next().unwrap();
+fn singlepart_response(res: RangeResponse) -> Response {
+    let part = &res.parts[0];
     Response::new()
         .status(Status::PartialContent)
         .header((
@@ -244,9 +244,27 @@ fn singlepart_response(res: &RangeResponse) -> Response {
                 res.entity_length
             ),
         ))
+        .stream(res)
 }
 
-fn multipart_response(res: &RangeResponse) -> Response {
+/*
+HTTP/1.1 206 Partial Content
+Content-Type: multipart/byteranges; boundary=3d6b6a416f9b5
+Content-Length: 282
+
+--3d6b6a416f9b5
+Content-Type: text/html
+Content-Range: bytes 0-50/1270
+
+...DATA...
+--3d6b6a416f9b5
+Content-Type: text/html
+Content-Range: bytes 100-150/1270
+
+...DATA...
+--3d6b6a416f9b5--
+*/
+fn multipart_response(_res: RangeResponse) -> Response {
     todo!()
 }
 
@@ -261,9 +279,8 @@ impl Read for RangeResponse {
         while read < buf.len() {
             // Read until we reach the start of the part.
             if self.byte < *part.start() {
-                if !self.seek(*part.start()) {
-                    return Ok(0);
-                }
+                self.seek(*part.start());
+                return Ok(0);
             }
 
             // Go to next part if we've reached the end of this one.
@@ -377,37 +394,3 @@ mod test {
         );
     }
 }
-
-/*
-- bytes=0-1023
-- bytes=0-50, 100-150
-
-```
-HTTP/1.1 206 Partial Content
-Content-Range: bytes 0-1023/146515
-Content-Length: 1024
-…
-(binary content)
-```
-
-```
-HTTP/1.1 206 Partial Content
-Content-Type: multipart/byteranges; boundary=3d6b6a416f9b5
-Content-Length: 282
-
---3d6b6a416f9b5
-Content-Type: text/html
-Content-Range: bytes 0-50/1270
-
-<!DOCTYPE html>
-<html lang="en-US">
-<head>
-    <title>Example Do
---3d6b6a416f9b5
-Content-Type: text/html
-Content-Range: bytes 100-150/1270
-
-eta http-equiv="Content-type" content="text/html; c
---3d6b6a416f9b5--
-```
-*/
