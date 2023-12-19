@@ -11,7 +11,9 @@ use crate::{HeaderName, Method};
 
 /// Easy way to use a Result<T, [`crate::Error`]>
 pub type Result<T> = result::Result<T, Error>;
-pub(crate) type AnyResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
+/// Easy way to use a Result<T, Box<dyn [`std::error::Error`]>>.
+/// This lets you return any error type that implements [`std::error::Error`] (basically any error) from a route handler.
+pub type AnyResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
 
 /// A generic error type for afire.
 /// Contains variants for [Startup][`StartupError`], [Stream][`StreamError`], [Handle][`HandleError`], [Parse][`ParseError`], [IO][`std::io::Error`] and [Miscellaneous][`String`] errors.

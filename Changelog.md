@@ -75,6 +75,7 @@ Coming Soon
   - Implement Debug for Query
   - Rename `Query::from_body` to `Query::from_str`
 - Made internal::handle::handle function public for use in custom event loops.
+- Made `error::AnyResult` public
 
 # 2.2.1
 
