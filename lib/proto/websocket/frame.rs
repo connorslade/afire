@@ -1,11 +1,10 @@
 use std::{
     convert::{TryFrom, TryInto},
     io::{self, Write},
-    net::TcpStream,
 };
 
 use super::xor_mask;
-use crate::trace::LazyFmt;
+use crate::{socket::SocketStream, trace::LazyFmt};
 
 /// ## Frame Layout
 /// ```plain
@@ -126,7 +125,7 @@ impl Frame {
         buf
     }
 
-    pub fn write(&self, socket: &mut TcpStream) -> io::Result<()> {
+    pub fn write(&self, socket: &mut SocketStream) -> io::Result<()> {
         let buf = self.to_bytes();
         trace!(Level::Debug, "[WS] Writing: {:?}", buf);
 

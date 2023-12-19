@@ -67,6 +67,10 @@ Coming Soon
 - Don't store whole stream to get its length in Head ext
 - Added sync_route extension
 - Make threadpool more robust
+- Add a Stream trait to allow using different socket impls
+- Allow using custom event loop
+  - The custom event loop with the Stream trait should allow a separate crate to add tls support to an afire server
+
 
 # 2.2.1
 

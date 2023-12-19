@@ -2,14 +2,14 @@ use std::cell::RefCell;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{ErrorKind, Read, Write};
 use std::mem;
-use std::net::TcpStream;
+
 use std::sync::Arc;
 
 use crate::consts;
 use crate::header::{HeaderName, Headers};
 use crate::internal::sync::ForceLockMutex;
 use crate::proto::http::status::Status;
-use crate::socket::Socket;
+use crate::socket::{Socket, SocketStream};
 use crate::{
     error::Result, header::headers_to_string, internal::handle::Writeable, Content, Header,
     SetCookie,
@@ -366,7 +366,7 @@ impl ResponseBody {
 
     /// Writes a ResponseBody to a TcpStream.
     /// Either in one go if it is static or in chunks if it is a stream.
-    fn write(&mut self, stream: &mut TcpStream) -> Result<()> {
+    fn write(&mut self, stream: &mut SocketStream) -> Result<()> {
         match self {
             ResponseBody::Empty => {}
             ResponseBody::Static(data) => stream.write_all(data)?,

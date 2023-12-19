@@ -44,7 +44,7 @@ struct RangeResponse {
 impl Middleware for Range {
     // Inject the Accept-Ranges header into the response.
     fn post(&self, req: &Request, res: &mut Response) -> MiddleResult {
-        if req.method != Method::GET || req.method != Method::GET {
+        if req.method != Method::GET {
             return MiddleResult::Continue;
         }
 

@@ -2,7 +2,6 @@
 //! Used for handling multiple connections at once.
 
 use std::{
-    fs::DirBuilder,
     panic,
     sync::{
         atomic::{AtomicUsize, Ordering},
