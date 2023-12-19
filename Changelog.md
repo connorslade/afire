@@ -70,7 +70,11 @@ Coming Soon
 - Add a Stream trait to allow using different socket impls
 - Allow using custom event loop
   - The custom event loop with the Stream trait should allow a separate crate to add tls support to an afire server
-
+- Cleanup Query struct
+  - Now stores a set of QueryParameter structs instead of [String; 2]
+  - Implement Debug for Query
+  - Rename `Query::from_body` to `Query::from_str`
+- Made internal::handle::handle function public for use in custom event loops.
 
 # 2.2.1
 
@@ -211,7 +215,7 @@ Apr 10, 2022
 - Add SocketHandler struct to hold socket interacting functions
 - Fix Path Traversal Exploit O_O
 
-# 1.0.0!
+# 1.0.0
 
 Mar 14, 2022
 

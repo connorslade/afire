@@ -188,7 +188,7 @@ pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query,
         }
     }
 
-    let query = Query::from_body(&final_query);
+    let query = Query::from_str(&final_query);
     let version = parts
         .next()
         .ok_or(Error::Parse(ParseError::NoVersion))?

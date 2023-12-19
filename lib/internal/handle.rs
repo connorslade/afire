@@ -1,9 +1,4 @@
-use std::{
-    cell::RefCell,
-    io::Read,
-    net::{Shutdown, TcpStream},
-    sync::Arc,
-};
+use std::{cell::RefCell, io::Read, net::Shutdown, sync::Arc};
 
 use crate::{
     context::ContextFlag,
@@ -23,11 +18,11 @@ pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 /// Handles a socket.
 ///
 /// <https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D>
-pub(crate) fn handle<State>(stream: Arc<Socket>, this: Arc<Server<State>>)
+pub fn handle<State>(stream: Arc<Socket>, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
 {
-    let mut socket = stream.force_lock();
+    let socket = stream.force_lock();
     trace!(
         Level::Debug,
         "Opening socket {:?}",
@@ -35,7 +30,7 @@ where
     );
     socket.set_timeout(this.socket_timeout).unwrap();
     drop(socket);
-    
+
     'outer: loop {
         let mut keep_alive = false;
         let mut req = Request::from_socket(stream.clone());

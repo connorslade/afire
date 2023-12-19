@@ -151,7 +151,7 @@ impl Logger {
                 // Format Query as string
                 let mut query = "".to_string();
                 for i in req.query.iter() {
-                    query += &format!("{}: {}, ", i[0], i[1]);
+                    query += &format!("{}: {}, ", i.key, i.value);
                 }
                 if query.len() >= 2 {
                     query = query[0..query.len() - 2].to_string()

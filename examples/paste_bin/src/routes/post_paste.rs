@@ -64,7 +64,7 @@ fn post_api(ctx: &Context<App>) -> Result<(), Box<dyn error::Error>> {
 
 fn post_form(ctx: &Context<App>) -> Result<(), Box<dyn error::Error>> {
     // Parse the query from the request body
-    let query = Query::from_body(&ctx.req.body_str());
+    let query = Query::from_str(&ctx.req.body_str());
     // Pull out the name and paste from the query
     // (automatically url-decoded)
     let name = query.get("title").context("Missing name")?;
