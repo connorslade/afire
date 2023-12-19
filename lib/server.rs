@@ -34,7 +34,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     /// Ip address to listen on.
     pub ip: IpAddr,
 
-    pub event_loop: Box<dyn EventLoop>,
+    pub event_loop: Box<dyn EventLoop<State>>,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -86,7 +86,7 @@ impl<State: Send + Sync> Server<State> {
         Server {
             port,
             ip: raw_ip.to_address().unwrap(),
-            event_loop: TcpEventLoop,
+            event_loop: Box::new(TcpEventLoop),
             routes: Vec::new(),
             middleware: Vec::new(),
 
@@ -152,7 +152,7 @@ impl<State: Send + Sync> Server<State> {
         let this = Arc::new(self);
         let event_loop = TcpEventLoop;
 
-        event_loop.run(this, addr, |this, event| handle(event, this))?;
+        event_loop.run(this, addr)?;
 
         trace!("{}Server Stopped", emoji("🛑"));
         Ok(())
@@ -356,29 +356,23 @@ impl<State: Send + Sync> Server<State> {
     }
 }
 
-pub trait EventLoop {
-    fn run<State: Send + Sync>(
-        &self,
-        addr: SocketAddr,
-    ) -> Result<()>;
+pub trait EventLoop<State: Send + Sync> {
+    fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()>;
 }
 
 pub struct TcpEventLoop;
 
-impl EventLoop for TcpEventLoop {
-    fn run<State: Send + Sync>(
-        &self,
-        addr: SocketAddr,
-    ) -> Result<()> {
+impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {
+    fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()> {
         let listener = TcpListener::bind(addr)?;
         for i in listener.incoming() {
-            // if !this.running.load(Ordering::Relaxed) {
-            //     trace!(
-            //         Level::Debug,
-            //         "Stopping event loop. No more connections will be accepted."
-            //     );
-            //     break;
-            // }
+            if !server.running.load(Ordering::Relaxed) {
+                trace!(
+                    Level::Debug,
+                    "Stopping event loop. No more connections will be accepted."
+                );
+                break;
+            }
 
             let event = match i {
                 Ok(event) => event,
@@ -389,7 +383,7 @@ impl EventLoop for TcpEventLoop {
             };
 
             let event = Arc::new(Socket::new(event));
-            handle(this, event);
+            handle(event, server.clone());
         }
         Ok(())
     }
