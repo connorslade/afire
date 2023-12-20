@@ -21,7 +21,17 @@ pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
 /// Handles a socket.
 ///
-/// <https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D>
+/// This process consists of:
+/// - Parsing the request
+/// - Running pre and post middleware
+/// - Finding and running the correct route handler
+/// - Error handling
+/// - etc.
+///
+/// For further information, check the source code.
+/// This is the internal module after all, so don't expect me to keep good documentation.
+///
+/// [handle me by Sophie Cates on Spotify](https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D)
 pub fn handle<State>(stream: Arc<Socket>, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,

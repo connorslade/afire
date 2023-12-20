@@ -7,9 +7,10 @@
 //! To execute a job on the thread pool, use [`ThreadPool::execute`].
 //! To resize the thread pool, there are a few different functions:
 //! - [`ThreadPool::resize_exact`] - Resizes the thread pool to the specified size.
-//! - [`ThreadPool::increase`] - Increases the thread pool size by 1.
-//! - [`ThreadPool::decrease`] - Decreases the thread pool size by 1.
+//! - [`ThreadPool::increase`] - Spawns a new worker thread, increasing the thread pool size by 1.
+//! - [`ThreadPool::decrease`] - Sends a kill message, decreasing the thread pool size by 1.
 //!
+//! For more information on how the thread pool works, see the documentation for [`ThreadPool`].
 
 use std::{
     panic,
@@ -26,6 +27,25 @@ use crate::{
 };
 
 /// A thread pool.
+///
+/// Consists of a number of worker threads, and a channel to send messages to them.
+/// When dropping the thread pool, all workers are stopped and joined.
+/// When increasing the size of the thread pool, new workers are spawned.
+/// When decreasing the size of the thread pool, a kill message is sent on the channel, and when processed, the worker removes itself from the pool.
+///
+/// Also note each worker has a unique id, which is calculated by incrementing a static counter.
+/// This means that even when a worker is removed, the id will not be reused, until the counter overflows I suppose.
+///
+/// # Example
+/// ```
+/// # use afire::internal::thread_pool::ThreadPool;
+/// let pool = ThreadPool::new_empty();
+///
+/// pool.increase();
+/// pool.execute(|| {
+///     println!("Hello from thread pool!");
+/// });
+/// ```
 pub struct ThreadPool {
     /// Handle to each worker thread.
     workers: Workers,
@@ -80,6 +100,7 @@ impl ThreadPool {
         }
     }
 
+    /// Create a new empty thread pool with zero threads.
     pub fn new_empty() -> Self {
         let (sender, rx) = mpsc::channel();
         Self {
@@ -96,17 +117,28 @@ impl ThreadPool {
         self.sender.force_lock().send(job).unwrap();
     }
 
+    /// Returns the number of threads that should be in the pool.
+    /// This is not necessarily the number of threads that are in the pool as when resizing, the threads are not immediately removed but the count is immediately updated.
     pub fn threads(&self) -> usize {
         self.threads.load(Ordering::Relaxed)
     }
 
+    /// Returns the number of threads that are in the pool.
+    /// This is more accurate than [`ThreadPool::threads`] as it does not update the count until the threads are actually removed.
+    /// But it is also slower as it locks the workers mutex to count the threads.
+    pub fn threads_exact(&self) -> usize {
+        self.workers.inner.force_lock().len()
+    }
+
     /// Returns the index of the thread calling this function.
-    /// Returns `None` if the thread is not a worker thread.
+    /// Returns `None` if the thread is not a worker thread of this thread pool.
     pub fn current_thread(&self) -> Option<usize> {
         let thread = thread::current();
         self.workers.find(thread.id())
     }
 
+    /// Resizes the thread pool to the specified size.
+    /// Depending on how the size changes, the [`ThreadPool::increase`] or [`ThreadPool::decrease`] functions are repeatedly called to resize the pool.
     pub fn resize_exact(&self, size: usize) {
         assert!(size > 0);
         trace!(Level::Debug, "Resizing thread pool to {}", size);
@@ -129,6 +161,7 @@ impl ThreadPool {
         }
     }
 
+    /// Spawns a new worker thread, increasing the thread pool size by 1.
     pub fn increase(&self) {
         trace!(Level::Debug, "Increasing thread pool size by 1");
         self.workers
@@ -136,6 +169,8 @@ impl ThreadPool {
         self.threads.fetch_add(1, Ordering::Relaxed);
     }
 
+    /// Sends a kill message to a worker thread, decreasing the thread pool size by 1.
+    /// If all workers are busy, this will not force a worker to stop,
     pub fn decrease(&self) {
         trace!(Level::Debug, "Decreasing thread pool size by 1");
         let sender = self.sender.force_lock();
@@ -156,6 +191,7 @@ impl Workers {
     }
 
     fn remove(&self, id: usize) -> Option<()> {
+        trace!(Level::Debug, "Worker thread #{id} killed");
         let mut list = self.inner.force_lock();
         let idx = list.iter().position(|x| x.id == id)?;
         list.remove(idx);
