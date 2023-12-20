@@ -1,5 +1,15 @@
-//! A thread pool implementation.
+//! A resizable thread pool implementation.
 //! Used for handling multiple connections at once.
+//!
+//! You can access the thread pool from within a route handler with [`Context::thread_pool`].
+//! With this, you can resize the thread pool, get the current thread id, or execute a job on the thread pool.
+//! To get the current thread id, use [`ThreadPool::current_thread`].
+//! To execute a job on the thread pool, use [`ThreadPool::execute`].
+//! To resize the thread pool, there are a few different functions:
+//! - [`ThreadPool::resize_exact`] - Resizes the thread pool to the specified size.
+//! - [`ThreadPool::increase`] - Increases the thread pool size by 1.
+//! - [`ThreadPool::decrease`] - Decreases the thread pool size by 1.
+//!
 
 use std::{
     panic,
@@ -15,14 +25,6 @@ use crate::{
     trace,
 };
 
-/// Messages that can be handled by the pool's workers.
-enum Message {
-    /// Stops the worker.
-    Kill,
-    /// A job to be executed by the worker.
-    Job(Box<dyn FnOnce() + 'static + Send>),
-}
-
 /// A thread pool.
 pub struct ThreadPool {
     /// Handle to each worker thread.
@@ -34,6 +36,14 @@ pub struct ThreadPool {
     sender: Mutex<mpsc::Sender<Message>>,
     /// The channel used to receive messages to the workers.
     receiver: Arc<Mutex<mpsc::Receiver<Message>>>,
+}
+
+/// Messages that can be handled by the pool's workers.
+enum Message {
+    /// Stops the worker.
+    Kill,
+    /// A job to be executed by the worker.
+    Job(Box<dyn FnOnce() + 'static + Send>),
 }
 
 #[derive(Clone)]
@@ -105,7 +115,7 @@ impl ThreadPool {
             return;
         }
 
-        // Spawn or remove  workers
+        // Spawn or remove workers
         if size > threads {
             let to_add = size - threads;
             for _ in 0..to_add {

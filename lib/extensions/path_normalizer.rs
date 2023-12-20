@@ -23,21 +23,17 @@ impl Middleware for PathNormalizer {
 fn normalize(path: &mut String) {
     let mut new_path = String::with_capacity(path.len());
 
-    let mut last_char = '\0';
+    let mut last_slash = false;
     for i in path.chars() {
-        if i == '/' && last_char == '/' {
+        if i == '/' && last_slash {
             continue;
         }
 
         new_path.push(i);
-        last_char = i;
+        last_slash = i == '/';
     }
 
-    if new_path.ends_with('/') {
-        new_path.pop();
-    }
-
-    *path = new_path;
+    *path = new_path.trim_end_matches('/').to_owned();
 }
 
 #[cfg(test)]

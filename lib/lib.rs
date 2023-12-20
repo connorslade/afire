@@ -16,7 +16,6 @@ mod consts {
 }
 
 pub mod internal;
-mod thread_pool;
 use internal::{encoding, handle, router};
 
 #[macro_use]

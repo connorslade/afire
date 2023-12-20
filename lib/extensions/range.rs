@@ -5,7 +5,6 @@ use std::{
     fmt::{self, Display},
     io::{self, Read},
     ops::{Deref, RangeInclusive},
-    sync::Arc,
 };
 
 use crate::{
@@ -82,6 +81,7 @@ impl Range {
                 return;
             }
         };
+
         let entity_length = match &res.data {
             ResponseBody::Empty => 0,
             ResponseBody::Static(data) => data.len(),

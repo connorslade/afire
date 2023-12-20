@@ -1,6 +1,6 @@
 use std::{
     any::type_name,
-    net::{IpAddr, SocketAddr, TcpListener, TcpStream},
+    net::{IpAddr, SocketAddr, TcpStream},
     str,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -12,12 +12,13 @@ use std::{
 use crate::{
     error::Result,
     error::{AnyResult, StartupError},
-    handle::handle,
     header::Headers,
-    internal::misc::ToHostAddress,
+    internal::{
+        event_loop::{EventLoop, TcpEventLoop},
+        misc::ToHostAddress,
+        thread_pool::ThreadPool,
+    },
     route::Route,
-    socket::Socket,
-    thread_pool::ThreadPool,
     trace::emoji,
     Content, Context, Header, HeaderName, Method, Middleware, Request, Response, Status, VERSION,
 };
@@ -150,9 +151,8 @@ impl<State: Send + Sync> Server<State> {
 
         let addr = SocketAddr::new(self.ip, self.port);
         let this = Arc::new(self);
-        let event_loop = TcpEventLoop;
 
-        event_loop.run(this, addr)?;
+        this.clone().event_loop.run(this, addr)?;
 
         trace!("{}Server Stopped", emoji("🛑"));
         Ok(())
@@ -353,38 +353,5 @@ impl<State: Send + Sync> Server<State> {
         self.running.store(false, Ordering::Relaxed);
         let addr = SocketAddr::new(self.ip, self.port);
         let _ = TcpStream::connect(addr);
-    }
-}
-
-pub trait EventLoop<State: Send + Sync> {
-    fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()>;
-}
-
-pub struct TcpEventLoop;
-
-impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {
-    fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()> {
-        let listener = TcpListener::bind(addr)?;
-        for i in listener.incoming() {
-            if !server.running.load(Ordering::Relaxed) {
-                trace!(
-                    Level::Debug,
-                    "Stopping event loop. No more connections will be accepted."
-                );
-                break;
-            }
-
-            let event = match i {
-                Ok(event) => event,
-                Err(err) => {
-                    trace!(Level::Error, "Error accepting connection: {err}");
-                    continue;
-                }
-            };
-
-            let event = Arc::new(Socket::new(event));
-            handle(event, server.clone());
-        }
-        Ok(())
     }
 }
