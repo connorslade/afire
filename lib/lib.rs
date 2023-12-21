@@ -16,7 +16,7 @@ mod consts {
 }
 
 pub mod internal;
-use internal::{encoding, handle, router};
+use internal::{encoding, router};
 
 #[macro_use]
 pub mod trace;

@@ -1,3 +1,5 @@
+//! Socket is wrapper around a low-level socket (for example a TcpStream from the standard library) that allows for sending a response from other threads.
+
 use std::{
     io::{self, Read, Write},
     net::{Shutdown, SocketAddr, TcpStream},
@@ -15,12 +17,20 @@ use crate::{
     trace,
 };
 
+/// A [`Stream`] that also implements [`Send`] and [`Sync`].
 pub type SocketStream = Box<dyn Stream + Send + Sync>;
 
+/// A trait that represents a socket.
+/// This is used to allow for custom socket implementations to be used, for example, to add support for TLS.
 pub trait Stream: Read + Write {
+    /// Get the peer address of the socket.
     fn peer_addr(&self) -> io::Result<SocketAddr>;
+    /// Clone the socket.
+    /// This is currently only used for websockets.
     fn try_clone(&self) -> io::Result<SocketStream>;
+    /// Shutdown the socket.
     fn shutdown(&self, shutdown: Shutdown) -> io::Result<()>;
+    /// Set the timeout of the socket, for both reading and writing.
     fn set_timeout(&self, duration: Option<Duration>) -> io::Result<()>;
 }
 

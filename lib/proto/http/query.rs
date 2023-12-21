@@ -135,10 +135,7 @@ impl Query {
                 continue;
             };
 
-            data.push(QueryParameter {
-                key: key.into(),
-                value: value.into(),
-            });
+            data.push(QueryParameter { key, value });
         }
 
         Query { inner: data }

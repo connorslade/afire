@@ -35,6 +35,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     /// Ip address to listen on.
     pub ip: IpAddr,
 
+    /// The event loop used to handle incoming connections.
     pub event_loop: Box<dyn EventLoop<State>>,
 
     /// Routes to handle.
@@ -171,6 +172,17 @@ impl<State: Send + Sync> Server<State> {
         // TODO: only resize on start?
         self.thread_pool.resize_exact(threads);
         self
+    }
+
+    /// Change the server's event loop.
+    /// The default is [`TcpEventLoop`], which uses the standard library's built-in TCP listener.
+    ///
+    /// The [afire_tls](https://github.com/Basicprogrammer10/afire_tls) crate contains an event loop that uses rustls to handle TLS connections.
+    pub fn event_loop(self, event_loop: impl EventLoop<State> + 'static) -> Self {
+        Server {
+            event_loop: Box::new(event_loop),
+            ..self
+        }
     }
 
     /// Add a new default header to the server.
