@@ -5,7 +5,11 @@ use std::{
     sync::{atomic::Ordering, Arc},
 };
 
-use crate::{error::Result, internal::handle::handle, socket::Socket, trace, Server};
+use crate::{
+    error::Result,
+    internal::{handle::handle, socket::Socket},
+    trace, Server,
+};
 
 /// afire servers are event-driven.
 /// This trait defines the event loop that will be used to handle incoming connections.

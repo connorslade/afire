@@ -7,11 +7,10 @@ use std::{cell::RefCell, io::Read, net::Shutdown, sync::Arc};
 use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
-    internal::sync::ForceLockMutex,
+    internal::{socket::Socket, sync::ForceLockMutex},
     prelude::MiddleResult,
     response::ResponseFlag,
     route::RouteError,
-    socket::Socket,
     trace,
     trace::LazyFmt,
     Content, Context, Error, Request, Response, Server, Status,

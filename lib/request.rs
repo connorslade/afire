@@ -12,8 +12,7 @@ use crate::{
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderName, Headers},
-    internal::sync::ForceLockMutex,
-    socket::Socket,
+    internal::{socket::Socket, sync::ForceLockMutex},
     Cookie, Error, Header, Method, Query,
 };
 

@@ -8,5 +8,6 @@ pub mod event_loop;
 pub mod handle;
 pub mod misc;
 pub mod router;
+pub mod socket;
 pub mod sync;
 pub mod thread_pool;

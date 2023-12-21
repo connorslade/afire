@@ -5,12 +5,14 @@ use std::{
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Mutex, RwLock,
-    }, time::Duration,
+    },
+    time::Duration,
 };
 
 use crate::{
     internal::sync::{ForceLockRwLock, SingleBarrier},
     response::ResponseFlag,
+    trace,
 };
 
 pub type SocketStream = Box<dyn Stream + Send + Sync>;
@@ -42,7 +44,7 @@ pub struct Socket {
 impl Socket {
     /// Create a new `Socket` from a `TcpStream`.
     /// Will also create a new unique identifier for the socket.
-    pub(crate) fn new(socket: impl Stream + Send + Sync + 'static) -> Self {
+    pub fn new(socket: impl Stream + Send + Sync + 'static) -> Self {
         static ID: AtomicU64 = AtomicU64::new(0);
         Self {
             socket: Mutex::new(Box::new(socket)),

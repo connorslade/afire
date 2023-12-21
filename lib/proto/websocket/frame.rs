@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::xor_mask;
-use crate::{socket::SocketStream, trace::LazyFmt};
+use crate::{internal::socket::SocketStream, trace::LazyFmt};
 
 /// ## Frame Layout
 /// ```plain

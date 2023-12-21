@@ -28,7 +28,6 @@ mod request;
 mod response;
 pub mod route;
 mod server;
-mod socket;
 
 #[doc(inline)]
 pub use self::{
