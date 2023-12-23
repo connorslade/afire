@@ -18,13 +18,10 @@ use crate::{
         misc::ToHostAddress,
         thread_pool::ThreadPool,
     },
-    route::Route,
+    route::{DefaultErrorHandler, ErrorHandler, Route},
     trace::emoji,
-    Content, Context, Header, HeaderName, Method, Middleware, Request, Response, Status, VERSION,
+    Context, Header, HeaderName, Method, Middleware, VERSION,
 };
-
-type ErrorHandler<State> =
-    Box<dyn Fn(Option<Arc<State>>, &Box<Result<Arc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
 // todo: make not all this public
@@ -49,7 +46,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub state: Option<Arc<State>>,
 
     /// Default response for internal server errors
-    pub error_handler: ErrorHandler<State>,
+    pub error_handler: Box<dyn ErrorHandler<State>>,
 
     /// Headers automatically added to every response.
     pub default_headers: Headers,
@@ -91,14 +88,7 @@ impl<State: Send + Sync> Server<State> {
             event_loop: Box::new(TcpEventLoop),
             routes: Vec::new(),
             middleware: Vec::new(),
-
-            error_handler: Box::new(|_state, _req, err| {
-                Response::new()
-                    .status(Status::InternalServerError)
-                    .text(format!("Internal Server Error :/\nError: {err}"))
-                    .content(Content::TXT)
-            }),
-
+            error_handler: Box::new(DefaultErrorHandler),
             default_headers: Headers(vec![Header::new("Server", format!("afire/{VERSION}"))]),
             keep_alive: true,
             socket_timeout: None,
@@ -124,9 +114,11 @@ impl<State: Send + Sync> Server<State> {
     /// // This is blocking
     /// server.run().unwrap();
     /// ```
-    pub fn run(self) -> Result<()> {
+    pub fn run(mut self) -> Result<()> {
         let threads = self.thread_pool.threads();
         if threads == 0 {
+            trace!("Running single threaded, disabling Keep Alive",);
+            self.keep_alive = false;
             self.thread_pool.resize_exact(1);
         }
 
@@ -301,15 +293,8 @@ impl<State: Send + Sync> Server<State> {
     ///         .text(format!("Internal Server Error: {}", err))
     /// });
     /// ```
-    pub fn error_handler(
-        &mut self,
-        res: impl Fn(Option<Arc<State>>, &Box<Result<Arc<Request>>>, String) -> Response
-            + Send
-            + Sync
-            + 'static,
-    ) {
+    pub fn error_handler(&mut self, res: impl ErrorHandler<State> + Send + Sync + 'static) {
         trace!("{}Setting Error Handler", emoji("✌"));
-
         self.error_handler = Box::new(res);
     }
 

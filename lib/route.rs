@@ -3,9 +3,10 @@
 //! The context can include a message, status code, and headers.
 
 use std::{
+    borrow::Cow,
     error::Error,
     fmt::{self, Debug, Display},
-    panic,
+    panic::Location,
     sync::Arc,
 };
 
@@ -13,7 +14,7 @@ use crate::{
     error::{self, AnyResult},
     internal::router::PathParameters,
     router::Path,
-    Content, Context, Header, HeaderName, Method, Request, Response, Status,
+    Content, Context, Header, HeaderName, Method, Request, Response, Server, Status,
 };
 
 type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
@@ -37,13 +38,48 @@ impl<State: Send + Sync> Debug for Route<State> {
     }
 }
 
+pub trait ErrorHandler<State: 'static + Send + Sync> {
+    fn handle(&self, server: Arc<Server<State>>, error: RouteError) -> Response;
+}
+
+pub struct DefaultErrorHandler;
+
+impl<State: 'static + Send + Sync> ErrorHandler<State> for DefaultErrorHandler {
+    fn handle(&self, _server: Arc<Server<State>>, error: RouteError) -> Response {
+        let message = match error.location {
+            Some(location) => format!(
+                "Internal Server Error\n{}\nat {} {}:{}",
+                error.message,
+                location.file(),
+                location.line(),
+                location.column()
+            ),
+            None => format!("Internal Server Error\n{}", error.message),
+        };
+
+        let mut res = Response::new()
+            .status(error.status)
+            .text(message)
+            .headers(error.headers);
+
+        if !res.headers.has(HeaderName::ContentType) {
+            res = res.content(Content::TXT);
+        }
+
+        res
+    }
+}
+
 // Thanks breon for the idea - https://github.com/rcsc/amplitude/blob/main/amplitude/src/error.rs
 /// Error returned by a route handler.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteError {
-    status: Status,
-    message: String,
-    headers: Vec<Header>,
+    pub location: Option<&'static Location<'static>>,
+    // TODO: Add error reference
+    // error: Option<Box<dyn Error + Send + Sync>>,
+    pub status: Status,
+    pub message: Cow<'static, str>,
+    pub headers: Vec<Header>,
 }
 
 /// Convert any Result<T, E> into a Result<T, RouteError>.
@@ -97,22 +133,6 @@ impl<State: 'static + Send + Sync> Route<State> {
 }
 
 impl RouteError {
-    /// Convert a RouteError into a Response.
-    /// It will have the defined status code, message, and headers.
-    /// If none is supplied, the content type will be text/plain.
-    pub fn to_response(self) -> Response {
-        let mut res = Response::new()
-            .status(self.status)
-            .text(&self.message)
-            .headers(self.headers);
-
-        if !res.headers.has(HeaderName::ContentType) {
-            res = res.content(Content::TXT);
-        }
-
-        res
-    }
-
     /// Tries to downcast a `Box<dyn Error>` into a RouteError.
     /// If that doesn't work, it will create a new RouteError with the error message.
     pub fn downcast_error(e: Box<dyn Error>) -> RouteError {
@@ -125,7 +145,7 @@ impl RouteError {
     fn from_error(e: Box<dyn Error>) -> Self {
         Self {
             status: Status::InternalServerError,
-            message: format!("{:?}", e),
+            message: format!("{:?}", e).into(),
             ..Default::default()
         }
     }
@@ -136,8 +156,10 @@ impl<T, E: Debug> RouteContext<T> for Result<T, E> {
         match self {
             Ok(x) => Ok(x),
             Err(e) => Err(RouteError {
+                location: Some(Location::caller()),
+
                 status: Status::InternalServerError,
-                message: format!("{body}\n[{}]: {e:?}", panic::Location::caller()),
+                message: body.to_string().into(),
                 ..Default::default()
             }),
         }
@@ -147,8 +169,9 @@ impl<T, E: Debug> RouteContext<T> for Result<T, E> {
         match self {
             Ok(x) => Ok(x),
             Err(e) => Err(RouteError {
+                location: Some(Location::caller()),
                 status: Status::InternalServerError,
-                message: format!("{}\n[{}]: {e:?}", body(), panic::Location::caller()),
+                message: body().to_string().into(),
                 ..Default::default()
             }),
         }
@@ -160,8 +183,9 @@ impl<T> RouteContext<T> for Option<T> {
         match self {
             Some(x) => Ok(x),
             None => Err(RouteError {
+                location: Some(Location::caller()),
                 status: Status::InternalServerError,
-                message: format!("{body}\n[{}]", panic::Location::caller()),
+                message: body.to_string().into(),
                 ..Default::default()
             }),
         }
@@ -171,8 +195,9 @@ impl<T> RouteContext<T> for Option<T> {
         match self {
             Some(x) => Ok(x),
             None => Err(RouteError {
+                location: Some(Location::caller()),
                 status: Status::InternalServerError,
-                message: format!("{}\n[{}]", body(), panic::Location::caller()),
+                message: body().to_string().into(),
                 ..Default::default()
             }),
         }
@@ -261,8 +286,9 @@ impl Error for RouteError {
 impl Default for RouteError {
     fn default() -> Self {
         Self {
+            location: None,
             status: Status::InternalServerError,
-            message: "Internal Server Error".to_string(),
+            message: "Internal Server Error".into(),
             headers: Default::default(),
         }
     }
@@ -286,7 +312,7 @@ mod test {
     fn test_route_error_downcast() {
         let route_error = RouteError {
             status: Status::InternalServerError,
-            message: "test".to_string(),
+            message: "test".into(),
             ..Default::default()
         };
         let error = Box::new(route_error.clone()) as Box<dyn Error>;

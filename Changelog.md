@@ -76,6 +76,7 @@ Coming Soon
   - Rename `Query::from_body` to `Query::from_str`
 - Made internal::handle::handle function public for use in custom event loops.
 - Made `error::AnyResult` public
+- Disable keep-alive if only running with one thread
 
 # 2.2.1
 

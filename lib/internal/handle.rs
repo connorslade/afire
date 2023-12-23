@@ -119,8 +119,10 @@ where
             // TODO: account for guaranteed send
             // TODO: Run through `write` for middleware
             let error = RouteError::downcast_error(e);
-            if let Err(e) = error
-                .to_response()
+            if let Err(e) = this
+                .clone()
+                .error_handler
+                .handle(this.clone(), error)
                 .write(req.socket.clone(), &this.default_headers)
             {
                 trace!(Level::Debug, "Error writing error response: {:?}", e);
