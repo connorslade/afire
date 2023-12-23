@@ -48,14 +48,25 @@ impl<State: Send + Sync> Debug for Route<State> {
 /// For example, you could send JSON for errors if if the request is going to an API route or of its `Accept` header is `application/json` and HTML otherwise.
 pub trait ErrorHandler<State: 'static + Send + Sync> {
     /// Generates a response from an error.
-    fn handle(&self, server: Arc<Server<State>>, error: RouteError) -> Response;
+    fn handle(&self, server: Arc<Server<State>>, req: Arc<Request>, error: RouteError) -> Response;
 }
 
+impl<State, F> ErrorHandler<State> for F
+where
+    State: 'static + Send + Sync,
+    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
+{
+    fn handle(&self, server: Arc<Server<State>>, req: Arc<Request>, error: RouteError) -> Response {
+        (self)(server, req, error)
+    }
+}
+
+// TODO: Maybe remove this?
 /// Lets you create an error handler from a function with the signature `Fn(Arc<Server<State>>, RouteError) -> Response`.
 pub struct AnonymousErrorHandler<State, F>
 where
     State: Send + Sync + 'static,
-    F: Fn(Arc<Server<State>>, RouteError) -> Response + Send + Sync,
+    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
 {
     f: F,
     _state: PhantomData<State>,
@@ -64,7 +75,7 @@ where
 impl<State, F> AnonymousErrorHandler<State, F>
 where
     State: Send + Sync + 'static,
-    F: Fn(Arc<Server<State>>, RouteError) -> Response + Send + Sync,
+    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
 {
     /// Creates a new anonymous error handler.
     pub fn new(f: F) -> Self {
@@ -78,10 +89,10 @@ where
 impl<State, F> ErrorHandler<State> for AnonymousErrorHandler<State, F>
 where
     State: 'static + Send + Sync,
-    F: Fn(Arc<Server<State>>, RouteError) -> Response + Send + Sync,
+    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
 {
-    fn handle(&self, server: Arc<Server<State>>, error: RouteError) -> Response {
-        (self.f)(server, error)
+    fn handle(&self, server: Arc<Server<State>>, req: Arc<Request>, error: RouteError) -> Response {
+        (self.f)(server, req, error)
     }
 }
 
@@ -105,7 +116,12 @@ where
 pub struct DefaultErrorHandler;
 
 impl<State: 'static + Send + Sync> ErrorHandler<State> for DefaultErrorHandler {
-    fn handle(&self, _server: Arc<Server<State>>, error: RouteError) -> Response {
+    fn handle(
+        &self,
+        _server: Arc<Server<State>>,
+        _req: Arc<Request>,
+        error: RouteError,
+    ) -> Response {
         let mut message = format!("Internal Server Error\n\n{}", error.message);
 
         if let Some(location) = error.location {
@@ -215,7 +231,7 @@ impl RouteError {
     fn from_error(e: Box<dyn Error>) -> Self {
         Self {
             status: Status::InternalServerError,
-            message: format!("{:?}", e).into(),
+            message: e.to_string().into(),
             ..Default::default()
         }
     }

@@ -122,7 +122,7 @@ where
             if let Err(e) = this
                 .clone()
                 .error_handler
-                .handle(this.clone(), error)
+                .handle(this.clone(), req.clone(), error)
                 .write(req.socket.clone(), &this.default_headers)
             {
                 trace!(Level::Debug, "Error writing error response: {:?}", e);

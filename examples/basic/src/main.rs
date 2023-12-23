@@ -6,6 +6,7 @@ use std::{
 use afire::{
     extensions::{Logger, RealIp, ServeStatic},
     middleware::Middleware,
+    route::RouteError,
     trace::{set_log_level, Level},
     Content, Method, Request, Response, Server,
 };
@@ -27,8 +28,9 @@ fn main() -> Result<()> {
     // (although there is usually only one)
     set_log_level(Level::Trace);
 
-    // Create a new afire server on localhost:8080 with 4 worker threads and the App state.
+    // Create a new afire server on localhost:8080 with 4 worker threads, our custom error handler, and the App state.
     let mut server = Server::<App>::new("localhost", 8080)
+        .error_handler(error_handler)
         .workers(4)
         .state(App::new());
 
@@ -57,7 +59,7 @@ fn main() -> Result<()> {
     });
 
     // Add an api route to pick a random number.
-    server.route(Method::GET, "/random", |ctx| {
+    server.route(Method::GET, "/api/random", |ctx| {
         #[derive(Deserialize)]
         struct Request {
             min: u32,
@@ -73,7 +75,7 @@ fn main() -> Result<()> {
         Ok(())
     });
 
-    server.route(Method::GET, "/analytics", |ctx| {
+    server.route(Method::GET, "/api/analytics", |ctx| {
         let res = json!(*ctx.app().analytics.read().unwrap());
         ctx.text(res).content(Content::JSON).send()?;
         Ok(())
@@ -104,6 +106,24 @@ impl Middleware for Analytics {
             .and_modify(|x| *x += 1)
             .or_insert(1);
     }
+}
+
+/// Custom error handler that returns JSON for API routes and plain text for other routes.
+/// Note: This is just an example, in your own application you should consider making use of the location and error fields of RouteError.
+fn error_handler(_server: Arc<Server<App>>, req: Arc<Request>, error: RouteError) -> Response {
+    if req.path.starts_with("/api") {
+        Response::new()
+            .text(json!({
+                "message": error.message,
+            }))
+            .content(Content::JSON)
+    } else {
+        Response::new()
+            .text(format!("Internal Server Error\n{}", error.message))
+            .content(Content::TXT)
+    }
+    .status(error.status)
+    .headers(error.headers)
 }
 
 impl App {
