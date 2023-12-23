@@ -6,6 +6,7 @@ use std::{
     borrow::Cow,
     error::Error,
     fmt::{self, Debug, Display},
+    marker::PhantomData,
     panic::Location,
     sync::Arc,
 };
@@ -48,6 +49,40 @@ impl<State: Send + Sync> Debug for Route<State> {
 pub trait ErrorHandler<State: 'static + Send + Sync> {
     /// Generates a response from an error.
     fn handle(&self, server: Arc<Server<State>>, error: RouteError) -> Response;
+}
+
+/// Lets you create an error handler from a function with the signature `Fn(Arc<Server<State>>, RouteError) -> Response`.
+pub struct AnonymousErrorHandler<State, F>
+where
+    State: Send + Sync + 'static,
+    F: Fn(Arc<Server<State>>, RouteError) -> Response + Send + Sync,
+{
+    f: F,
+    _state: PhantomData<State>,
+}
+
+impl<State, F> AnonymousErrorHandler<State, F>
+where
+    State: Send + Sync + 'static,
+    F: Fn(Arc<Server<State>>, RouteError) -> Response + Send + Sync,
+{
+    /// Creates a new anonymous error handler.
+    pub fn new(f: F) -> Self {
+        Self {
+            f,
+            _state: PhantomData,
+        }
+    }
+}
+
+impl<State, F> ErrorHandler<State> for AnonymousErrorHandler<State, F>
+where
+    State: 'static + Send + Sync,
+    F: Fn(Arc<Server<State>>, RouteError) -> Response + Send + Sync,
+{
+    fn handle(&self, server: Arc<Server<State>>, error: RouteError) -> Response {
+        (self.f)(server, error)
+    }
 }
 
 /// The default error handler.
