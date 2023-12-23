@@ -284,13 +284,14 @@ impl<State: Send + Sync> Server<State> {
     /// Be sure that your panic handler wont panic, because that will just panic the whole application.
     /// ## Example
     /// ```rust
-    /// # use afire::{Server, Response, Status, route::AnonymousErrorHandler};
+    /// # use afire::{Server, Response, Status, Context, route::RouteError};
     /// Server::<()>::new("localhost", 8080)
-    ///     .error_handler(AnonymousErrorHandler::new(|_server, _req, err| {
-    ///         Response::new()
-    ///             .status(Status::InternalServerError)
+    ///     .error_handler(|ctx: &Context, err: RouteError| {
+    ///         ctx.status(Status::InternalServerError)
     ///             .text(format!("Internal Server Error: {}", err.message))
-    ///     }));
+    ///             .send()?;
+    ///         Ok(())
+    ///     });
     /// ```
     pub fn error_handler(self, res: impl ErrorHandler<State> + Send + Sync + 'static) -> Self {
         trace!("{}Setting Error Handler", emoji("✌"));

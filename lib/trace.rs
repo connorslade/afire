@@ -166,14 +166,14 @@ pub(crate) fn emoji(_emoji: &str) -> Cow<str> {
 /// Enabled with the `tracing` feature
 #[macro_export]
 macro_rules! trace {
-    (Level::$level: ident, $($arg: tt) +) => {
+    (Level::$level: ident, $($arg: tt) +) => {{
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::$level, format_args!($($arg)+));
-    };
-    ($($arg: tt) +) => {
+    }};
+    ($($arg: tt) +) => {{
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::Trace, format_args!($($arg)+));
-    };
+    }};
 }
 
 /// A wrapper for [`Display`] or [`Debug`] types that only evaluates the inner value when it is actually used.

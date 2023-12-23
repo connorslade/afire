@@ -4,13 +4,13 @@ use std::{
 };
 
 use afire::{
+    error::AnyResult,
     extensions::{Logger, RealIp, ServeStatic},
     middleware::Middleware,
     route::RouteError,
     trace::{set_log_level, Level},
-    Content, Method, Request, Response, Server,
+    Content, Context, Method, Request, Response, Server,
 };
-use anyhow::Result;
 use rand::Rng;
 use serde::Deserialize;
 use serde_json::json;
@@ -22,7 +22,7 @@ struct App {
     analytics: RwLock<HashMap<String, u64>>,
 }
 
-fn main() -> Result<()> {
+fn main() -> AnyResult<()> {
     // Show some helpful information during startup.
     // afire log level is global and will affect all afire servers in your application
     // (although there is usually only one)
@@ -110,20 +110,20 @@ impl Middleware for Analytics {
 
 /// Custom error handler that returns JSON for API routes and plain text for other routes.
 /// Note: This is just an example, in your own application you should consider making use of the location and error fields of RouteError.
-fn error_handler(_server: Arc<Server<App>>, req: Arc<Request>, error: RouteError) -> Response {
-    if req.path.starts_with("/api") {
-        Response::new()
-            .text(json!({
-                "message": error.message,
-            }))
-            .content(Content::JSON)
+fn error_handler(ctx: &Context<App>, error: RouteError) -> AnyResult<()> {
+    if ctx.req.path.starts_with("/api") {
+        ctx.text(json!({
+            "message": error.message,
+        }))
+        .content(Content::JSON)
     } else {
-        Response::new()
-            .text(format!("Internal Server Error\n{}", error.message))
+        ctx.text(format!("Internal Server Error\n{}", error.message))
             .content(Content::TXT)
     }
     .status(error.status)
     .headers(error.headers)
+    .send()?;
+    Ok(())
 }
 
 impl App {

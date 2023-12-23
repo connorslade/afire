@@ -4,7 +4,7 @@ use std::{
     io::Read,
     sync::{
         atomic::{AtomicU8, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, MutexGuard,
     },
 };
 
@@ -18,7 +18,7 @@ use crate::{
 /// A collection of data important for handling a request.
 /// It includes both the request data, and a reference to the server.
 /// You also use it to build and send the response.
-pub struct Context<State: 'static + Send + Sync> {
+pub struct Context<State: 'static + Send + Sync = ()> {
     /// Reference to the server.
     pub server: Arc<Server<State>>,
     /// The request you are handling.
@@ -113,6 +113,12 @@ impl<State: 'static + Send + Sync> Context<State> {
         params
             .get_index(idx, &self.req.path)
             .unwrap_or_else(|| panic!("Path parameter #{} does not exist.", idx))
+    }
+
+    /// Gets a reference to the internal response.
+    /// This is mostly useful for when you need to inspect the current state of the response, or overwrite it in an error handler.
+    pub fn get_response(&self) -> MutexGuard<Response> {
+        self.response.force_lock()
     }
 
     /// Sends the response to the client.

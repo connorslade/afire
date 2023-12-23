@@ -6,7 +6,6 @@ use std::{
     borrow::Cow,
     error::Error,
     fmt::{self, Debug, Display},
-    marker::PhantomData,
     panic::Location,
     sync::Arc,
 };
@@ -15,7 +14,7 @@ use crate::{
     error::{self, AnyResult},
     internal::router::PathParameters,
     router::Path,
-    Content, Context, Header, HeaderName, Method, Request, Response, Server, Status,
+    Content, Context, Header, HeaderName, Method, Request, Status,
 };
 
 type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + Send + Sync>;
@@ -48,50 +47,16 @@ impl<State: Send + Sync> Debug for Route<State> {
 /// For example, you could send JSON for errors if if the request is going to an API route or of its `Accept` header is `application/json` and HTML otherwise.
 pub trait ErrorHandler<State: 'static + Send + Sync> {
     /// Generates a response from an error.
-    fn handle(&self, server: Arc<Server<State>>, req: Arc<Request>, error: RouteError) -> Response;
+    fn handle(&self, ctx: &Context<State>, error: RouteError) -> AnyResult<()>;
 }
 
 impl<State, F> ErrorHandler<State> for F
 where
     State: 'static + Send + Sync,
-    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
+    F: Fn(&Context<State>, RouteError) -> AnyResult<()> + Send + Sync,
 {
-    fn handle(&self, server: Arc<Server<State>>, req: Arc<Request>, error: RouteError) -> Response {
-        (self)(server, req, error)
-    }
-}
-
-/// Lets you create an error handler from a function with the signature `Fn(Arc<Server<State>>, RouteError) -> Response`.
-pub struct AnonymousErrorHandler<State, F>
-where
-    State: Send + Sync + 'static,
-    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
-{
-    f: F,
-    _state: PhantomData<State>,
-}
-
-impl<State, F> AnonymousErrorHandler<State, F>
-where
-    State: Send + Sync + 'static,
-    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
-{
-    /// Creates a new anonymous error handler.
-    pub fn new(f: F) -> Self {
-        Self {
-            f,
-            _state: PhantomData,
-        }
-    }
-}
-
-impl<State, F> ErrorHandler<State> for AnonymousErrorHandler<State, F>
-where
-    State: 'static + Send + Sync,
-    F: Fn(Arc<Server<State>>, Arc<Request>, RouteError) -> Response + Send + Sync,
-{
-    fn handle(&self, server: Arc<Server<State>>, req: Arc<Request>, error: RouteError) -> Response {
-        (self.f)(server, req, error)
+    fn handle(&self, ctx: &Context<State>, error: RouteError) -> AnyResult<()> {
+        (self)(ctx, error)
     }
 }
 
@@ -115,12 +80,7 @@ where
 pub struct DefaultErrorHandler;
 
 impl<State: 'static + Send + Sync> ErrorHandler<State> for DefaultErrorHandler {
-    fn handle(
-        &self,
-        _server: Arc<Server<State>>,
-        _req: Arc<Request>,
-        error: RouteError,
-    ) -> Response {
+    fn handle(&self, ctx: &Context<State>, error: RouteError) -> AnyResult<()> {
         let mut message = format!("Internal Server Error\n\n{}", error.message);
 
         if let Some(location) = error.location {
@@ -131,16 +91,16 @@ impl<State: 'static + Send + Sync> ErrorHandler<State> for DefaultErrorHandler {
             message.push_str(&format!("\n\n{:#?}", error));
         }
 
-        let mut res = Response::new()
-            .status(error.status)
+        ctx.status(error.status)
             .text(message)
             .headers(error.headers);
 
-        if !res.headers.has(HeaderName::ContentType) {
-            res = res.content(Content::TXT);
+        if !ctx.get_response().headers.has(HeaderName::ContentType) {
+            ctx.content(Content::TXT);
         }
 
-        res
+        ctx.send()?;
+        Ok(())
     }
 }
 

@@ -41,16 +41,14 @@ impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {
                 break;
             }
 
-            let event = match i {
-                Ok(event) => event,
-                Err(err) => {
-                    trace!(Level::Error, "Error accepting connection: {err}");
-                    continue;
+            match i {
+                Ok(event) => {
+                    let this_server = server.clone();
+                    let event = Arc::new(Socket::new(event));
+                    server.thread_pool.execute(|| handle(event, this_server));
                 }
+                Err(err) => trace!(Level::Error, "Error accepting connection: {err}"),
             };
-
-            let event = Arc::new(Socket::new(event));
-            handle(event, server.clone());
         }
         Ok(())
     }
