@@ -38,24 +38,48 @@ impl<State: Send + Sync> Debug for Route<State> {
     }
 }
 
+/// An error handler is part of a [`Server`] and it is called when a [`Route`] returns an error.
+///
+/// This trait has just one method, [`handle`], which takes a reference to the server and the error, and produces a response.
+/// The default error handler is [`DefaultErrorHandler`], which produces a basic text response.
+///
+/// Custom error handlers can be created to produce more complex responses.
+/// For example, you could send JSON for errors if if the request is going to an API route or of its `Accept` header is `application/json` and HTML otherwise.
 pub trait ErrorHandler<State: 'static + Send + Sync> {
+    /// Generates a response from an error.
     fn handle(&self, server: Arc<Server<State>>, error: RouteError) -> Response;
 }
 
+/// The default error handler.
+///
+/// Produces a basic text response with the error message and location.
+/// Below is an example of the response produced by this error handler.
+///
+/// ```plain
+/// Internal Server Error
+///
+/// File index.html not found!
+/// at examples\test.rs:14:35
+///
+/// Os {
+///     code: 3,
+///     kind: NotFound,
+///     message: "The system cannot find the path specified.",
+/// }
+/// ```
 pub struct DefaultErrorHandler;
 
 impl<State: 'static + Send + Sync> ErrorHandler<State> for DefaultErrorHandler {
     fn handle(&self, _server: Arc<Server<State>>, error: RouteError) -> Response {
-        let message = match error.location {
-            Some(location) => format!(
-                "Internal Server Error\n{}\nat {} {}:{}",
-                error.message,
-                location.file(),
-                location.line(),
-                location.column()
-            ),
-            None => format!("Internal Server Error\n{}", error.message),
-        };
+        let mut message = format!("Internal Server Error\n\n{}", error.message);
+
+        if let Some(location) = error.location {
+            message.push_str(&format!("\nat {location}"));
+        }
+
+        if let Some(error) = error.error {
+            message.push_str(&format!("\n\n{:#?}", error));
+        }
 
         let mut res = Response::new()
             .status(error.status)
@@ -71,14 +95,23 @@ impl<State: 'static + Send + Sync> ErrorHandler<State> for DefaultErrorHandler {
 }
 
 // Thanks breon for the idea - https://github.com/rcsc/amplitude/blob/main/amplitude/src/error.rs
-/// Error returned by a route handler.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Error returned by a route handler with additional context.
+///
+/// Note, the values of this struct are not guaranteed to be included in the response.
+/// It is up to the [`ErrorHandler`] to decide what to do with them, but the default error handler will use them all properly.
+#[derive(Debug)]
 pub struct RouteError {
+    /// The location of the error.
     pub location: Option<&'static Location<'static>>,
-    // TODO: Add error reference
-    // error: Option<Box<dyn Error + Send + Sync>>,
-    pub status: Status,
+    /// The actual error that was returned.
+    pub error: Option<Box<dyn Debug>>,
+
+    /// A user-friendly message describing the error.
     pub message: Cow<'static, str>,
+    /// The status code of the error.
+    /// This will be set to `500 Internal Server Error` by default.
+    pub status: Status,
+    /// Any additional headers to be sent with the error response.
     pub headers: Vec<Header>,
 }
 
@@ -136,9 +169,11 @@ impl RouteError {
     /// Tries to downcast a `Box<dyn Error>` into a RouteError.
     /// If that doesn't work, it will create a new RouteError with the error message.
     pub fn downcast_error(e: Box<dyn Error>) -> RouteError {
-        e.downcast_ref::<RouteError>()
-            .cloned()
-            .unwrap_or_else(|| Self::from_error(e))
+        if e.is::<RouteError>() {
+            *e.downcast::<RouteError>().unwrap()
+        } else {
+            Self::from_error(e)
+        }
     }
 
     /// Converts any error type (`Box<dyn Error>`) into a RouteError.
@@ -151,14 +186,13 @@ impl RouteError {
     }
 }
 
-impl<T, E: Debug> RouteContext<T> for Result<T, E> {
+impl<T, E: Debug + 'static> RouteContext<T> for Result<T, E> {
     fn context(self, body: impl Display) -> Result<T, RouteError> {
         match self {
             Ok(x) => Ok(x),
             Err(e) => Err(RouteError {
                 location: Some(Location::caller()),
-
-                status: Status::InternalServerError,
+                error: Some(Box::new(e)),
                 message: body.to_string().into(),
                 ..Default::default()
             }),
@@ -170,7 +204,7 @@ impl<T, E: Debug> RouteContext<T> for Result<T, E> {
             Ok(x) => Ok(x),
             Err(e) => Err(RouteError {
                 location: Some(Location::caller()),
-                status: Status::InternalServerError,
+                error: Some(Box::new(e)),
                 message: body().to_string().into(),
                 ..Default::default()
             }),
@@ -184,7 +218,6 @@ impl<T> RouteContext<T> for Option<T> {
             Some(x) => Ok(x),
             None => Err(RouteError {
                 location: Some(Location::caller()),
-                status: Status::InternalServerError,
                 message: body.to_string().into(),
                 ..Default::default()
             }),
@@ -196,7 +229,6 @@ impl<T> RouteContext<T> for Option<T> {
             Some(x) => Ok(x),
             None => Err(RouteError {
                 location: Some(Location::caller()),
-                status: Status::InternalServerError,
                 message: body().to_string().into(),
                 ..Default::default()
             }),
@@ -287,8 +319,9 @@ impl Default for RouteError {
     fn default() -> Self {
         Self {
             location: None,
-            status: Status::InternalServerError,
+            error: None,
             message: "Internal Server Error".into(),
+            status: Status::InternalServerError,
             headers: Default::default(),
         }
     }
@@ -304,19 +337,16 @@ impl Display for RouteError {
 mod test {
     use std::error::Error;
 
-    use crate::Status;
-
     use super::RouteError;
 
     #[test]
     fn test_route_error_downcast() {
         let route_error = RouteError {
-            status: Status::InternalServerError,
             message: "test".into(),
             ..Default::default()
         };
-        let error = Box::new(route_error.clone()) as Box<dyn Error>;
 
-        assert_eq!(RouteError::downcast_error(error), route_error);
+        let error = Box::new(route_error) as Box<dyn Error>;
+        assert!(error.is::<RouteError>());
     }
 }
