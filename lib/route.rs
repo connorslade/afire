@@ -61,7 +61,6 @@ where
     }
 }
 
-// TODO: Maybe remove this?
 /// Lets you create an error handler from a function with the signature `Fn(Arc<Server<State>>, RouteError) -> Response`.
 pub struct AnonymousErrorHandler<State, F>
 where

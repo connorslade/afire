@@ -33,7 +33,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub ip: IpAddr,
 
     /// The event loop used to handle incoming connections.
-    pub event_loop: Box<dyn EventLoop<State>>,
+    pub event_loop: Box<dyn EventLoop<State> + Send + Sync>,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -46,7 +46,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub state: Option<Arc<State>>,
 
     /// Default response for internal server errors
-    pub error_handler: Box<dyn ErrorHandler<State>>,
+    pub error_handler: Box<dyn ErrorHandler<State> + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Headers,
@@ -170,7 +170,7 @@ impl<State: Send + Sync> Server<State> {
     /// The default is [`TcpEventLoop`], which uses the standard library's built-in TCP listener.
     ///
     /// The [afire_tls](https://github.com/Basicprogrammer10/afire_tls) crate contains an event loop that uses rustls to handle TLS connections.
-    pub fn event_loop(self, event_loop: impl EventLoop<State> + 'static) -> Self {
+    pub fn event_loop(self, event_loop: impl EventLoop<State> + Send + Sync + 'static) -> Self {
         Server {
             event_loop: Box::new(event_loop),
             ..self
@@ -286,13 +286,13 @@ impl<State: Send + Sync> Server<State> {
     /// ```rust
     /// # use afire::{Server, Response, Status, route::AnonymousErrorHandler};
     /// Server::<()>::new("localhost", 8080)
-    ///     .error_handler(AnonymousErrorHandler::new(|_server, err| {
+    ///     .error_handler(AnonymousErrorHandler::new(|_server, _req, err| {
     ///         Response::new()
     ///             .status(Status::InternalServerError)
     ///             .text(format!("Internal Server Error: {}", err.message))
     ///     }));
     /// ```
-    pub fn error_handler(self, res: impl ErrorHandler<State> + 'static) -> Self {
+    pub fn error_handler(self, res: impl ErrorHandler<State> + Send + Sync + 'static) -> Self {
         trace!("{}Setting Error Handler", emoji("✌"));
 
         Self {

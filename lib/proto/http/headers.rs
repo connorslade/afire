@@ -392,6 +392,12 @@ mod content_type {
             }
         }
 
+        /// Sets the charset of the ContentType header.
+        pub fn charset(mut self, charset: impl Into<Charset>) -> Self {
+            self.charset = Some(charset.into());
+            self
+        }
+
         content_type_shortcut![
             (html, HTML),
             (text, TEXT),

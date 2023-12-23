@@ -1,6 +1,9 @@
 //! Common MIME types for HTTP responses.
 
-use crate::{headers::ContentType, Header};
+use crate::{
+    headers::{Charset, ContentType},
+    Header,
+};
 
 use super::mime::{self, Mime};
 
@@ -51,6 +54,6 @@ impl Content<'_> {
 impl From<Content<'_>> for Header {
     // Convert Content to a Content-Type Header
     fn from(x: Content<'_>) -> Self {
-        ContentType::new(x.as_type()).into()
+        ContentType::new(x.as_type()).charset(Charset::Utf8).into()
     }
 }

@@ -10,6 +10,7 @@ use app::App;
 mod app;
 mod config;
 mod database;
+mod error;
 mod pages;
 mod routes;
 
@@ -18,6 +19,7 @@ fn main() -> Result<()> {
 
     // Create a new server with values loaded from config.toml
     let mut server = Server::new(&app.config.server.host, app.config.server.port)
+        .error_handler(error::error_handler)
         .workers(app.config.server.workers)
         .state(app);
 
