@@ -1,7 +1,6 @@
 //! Defined in [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#field.range).
 
 use std::{
-    borrow::Cow,
     fmt::{self, Display},
     io::{self, Read},
     ops::{Deref, RangeInclusive},
@@ -73,7 +72,7 @@ impl Range {
         self
     }
 
-    fn handle_range(&self, ranges: &Cow<'static, str>, _req: &Request, res: &mut Response) {
+    fn handle_range(&self, ranges: &str, _req: &Request, res: &mut Response) {
         let ranges = match Ranges::from_header(ranges) {
             Ok(ranges) => ranges,
             Err(e) => {
@@ -110,12 +109,12 @@ impl Ranges {
         for raw_range in raw.split(',') {
             let mut parts = raw_range.split('-');
             let mut parse = || {
-                Ok(parts
+                parts
                     .next()
                     .ok_or(RangeError::MalformedRange)?
                     .trim()
                     .parse::<usize>()
-                    .or(Err(RangeError::InvalidNumber))?)
+                    .or(Err(RangeError::InvalidNumber))
             };
             let (start, end) = (parse()?, parse()?);
             ranges.push(start..=end);
@@ -219,12 +218,12 @@ impl RangeResponse {
 }
 
 // TODO: Pass headers?
-impl Into<Response> for RangeResponse {
-    fn into(self) -> Response {
-        if self.is_single() {
-            singlepart_response(self)
+impl From<RangeResponse> for Response {
+    fn from(res: RangeResponse) -> Self {
+        if res.is_single() {
+            singlepart_response(res)
         } else {
-            multipart_response(self)
+            multipart_response(res)
         }
     }
 }
@@ -330,6 +329,12 @@ impl Deref for Ranges {
 
     fn deref(&self) -> &Self::Target {
         &self.ranges
+    }
+}
+
+impl Default for Range {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

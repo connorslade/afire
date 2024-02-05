@@ -31,7 +31,7 @@ impl Query {
     /// ```rust
     /// # use afire::Query;
     /// # use std::str::FromStr;
-    /// # let query = Query::from_str("foo=bar&nose=dog");
+    /// # let query = Query::from_query_str("foo=bar&nose=dog");
     /// # assert!(query.has("foo"));
     /// if query.has("foo") {
     ///    println!("foo exists");
@@ -64,7 +64,7 @@ impl Query {
     /// ```
     /// # use afire::Query;
     /// # use std::str::FromStr;
-    /// let query = Query::from_str("foo=bar&nose=dog");
+    /// let query = Query::from_query_str("foo=bar&nose=dog");
     /// assert_eq!(query.get("foo"), Some("bar"));
     /// ```
     pub fn get(&self, key: impl AsRef<str>) -> Option<&str> {
@@ -119,9 +119,9 @@ impl Query {
     /// ## Example
     /// ```
     /// # use afire::Query;
-    /// let query = Query::from_str("foo=bar&nose=dog");
+    /// let query = Query::from_query_str("foo=bar&nose=dog");
     /// ```
-    pub fn from_str(body: &str) -> Self {
+    pub fn from_query_str(body: &str) -> Self {
         let mut data = Vec::new();
 
         for i in body.split('&') {
@@ -183,7 +183,7 @@ mod test {
 
     #[test]
     fn test_from_str() {
-        let query = Query::from_str("foo=bar&nose=dog");
+        let query = Query::from_query_str("foo=bar&nose=dog");
         assert_eq!(query.get("foo"), Some("bar"));
         assert_eq!(query.get("nose"), Some("dog"));
         assert_eq!(query.get("bar"), None);
@@ -191,7 +191,7 @@ mod test {
 
     #[test]
     fn test_get() {
-        let query = Query::from_str("foo=bar&nose=dog");
+        let query = Query::from_query_str("foo=bar&nose=dog");
         assert_eq!(query.get("foo"), Some("bar"));
         assert_eq!(query.get("nose"), Some("dog"));
         assert_eq!(query.get("bar"), None);
@@ -199,7 +199,7 @@ mod test {
 
     #[test]
     fn test_get_mut() {
-        let mut query = Query::from_str("foo=bar&nose=dog");
+        let mut query = Query::from_query_str("foo=bar&nose=dog");
         assert_eq!(query.get_mut("bar"), None);
         query.get_mut("foo").unwrap().push_str("bar");
         assert_eq!(query.get("foo"), Some("barbar"));

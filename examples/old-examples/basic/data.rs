@@ -38,7 +38,7 @@ impl Example for Data {
             // The body of requests is not part of the req.query
             // Instead it is part of the req.body but as a string
             // We will need to parse it get it as a query
-            let body_data = Query::from_str(&String::from_utf8_lossy(&req.body));
+            let body_data = Query::from_query_str(&String::from_utf8_lossy(&req.body));
 
             let name = body_data.get("name").unwrap_or("Nobody");
             let text = format!("<h1>Hello, {}</h1>", name);

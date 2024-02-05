@@ -122,14 +122,12 @@ where
                     "Route handler [{:?}] errored after sending a response.",
                     route
                 );
-            } else {
-                if let Err(e) = this
-                    .clone()
-                    .error_handler
-                    .handle(&ctx, RouteError::downcast_error(e))
-                {
-                    trace!(Level::Debug, "Error writing error response: {:?}", e);
-                }
+            } else if let Err(e) = this
+                .clone()
+                .error_handler
+                .handle(&ctx, RouteError::downcast_error(e))
+            {
+                trace!(Level::Debug, "Error writing error response: {:?}", e);
             }
         } else if sent_response || req.socket.is_raw() {
             // A response has already been sent or another system has taken over the socket.
