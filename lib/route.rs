@@ -22,7 +22,7 @@ type Handler<State> = Box<dyn Fn(&Context<State>) -> AnyResult<()> + 'static + S
 /// Defines a route.
 ///
 /// You should not use this directly.
-/// It will be created automatically when using [`crate::Server::route`] or [`crate::Server::stateful_route`].
+/// It will be created automatically when using [`crate::Server::route`].
 pub struct Route<State: 'static + Send + Sync> {
     /// Route Method (GET, POST, ANY, etc.)
     method: Method,
@@ -38,9 +38,9 @@ impl<State: Send + Sync> Debug for Route<State> {
     }
 }
 
-/// An error handler is part of a [`Server`] and it is called when a [`Route`] returns an error.
+/// An error handler is part of a [`crate::Server`] and it is called when a [`Route`] returns an error.
 ///
-/// This trait has just one method, [`handle`], which takes a reference to the server and the error, and produces a response.
+/// This trait has just one method, [`ErrorHandler::handle`], which takes a reference to the server and the error, and produces a response.
 /// The default error handler is [`DefaultErrorHandler`], which produces a basic text response.
 ///
 /// Custom error handlers can be created to produce more complex responses.

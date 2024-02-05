@@ -1,7 +1,7 @@
 //! A resizable thread pool implementation.
 //! Used for handling multiple connections at once.
 //!
-//! You can access the thread pool from within a route handler with [`Context::thread_pool`].
+//! You can access the thread pool from within a route handler with `ctx.server.thread_pool`.
 //! With this, you can resize the thread pool, get the current thread id, or execute a job on the thread pool.
 //! To get the current thread id, use [`ThreadPool::current_thread`].
 //! To execute a job on the thread pool, use [`ThreadPool::execute`].
@@ -258,7 +258,7 @@ impl Worker {
 }
 
 impl Drop for ThreadPool {
-    /// Stops all workers with a [`Message::Kill`] message, and waits for them to finish.
+    /// Stops all workers with a kill message, and waits for them to finish.
     fn drop(&mut self) {
         trace!(
             Level::Debug,

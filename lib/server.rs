@@ -246,8 +246,8 @@ impl<State: Send + Sync> Server<State> {
     }
 
     /// Set the state of a server.
-    /// The state will be available to stateful routes ([`Server::stateful_route`]) and middleware.
-    /// It is not mutable, so you will need to use an atomic or sync type to mutate it.
+    /// The state will be available to routes and middleware.
+    /// It is not mutable, so you will need to use an atomic or other sync interior mutability type to modify it.
     ///
     /// ## Example
     /// ```rust,no_run

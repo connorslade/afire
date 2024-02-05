@@ -1,6 +1,6 @@
 //! Functions for handling raw sockets.
 //!
-//! These methods may be useful for creating your own [`crate::server::EventLoop`].
+//! These methods may be useful for creating your own [`crate::internal::event_loop::EventLoop`].
 
 use std::{cell::RefCell, io::Read, net::Shutdown, sync::Arc};
 
