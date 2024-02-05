@@ -4,7 +4,7 @@ use std::{
     io::Read,
     sync::{
         atomic::{AtomicU8, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, MutexGuard,
     },
 };
 
@@ -18,7 +18,7 @@ use crate::{
 /// A collection of data important for handling a request.
 /// It includes both the request data, and a reference to the server.
 /// You also use it to build and send the response.
-pub struct Context<State: 'static + Send + Sync> {
+pub struct Context<State: 'static + Send + Sync = ()> {
     /// Reference to the server.
     pub server: Arc<Server<State>>,
     /// The request you are handling.
@@ -115,6 +115,12 @@ impl<State: 'static + Send + Sync> Context<State> {
             .unwrap_or_else(|| panic!("Path parameter #{} does not exist.", idx))
     }
 
+    /// Gets a reference to the internal response.
+    /// This is mostly useful for when you need to inspect the current state of the response, or overwrite it in an error handler.
+    pub fn get_response(&self) -> MutexGuard<Response> {
+        self.response.force_lock()
+    }
+
     /// Sends the response to the client.
     /// This method must not be called more than once per request.
     ///
@@ -145,10 +151,20 @@ impl<State: 'static + Send + Sync> Context<State> {
             return Err(HandleError::ResponseAlreadySent.into());
         }
 
+        // TODO: NOT CALLING POST_RAW
+        for i in &self.server.middleware {
+            i.post(&self.req.clone(), &mut self.response.force_lock());
+        }
+
         self.response
             .force_lock()
             .write(self.req.socket.clone(), &self.server.default_headers)?;
         self.flags.set(ContextFlag::ResponseSent);
+
+        let res = self.response.force_lock();
+        for i in self.server.middleware.iter() {
+            i.end_raw(Ok(self.req.clone()), &res);
+        }
 
         if self.flags.get(ContextFlag::GuaranteedSend) {
             self.req.socket.unlock();
@@ -260,11 +276,11 @@ impl<State: 'static + Send + Sync> Context<State> {
     /// ## Example
     /// ```
     /// # use afire::prelude::*;
-    /// # use afire::header;
+    /// # use afire::headers;
     /// # fn test(server: &mut Server) {
     /// server.route(Method::GET, "/", |ctx| {
     ///     ctx.header(("X-Test", "Test")); // Set 'X-Test' header to 'Test'
-    ///     ctx.header(header::Server::new("teapot")); // Set 'Server' header to 'teapot'
+    ///     ctx.header(headers::Server::new("teapot")); // Set 'Server' header to 'teapot'
     ///
     ///     ctx.text("Hello World!").send()?;
     ///     Ok(())   

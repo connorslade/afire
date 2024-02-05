@@ -1,6 +1,6 @@
 use std::{
     any::type_name,
-    net::{IpAddr, SocketAddr, TcpListener, TcpStream},
+    net::{IpAddr, SocketAddr, TcpStream},
     str,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -12,17 +12,16 @@ use std::{
 use crate::{
     error::Result,
     error::{AnyResult, StartupError},
-    handle::handle,
     header::Headers,
-    internal::misc::ToHostAddress,
-    route::Route,
-    thread_pool::ThreadPool,
+    internal::{
+        event_loop::{EventLoop, TcpEventLoop},
+        misc::ToHostAddress,
+        thread_pool::ThreadPool,
+    },
+    route::{DefaultErrorHandler, ErrorHandler, Route},
     trace::emoji,
-    Content, Context, Header, HeaderName, Method, Middleware, Request, Response, Status, VERSION,
+    Context, Header, HeaderName, Method, Middleware, VERSION,
 };
-
-type ErrorHandler<State> =
-    Box<dyn Fn(Option<Arc<State>>, &Box<Result<Arc<Request>>>, String) -> Response + Send + Sync>;
 
 /// Defines a server.
 // todo: make not all this public
@@ -32,6 +31,9 @@ pub struct Server<State: 'static + Send + Sync = ()> {
 
     /// Ip address to listen on.
     pub ip: IpAddr,
+
+    /// The event loop used to handle incoming connections.
+    pub event_loop: Box<dyn EventLoop<State> + Send + Sync>,
 
     /// Routes to handle.
     pub routes: Vec<Route<State>>,
@@ -44,7 +46,7 @@ pub struct Server<State: 'static + Send + Sync = ()> {
     pub state: Option<Arc<State>>,
 
     /// Default response for internal server errors
-    pub error_handler: ErrorHandler<State>,
+    pub error_handler: Box<dyn ErrorHandler<State> + Send + Sync>,
 
     /// Headers automatically added to every response.
     pub default_headers: Headers,
@@ -83,16 +85,10 @@ impl<State: Send + Sync> Server<State> {
         Server {
             port,
             ip: raw_ip.to_address().unwrap(),
+            event_loop: Box::new(TcpEventLoop),
             routes: Vec::new(),
             middleware: Vec::new(),
-
-            error_handler: Box::new(|_state, _req, err| {
-                Response::new()
-                    .status(Status::InternalServerError)
-                    .text(format!("Internal Server Error :/\nError: {err}"))
-                    .content(Content::TXT)
-            }),
-
+            error_handler: Box::new(DefaultErrorHandler),
             default_headers: Headers(vec![Header::new("Server", format!("afire/{VERSION}"))]),
             keep_alive: true,
             socket_timeout: None,
@@ -118,10 +114,12 @@ impl<State: Send + Sync> Server<State> {
     /// // This is blocking
     /// server.run().unwrap();
     /// ```
-    pub fn run(self) -> Result<()> {
+    pub fn run(mut self) -> Result<()> {
         let threads = self.thread_pool.threads();
         if threads == 0 {
-            self.thread_pool.resize(1);
+            trace!("Running single threaded, disabling Keep Alive",);
+            self.keep_alive = false;
+            self.thread_pool.resize_exact(1);
         }
 
         trace!(
@@ -144,31 +142,10 @@ impl<State: Send + Sync> Server<State> {
             .into());
         }
 
-        let listener = TcpListener::bind(SocketAddr::new(self.ip, self.port))?;
+        let addr = SocketAddr::new(self.ip, self.port);
         let this = Arc::new(self);
 
-        for event in listener.incoming() {
-            if !this.running.load(Ordering::Relaxed) {
-                trace!(
-                    Level::Debug,
-                    "Stopping event loop. No more connections will be accepted."
-                );
-                break;
-            }
-
-            let this2 = this.clone();
-            this.thread_pool.execute(move || {
-                let event = match event {
-                    Ok(event) => event,
-                    Err(err) => {
-                        trace!(Level::Error, "Error accepting connection: {err}");
-                        return;
-                    }
-                };
-
-                handle(event, this2)
-            });
-        }
+        this.clone().event_loop.run(this, addr)?;
 
         trace!("{}Server Stopped", emoji("🛑"));
         Ok(())
@@ -185,8 +162,19 @@ impl<State: Send + Sync> Server<State> {
     ///     .workers(4);
     pub fn workers(self, threads: usize) -> Self {
         // TODO: only resize on start?
-        self.thread_pool.resize(threads);
+        self.thread_pool.resize_exact(threads);
         self
+    }
+
+    /// Change the server's event loop.
+    /// The default is [`TcpEventLoop`], which uses the standard library's built-in TCP listener.
+    ///
+    /// The [afire_tls](https://github.com/Basicprogrammer10/afire_tls) crate contains an event loop that uses rustls to handle TLS connections.
+    pub fn event_loop(self, event_loop: impl EventLoop<State> + Send + Sync + 'static) -> Self {
+        Server {
+            event_loop: Box::new(event_loop),
+            ..self
+        }
     }
 
     /// Add a new default header to the server.
@@ -258,8 +246,8 @@ impl<State: Send + Sync> Server<State> {
     }
 
     /// Set the state of a server.
-    /// The state will be available to stateful routes ([`Server::stateful_route`]) and middleware.
-    /// It is not mutable, so you will need to use an atomic or sync type to mutate it.
+    /// The state will be available to routes and middleware.
+    /// It is not mutable, so you will need to use an atomic or other sync interior mutability type to modify it.
     ///
     /// ## Example
     /// ```rust,no_run
@@ -296,25 +284,22 @@ impl<State: Send + Sync> Server<State> {
     /// Be sure that your panic handler wont panic, because that will just panic the whole application.
     /// ## Example
     /// ```rust
-    /// # use afire::{Server, Response, Status};
-    /// # let mut server = Server::<()>::new("localhost", 8080);
-    /// // Set the panic handler response
-    /// server.error_handler(|_state, _req, err| {
-    ///     Response::new()
-    ///         .status(Status::InternalServerError)
-    ///         .text(format!("Internal Server Error: {}", err))
-    /// });
+    /// # use afire::{Server, Response, Status, Context, route::RouteError};
+    /// Server::<()>::new("localhost", 8080)
+    ///     .error_handler(|ctx: &Context, err: RouteError| {
+    ///         ctx.status(Status::InternalServerError)
+    ///             .text(format!("Internal Server Error: {}", err.message))
+    ///             .send()?;
+    ///         Ok(())
+    ///     });
     /// ```
-    pub fn error_handler(
-        &mut self,
-        res: impl Fn(Option<Arc<State>>, &Box<Result<Arc<Request>>>, String) -> Response
-            + Send
-            + Sync
-            + 'static,
-    ) {
+    pub fn error_handler(self, res: impl ErrorHandler<State> + Send + Sync + 'static) -> Self {
         trace!("{}Setting Error Handler", emoji("✌"));
 
-        self.error_handler = Box::new(res);
+        Self {
+            error_handler: Box::new(res),
+            ..self
+        }
     }
 
     /// Create a new route.

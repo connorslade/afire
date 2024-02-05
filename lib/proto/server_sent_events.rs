@@ -38,7 +38,7 @@ use std::{
 use crate::{
     context::ContextFlag,
     error::Result,
-    header::{CacheControl, ContentType},
+    headers::{CacheControl, ContentType},
     internal::sync::{ForceLockMutex, SingleBarrier},
     Context, Error, Header, Request, Response,
 };

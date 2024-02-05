@@ -43,6 +43,7 @@
 //! ```
 
 use std::{
+    borrow::Cow,
     fmt::{self, Arguments, Debug, Display},
     sync::{
         atomic::{AtomicBool, AtomicU8, Ordering},
@@ -149,11 +150,14 @@ pub fn _trace(level: Level, fmt: Arguments) {
 
 // TODO: convert to macro for compile time concat!
 // this is a totally normal and necessary function
-pub(crate) fn emoji(emoji: &str) -> String {
-    #[cfg(feature = "emoji-logging")]
-    return emoji.to_owned() + " ";
-    #[cfg(not(feature = "emoji-logging"))]
-    String::new()
+#[cfg(feature = "emoji-logging")]
+pub(crate) fn emoji(emoji: &str) -> Cow<str> {
+    Cow::Owned(emoji.to_owned() + " ")
+}
+
+#[cfg(not(feature = "emoji-logging"))]
+pub(crate) fn emoji(_emoji: &str) -> Cow<str> {
+    Cow::Borrowed("")
 }
 
 /// Simple logging system.
@@ -162,14 +166,14 @@ pub(crate) fn emoji(emoji: &str) -> String {
 /// Enabled with the `tracing` feature
 #[macro_export]
 macro_rules! trace {
-    (Level::$level: ident, $($arg: tt) +) => {
+    (Level::$level: ident, $($arg: tt) +) => {{
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::$level, format_args!($($arg)+));
-    };
-    ($($arg: tt) +) => {
+    }};
+    ($($arg: tt) +) => {{
         #[cfg(feature = "tracing")]
         $crate::trace::_trace($crate::trace::Level::Trace, format_args!($($arg)+));
-    };
+    }};
 }
 
 /// A wrapper for [`Display`] or [`Debug`] types that only evaluates the inner value when it is actually used.

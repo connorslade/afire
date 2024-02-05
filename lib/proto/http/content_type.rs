@@ -1,6 +1,9 @@
-use std::ops::Deref;
+//! Common MIME types for HTTP responses.
 
-use crate::{header::ContentType, Header};
+use crate::{
+    headers::{Charset, ContentType},
+    Header,
+};
 
 use super::mime::{self, Mime};
 
@@ -43,7 +46,7 @@ impl Content<'_> {
             Content::CSV  => mime::CSV,
             Content::JSON => mime::JSON,
             Content::XML  => mime::XML,
-            Content::Custom(i) => i.deref().into(),
+            Content::Custom(i) => (*i).into(),
         }
     }
 }
@@ -51,6 +54,6 @@ impl Content<'_> {
 impl From<Content<'_>> for Header {
     // Convert Content to a Content-Type Header
     fn from(x: Content<'_>) -> Self {
-        ContentType::new(x.as_type()).into()
+        ContentType::new(x.as_type()).charset(Charset::Utf8).into()
     }
 }

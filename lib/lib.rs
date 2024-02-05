@@ -15,90 +15,56 @@ mod consts {
     pub const CHUNK_SIZE: usize = 16 * 1024;
 }
 
-// Export Internal Functions
 pub mod internal;
-
-// Import Internal Functions
-mod thread_pool;
-use internal::{encoding, handle, router};
-use proto::http::{self, *};
+use internal::{encoding, router};
 
 #[macro_use]
 pub mod trace;
 mod context;
 pub mod error;
 pub mod middleware;
-mod proto;
+pub mod proto;
 mod request;
 mod response;
 pub mod route;
 mod server;
-mod socket;
+
+#[doc(inline)]
 pub use self::{
-    content_type::Content,
     context::Context,
-    cookie::{Cookie, SetCookie},
     error::Error,
-    header::{Header, HeaderName},
-    http::{cookie, header, multipart},
-    method::Method,
     middleware::Middleware,
+    proto::http::{
+        content_type::Content,
+        cookie,
+        cookie::{Cookie, SetCookie},
+        header,
+        header::{Header, HeaderName},
+        headers,
+        method::Method,
+        multipart,
+        query::Query,
+        status::Status,
+    },
     proto::{server_sent_events, websocket},
-    query::Query,
     request::Request,
     response::Response,
     server::Server,
-    status::Status,
 };
 
-/// The Prelude is a collection of very commonly used *things* in afire.
-/// Unless you are using middleware, extensions or internal lower level stuff this should be all you need!
+/// The prelude is a collection of types and traits that are commonly used in most afire applications.
 pub mod prelude {
     pub use crate::{
         error::{self, Error},
+        headers::{self, *},
         middleware::{MiddleResult, Middleware},
         proto::server_sent_events::ServerSentEventsExt,
         proto::websocket::WebSocketExt,
-        Content, Cookie, Header, HeaderName, Method, Query, Request, Response, Server, SetCookie,
-        Status,
+        route::{AdditionalRouteContext, RouteContext},
+        Content, Context, Cookie, Header, HeaderName, Method, Query, Request, Response, Server,
+        SetCookie, Status,
     };
 }
 
-// Extra Features
 #[cfg(feature = "extensions")]
-#[path = "extensions/mod.rs"]
-mod _extensions;
-
-#[cfg(feature = "extensions")]
-pub mod extensions {
-    //! Useful extensions to the base afire.
-    //! Includes helpful middleware like Serve Static, Rate Limit and Logger.
-    //!
-    //! ## All Feature
-    //! | Name                 | Description                                                               |
-    //! | -------------------- | ------------------------------------------------------------------------- |
-    //! | [`Date`]             | Add the Date header to responses. Required by HTTP.                       |
-    //! | [`Head`]             | Add support for HTTP `HEAD` requests.                                     |
-    //! | [`Logger`]           | Log incoming requests to the console / file.                              |
-    //! | [`PathNormalizer`]   | Normalize paths to a common format without trailing or repeating slashes. |
-    //! | [`RateLimiter`]      | Limit how many requests can be handled from a source.                     |
-    //! | [`RealIp`]           | Get the real IP of a client through a reverse proxy                       |
-    //! | [`RedirectResponse`] | Shorthands for HTTP redirects.                                            |
-    //! | [`RequestId`]        | Add a Request-Id header to all requests.                                  |
-    //! | [`RouteShorthands`]  | Shorthands for defining routes (`server.get(...)`).                       |
-    //! | [`ServeStatic`]      | Serve static files from a dir.                                            |
-    //! | [`Trace`]            | Add support for the HTTP `TRACE` method.                                  |
-    pub use crate::_extensions::{
-        date::{self, Date},
-        head::Head,
-        logger::{self, Logger},
-        path_normalizer::PathNormalizer,
-        ratelimit::RateLimiter,
-        real_ip::RealIp,
-        redirect::{self, RedirectResponse, RedirectType},
-        request_id::RequestId,
-        route_shorthands::RouteShorthands,
-        serve_static::{self, ServeStatic},
-        trace::Trace,
-    };
-}
+pub mod extensions;

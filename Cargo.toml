@@ -2,12 +2,12 @@
 authors = ["Connor Slade <connor@connorcode.com>"]
 edition = "2018"
 name = "afire"
-version = "3.0.0-alpha.2"
+version = "3.0.0-alpha.3"
 
 categories = ["network-programming", "web-programming::http-server"]
 description = "🔥 A blazing fast web framework for Rust"
 documentation = "https://docs.rs/afire"
-exclude = [".github/", "SocialShare.*", ".devcontainer"]
+exclude = [".github", ".devcontainer", ".vscode", "SocialShare.*"]
 homepage = "https://connorcode.com/writing/afire"
 keywords = ["afire", "http", "WebFramework", "WebServer"]
 license = "MIT"

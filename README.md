@@ -10,7 +10,7 @@ Just add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-afire = "3.0.0-alpha.2"
+afire = "3.0.0-alpha.3"
 ```
 
 ## 📄 Info
@@ -32,13 +32,10 @@ For more examples see the examples directory [here](https://github.com/Basicprog
 Below is a super simple example so you can see the basics of afire syntax.
 
 ```rust no_run
-// Import Lib
-use afire::{Server, Method, Response, Header, Content};
+use afire::prelude::*;
 
-// Create Server
 let mut server = Server::<()>::new("localhost", 8080);
 
-// Add a route
 server.route(Method::GET, "/greet/{name}", |ctx| {
   let name = ctx.param("name");
 
@@ -49,7 +46,6 @@ server.route(Method::GET, "/greet/{name}", |ctx| {
   Ok(())
 });
 
-// Start the server
 server.run().unwrap();
 ```
 

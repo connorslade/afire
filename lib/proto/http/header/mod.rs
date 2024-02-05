@@ -6,11 +6,11 @@
 //! ## Example
 //! ```rust
 //! # use afire::prelude::*;
-//! # use afire::header;
+//! # use afire::headers;
 //! # fn test(server: &mut Server) {
 //! server.route(Method::GET, "/", |ctx| {
 //!     ctx.header(("X-Test", "Test")); // Set 'X-Test' header to 'Test'
-//!     ctx.header(header::Server::new("teapot")); // Set 'Server' header to 'teapot'
+//!     ctx.header(headers::Server::new("teapot")); // Set 'Server' header to 'teapot'
 //!
 //!     ctx.text("Hello World!").send()?;
 //!     Ok(())
@@ -23,11 +23,12 @@
 //! Header structs are structs that implement [`Into<Header>`][`Header#impl-Into<Header>-for-(T,+K)`] and make it easier to set headers.
 //! afire currently has the following header structs:
 //!
-//! |[`AccessControlAllowOrigin`]|[`ContentLength`]|
-//! | -------------------------- | --------------- |
-//! |[`CacheControl`]            |[`Date`]         |
-//! |[`Connection`]              |[`Location`]     |
-//! |[`ContentEncoding`]         |[`Server`]       |
+//! |[AccessControlAllowOrigin][`crate::headers::AccessControlAllowOrigin`]|[ContentType][`crate::headers::ContentType`]|
+//! | -------------------------------------------------------------------- | ------------------------------------------ |
+//! |[CacheControl][`crate::headers::CacheControl`]                        |[Date][`crate::headers::Date`]              |
+//! |[Connection][`crate::headers::Connection`]                            |[Location][`crate::headers::Location`]      |
+//! |[ContentEncoding][`crate::headers::ContentEncoding`]                  |[Server][`crate::headers::Server`]          |
+//! |[ContentLength][`crate::headers::ContentLength`]                      |[Vary][`crate::headers::Vary`]              |
 
 use std::{
     borrow::Cow,
@@ -41,10 +42,8 @@ use crate::{
 };
 
 mod header_name;
-mod impls;
 
 pub use header_name::HeaderName;
-pub use impls::*;
 
 /// Http header.
 /// Has a name and a value.

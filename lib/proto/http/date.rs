@@ -1,3 +1,5 @@
+//! HTTP date formatting.
+
 const DAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -15,7 +17,7 @@ fn days_in_month(month: u8, year: u16) -> u8 {
     }
 }
 
-/// Returns the current date in the IMF-fixdate format.
+/// Returns the specified epoch (seconds) in the IMF-fixdate format.
 /// Example: `Sun, 06 Nov 1994 08:49:37 GMT`
 pub fn imp_date(epoch: u64) -> String {
     let seconds = epoch % 60;

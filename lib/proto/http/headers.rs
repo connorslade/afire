@@ -1,3 +1,5 @@
+//! Contains all the header structs that can be used with HTTP requests and responses.
+
 use std::{borrow::Cow, fmt::Display};
 
 use crate::{
@@ -15,6 +17,7 @@ pub use date::*;
 pub use location::*;
 pub use misc::*;
 pub use server::*;
+pub use vary::*;
 
 mod access_control_allow_origin {
     use crate::internal::misc::filter_crlf;
@@ -145,7 +148,7 @@ mod cache_control {
         /// Creates a new `CacheControl` header with the given directives.
         /// ## Example
         /// ```
-        /// # use afire::header::{CacheControl, CacheDirective};
+        /// # use afire::headers::{CacheControl, CacheDirective};
         /// CacheControl::new([CacheDirective::MaxAge(3600), CacheDirective::NoTransform]);
         /// ```
         pub fn new(directives: impl Into<Box<[CacheDirective]>>) -> Self {
@@ -389,6 +392,12 @@ mod content_type {
             }
         }
 
+        /// Sets the charset of the ContentType header.
+        pub fn charset(mut self, charset: impl Into<Charset>) -> Self {
+            self.charset = Some(charset.into());
+            self
+        }
+
         content_type_shortcut![
             (html, HTML),
             (text, TEXT),
@@ -514,6 +523,46 @@ mod server {
             Header {
                 name: HeaderName::Server,
                 value: value.product,
+            }
+        }
+    }
+}
+
+mod vary {
+    use super::*;
+
+    /// `Vary` header for responses. ([RFC 9110 §10.2.6](https://www.rfc-editor.org/rfc/rfc9110#field.vary))
+    pub enum Vary {
+        /// List of headers that may cause a cache to change to a response.
+        Headers {
+            /// The headers that may cause a cache to change to a response.
+            headers: Box<[HeaderName]>,
+        },
+        /// Indicates that some non-header factor caused the response to change.
+        Wildcard,
+    }
+
+    impl Vary {
+        /// Create a new Vary header with the given header names.
+        pub fn headers(headers: impl Into<Box<[HeaderName]>>) -> Self {
+            Vary::Headers {
+                headers: headers.into(),
+            }
+        }
+    }
+
+    impl From<Vary> for Header {
+        fn from(value: Vary) -> Self {
+            let value = match value {
+                Vary::Headers { headers } => {
+                    Cow::Owned(comma_separated(headers, |x| x.to_string().into()))
+                }
+                Vary::Wildcard => Cow::Borrowed("*"),
+            };
+
+            Header {
+                name: HeaderName::Vary,
+                value,
             }
         }
     }

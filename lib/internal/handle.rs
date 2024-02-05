@@ -1,18 +1,16 @@
-use std::{
-    cell::RefCell,
-    io::Read,
-    net::{Shutdown, TcpStream},
-    sync::Arc,
-};
+//! Functions for handling raw sockets.
+//!
+//! These methods may be useful for creating your own [`crate::internal::event_loop::EventLoop`].
+
+use std::{cell::RefCell, io::Read, net::Shutdown, sync::Arc};
 
 use crate::{
     context::ContextFlag,
     error::{HandleError, ParseError, StreamError},
-    internal::sync::ForceLockMutex,
+    internal::{socket::Socket, sync::ForceLockMutex},
     prelude::MiddleResult,
     response::ResponseFlag,
     route::RouteError,
-    socket::Socket,
     trace,
     trace::LazyFmt,
     Content, Context, Error, Request, Response, Server, Status,
@@ -22,19 +20,30 @@ pub(crate) type Writeable = Box<RefCell<dyn Read + Send>>;
 
 /// Handles a socket.
 ///
-/// <https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D>
-pub(crate) fn handle<State>(stream: TcpStream, this: Arc<Server<State>>)
+/// This process consists of:
+/// - Parsing the request
+/// - Running pre and post middleware
+/// - Finding and running the correct route handler
+/// - Error handling
+/// - etc.
+///
+/// For further information, check the source code.
+/// This is the internal module after all, so don't expect me to keep good documentation.
+///
+/// [handle me by Sophie Cates on Spotify](https://open.spotify.com/track/50txng2W8C9SycOXKIQP0D)
+pub fn handle<State>(stream: Arc<Socket>, this: Arc<Server<State>>)
 where
     State: 'static + Send + Sync,
 {
+    let socket = stream.force_lock();
     trace!(
         Level::Debug,
         "Opening socket {:?}",
-        LazyFmt(|| stream.peer_addr())
+        LazyFmt(|| socket.peer_addr())
     );
-    stream.set_read_timeout(this.socket_timeout).unwrap();
-    stream.set_write_timeout(this.socket_timeout).unwrap();
-    let stream = Arc::new(Socket::new(stream));
+    socket.set_timeout(this.socket_timeout).unwrap();
+    drop(socket);
+
     'outer: loop {
         let mut keep_alive = false;
         let mut req = Request::from_socket(stream.clone());
@@ -107,12 +116,16 @@ where
                 continue 'outer;
             }
 
-            // TODO: account for guaranteed send
-            // TODO: Run through `write` for middleware
-            let error = RouteError::downcast_error(e);
-            if let Err(e) = error
-                .to_response()
-                .write(req.socket.clone(), &this.default_headers)
+            if sent_response {
+                trace!(
+                    Level::Error,
+                    "Route handler [{:?}] errored after sending a response.",
+                    route
+                );
+            } else if let Err(e) = this
+                .clone()
+                .error_handler
+                .handle(&ctx, RouteError::downcast_error(e))
             {
                 trace!(Level::Debug, "Error writing error response: {:?}", e);
             }

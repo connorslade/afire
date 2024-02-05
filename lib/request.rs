@@ -12,8 +12,7 @@ use crate::{
     cookie::CookieJar,
     error::{ParseError, Result, StreamError},
     header::{HeaderName, Headers},
-    internal::sync::ForceLockMutex,
-    socket::Socket,
+    internal::{socket::Socket, sync::ForceLockMutex},
     Cookie, Error, Header, Method, Query,
 };
 
@@ -188,7 +187,7 @@ pub(crate) fn parse_request_line(bytes: &[u8]) -> Result<(Method, String, Query,
         }
     }
 
-    let query = Query::from_body(&final_query);
+    let query = Query::from_query_str(&final_query);
     let version = parts
         .next()
         .ok_or(Error::Parse(ParseError::NoVersion))?

@@ -1,6 +1,6 @@
 //! Shorthand methods for sending redirects.
 
-use crate::{header::Location, Context, Status};
+use crate::{headers::Location, Context, Status};
 
 /// Types of redirects that can be sent.
 /// This type can be passed to [`RedirectResponse::redirect_type`] to send a redirect with a specific status code, or to the plain [`Context::header`] where you will need to manually define the 'Location' header.
@@ -19,7 +19,7 @@ use crate::{header::Location, Context, Status};
 /// ```
 /// # use afire::prelude::*;
 /// # use afire::extensions::{RedirectResponse, RedirectType};
-/// # use afire::header::Location;
+/// # use afire::headers::Location;
 /// # fn test(server: &mut Server) {
 /// // Use the default 302 Found redirect
 /// server.route(Method::GET, "/redirect", |ctx| {

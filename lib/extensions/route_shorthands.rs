@@ -1,3 +1,6 @@
+//! Adds shorthands for defining routes.
+//! Instead of using the method enum with the `server.route(<method>, ..)` method, you can use `server.<method>(..)`.
+
 use crate::{error::AnyResult, Context, Server};
 
 macro_rules! route_shorthands {
@@ -41,6 +44,7 @@ macro_rules! route_shorthands {
 }
 
 route_shorthands! {
+    any     => Method::ANY,
     get     => Method::GET,
     post    => Method::POST,
     put     => Method::PUT,

@@ -1,5 +1,8 @@
+//! Mime types used in headers.
+
 use std::{borrow::Cow, fmt::Display};
 
+/// A MIME type.
 pub struct Mime {
     r#type: Cow<'static, str>,
     subtype: Cow<'static, str>,
@@ -34,7 +37,10 @@ macro_rules! mime {
 
 macro_rules! define_mimes {
     ($($name:ident => $_type:ident / $_subtype:ident),*) => {
-        $( pub const $name: Mime = mime!($_type / $_subtype); )*
+        $(
+            #[doc = concat!("The ", stringify!($name), " MIME type. (`", stringify!($_type), "/", stringify!($_subtype), "`)")]
+            pub const $name: Mime = mime!($_type / $_subtype);
+        )*
     };
 }
 

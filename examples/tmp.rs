@@ -12,11 +12,13 @@ use std::{
 };
 
 use afire::{
-    extensions::{Date, Head, Logger, RedirectResponse, RouteShorthands, ServeStatic, Trace},
+    extensions::{
+        Date, Head, Logger, Range, RedirectResponse, RouteShorthands, ServeStatic, SyncRoute, Trace,
+    },
     internal::sync::{ForceLockMutex, ForceLockRwLock},
     multipart::MultipartData,
     prelude::*,
-    route::RouteContext,
+    route::{RouteContext, RouteError},
     trace,
     trace::DefaultFormatter,
     trace::{set_log_formatter, set_log_level, Formatter, Level},
@@ -28,10 +30,13 @@ const PATH: &str = r#"..."#;
 const FILE_TYPE: &str = "...";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::<()>::new("localhost", 8081).workers(4);
+    let mut server = Server::<()>::new("localhost", 8081)
+        .workers(4)
+        .error_handler(|ctx: &Context<()>, error: RouteError| {
+            Ok(ctx.text(error.message).send()?)
+        });
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
-    Logger::new().attach(&mut server);
 
     server.get("/**", |ctx| {
         ctx.text("Not found! UWU?")
@@ -315,6 +320,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         Ok(())
     });
 
+    server.sync_route(Method::GET, "/sync-test", |_ctx| {
+        Ok(Response::new().text("Heyyyy"))
+    });
+
+    Range::new().reject_invalid().attach(&mut server);
     Test.attach(&mut server);
     Date.attach(&mut server);
     Trace::new().attach(&mut server);
@@ -332,7 +342,10 @@ impl Middleware for Test {
     fn pre(&self, req: &mut Request) -> MiddleResult {
         if req.path.contains("hello") {
             println!("Pre: {}", req.path);
-            return MiddleResult::Send(Response::new().text("Intercepted"));
+            // return MiddleResult::Send(Response::new().text("Intercepted"));
+            return MiddleResult::Send(
+                Response::new().stream(Cursor::new(Arc::new(b"Intercepted".to_vec()))),
+            );
         }
 
         MiddleResult::Continue

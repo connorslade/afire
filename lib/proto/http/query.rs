@@ -1,3 +1,5 @@
+//! Query parameters for HTTP requests.
+
 use std::{
     fmt,
     ops::{Deref, DerefMut},
@@ -8,21 +10,19 @@ use crate::internal::encoding::url;
 /// Collection of query parameters.
 /// Can be made from the query string of a URL, or the body of a POST request.
 /// Similar to [`crate::header::Headers`].
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct Query(Vec<[String; 2]>);
-
-impl Deref for Query {
-    type Target = Vec<[String; 2]>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+#[derive(Hash, PartialEq, Eq, Clone)]
+pub struct Query {
+    inner: Vec<QueryParameter>,
 }
 
-impl DerefMut for Query {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
+/// An individual query parameter.
+/// Key and value are both automatically url decoded.
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct QueryParameter {
+    /// The key of the query parameter.
+    pub key: String,
+    /// The value of the query parameter.
+    pub value: String,
 }
 
 impl Query {
@@ -31,15 +31,15 @@ impl Query {
     /// ```rust
     /// # use afire::Query;
     /// # use std::str::FromStr;
-    /// # let query = Query::from_body("foo=bar&nose=dog");
+    /// # let query = Query::from_query_str("foo=bar&nose=dog");
     /// # assert!(query.has("foo"));
     /// if query.has("foo") {
     ///    println!("foo exists");
     /// }
     /// ```
     pub fn has(&self, key: impl AsRef<str>) -> bool {
-        let key = key.as_ref().to_owned();
-        self.iter().any(|i| *i[0] == key)
+        let key = key.as_ref();
+        self.inner.iter().any(|i| i.key == key)
     }
 
     /// Adds a new key-value pair to the collection with the specified key and value.
@@ -52,7 +52,10 @@ impl Query {
     /// query.add("foo", "bar");
     /// # }
     pub fn add(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.push([key.into(), value.into()]);
+        self.inner.push(QueryParameter {
+            key: key.into(),
+            value: value.into(),
+        });
     }
 
     /// Get a value from a key.
@@ -61,62 +64,67 @@ impl Query {
     /// ```
     /// # use afire::Query;
     /// # use std::str::FromStr;
-    /// let query = Query::from_body("foo=bar&nose=dog");
+    /// let query = Query::from_query_str("foo=bar&nose=dog");
     /// assert_eq!(query.get("foo"), Some("bar"));
     /// ```
     pub fn get(&self, key: impl AsRef<str>) -> Option<&str> {
-        let key = key.as_ref().to_owned();
-        self.iter()
-            .find(|i| *i[0] == key)
-            .map(|i| &i[1])
-            .map(|x| x.as_str())
+        let key = key.as_ref();
+        self.inner
+            .iter()
+            .find(|i| i.key == key)
+            .map(|i| i.value.as_ref())
     }
 
     /// Gets a value of the specified key as a mutable reference.
     /// This will return None if the key does not exist.
     /// See [`Query::get`] for the non-mutable version.
     pub fn get_mut(&mut self, key: impl AsRef<str>) -> Option<&mut String> {
-        let key = key.as_ref().to_owned();
-        self.iter_mut().find(|i| *i[0] == key).map(|i| &mut i[1])
+        let key = key.as_ref();
+        self.inner
+            .iter_mut()
+            .find(|i| i.key == key)
+            .map(|i| &mut i.value)
     }
 
-    /// Adds a new key-value pair to the collection from a `[String; 2]`.
-    /// See [`Query::add`] for adding to the collection with a key and value.
+    /// Adds a new parameter to the collection with a QueryParameter struct.
+    /// See [`Query::add`] for adding a key-value pair with string keys and values.
     /// ## Example
     /// ```rust
-    /// # use afire::Query;
+    /// # use afire::proto::http::query::{QueryParameter, Query};
     /// # fn test(query: &mut Query) {
-    /// query.add_query(["foo".to_owned(), "bar".to_owned()]);
+    /// query.add_query(QueryParameter {
+    ///     key: "foo".into(),
+    ///     value: "bar".into(),
+    /// });
     /// # }
-    pub fn add_query(&mut self, query: [String; 2]) {
-        self.push(query);
+    pub fn add_query(&mut self, query: QueryParameter) {
+        self.inner.push(query);
     }
 
     /// Gets the key-value pair of the specified key.
     /// If the key does not exist, this will return None.
-    pub fn get_query(&self, key: impl AsRef<str>) -> Option<&[String; 2]> {
-        let key = key.as_ref().to_owned();
-        self.iter().find(|i| *i[0] == key)
+    pub fn get_query(&self, key: impl AsRef<str>) -> Option<&QueryParameter> {
+        let key = key.as_ref();
+        self.inner.iter().find(|i| i.key == key)
     }
 
     /// Get the key-value pair of the specified key as a mutable reference.
     /// If the key does not exist, this will return None.
-    pub fn get_query_mut(&mut self, key: impl AsRef<str>) -> Option<&mut [String; 2]> {
-        let key = key.as_ref().to_owned();
-        self.iter_mut().find(|i| *i[0] == key)
+    pub fn get_query_mut(&mut self, key: impl AsRef<str>) -> Option<&mut QueryParameter> {
+        let key = key.as_ref();
+        self.inner.iter_mut().find(|i| i.key == key)
     }
 
     /// Create a new Query from a Form POST body
     /// ## Example
     /// ```
     /// # use afire::Query;
-    /// let query = Query::from_body("foo=bar&nose=dog");
+    /// let query = Query::from_query_str("foo=bar&nose=dog");
     /// ```
-    pub fn from_body(body: &str) -> Self {
+    pub fn from_query_str(body: &str) -> Self {
         let mut data = Vec::new();
 
-        let parts = body.split('&');
-        for i in parts {
+        for i in body.split('&') {
             let mut sub = i.splitn(2, '=');
 
             let Some(key) = sub.next().map(url::decode) else {
@@ -127,14 +135,27 @@ impl Query {
                 continue;
             };
 
-            data.push([key, value])
+            data.push(QueryParameter { key, value });
         }
 
-        Query(data)
+        Query { inner: data }
     }
 }
 
-// Implement fmt::Display for Query
+impl Deref for Query {
+    type Target = Vec<QueryParameter>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for Query {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.is_empty() {
@@ -142,11 +163,17 @@ impl fmt::Display for Query {
         }
 
         let mut output = String::from("?");
-        for i in &self.0 {
-            output.push_str(&format!("{}={}&", i[0], i[1]));
+        for i in &self.inner {
+            output.push_str(&format!("{}={}&", i.key, i.value));
         }
-        output.pop();
-        f.write_str(&output)
+
+        f.write_str(&output[..output.len() - 1])
+    }
+}
+
+impl fmt::Debug for Query {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Query").field("inner", &self.inner).finish()
     }
 }
 
@@ -156,7 +183,7 @@ mod test {
 
     #[test]
     fn test_from_str() {
-        let query = Query::from_body("foo=bar&nose=dog");
+        let query = Query::from_query_str("foo=bar&nose=dog");
         assert_eq!(query.get("foo"), Some("bar"));
         assert_eq!(query.get("nose"), Some("dog"));
         assert_eq!(query.get("bar"), None);
@@ -164,7 +191,7 @@ mod test {
 
     #[test]
     fn test_get() {
-        let query = Query::from_body("foo=bar&nose=dog");
+        let query = Query::from_query_str("foo=bar&nose=dog");
         assert_eq!(query.get("foo"), Some("bar"));
         assert_eq!(query.get("nose"), Some("dog"));
         assert_eq!(query.get("bar"), None);
@@ -172,7 +199,7 @@ mod test {
 
     #[test]
     fn test_get_mut() {
-        let mut query = Query::from_body("foo=bar&nose=dog");
+        let mut query = Query::from_query_str("foo=bar&nose=dog");
         assert_eq!(query.get_mut("bar"), None);
         query.get_mut("foo").unwrap().push_str("bar");
         assert_eq!(query.get("foo"), Some("barbar"));

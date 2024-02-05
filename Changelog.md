@@ -61,6 +61,22 @@ Coming Soon
 - Rename HeaderType to HeaderName as that is the correct name.
 - Accept `Into<Header>` in `Context::header` and `Response::header`.
 - Create 'header structs' that can be converted into a `Header` and simplify working with headers in responses.
+- Use [loopback](https://tools.ietf.org/html/rfc1122), [private](https://tools.ietf.org/html/rfc1918), and [unique local](https://tools.ietf.org/html/rfc4193) addresses for RealIp
+- Add is_informational, is_success, is_redirect, is_client_error, and is_server_error methods on status codes.
+- Use a Cow in HeaderName::Custom
+- Don't store whole stream to get its length in Head ext
+- Added sync_route extension
+- Make threadpool more robust
+- Add a Stream trait to allow using different socket impls
+- Allow using custom event loop
+  - The custom event loop with the Stream trait should allow a separate crate to add tls support to an afire server
+- Cleanup Query struct
+  - Now stores a set of QueryParameter structs instead of [String; 2]
+  - Implement Debug for Query
+  - Rename `Query::from_body` to `Query::from_str`
+- Made internal::handle::handle function public for use in custom event loops.
+- Made `error::AnyResult` public
+- Disable keep-alive if only running with one thread
 
 # 2.2.1
 
@@ -201,7 +217,7 @@ Apr 10, 2022
 - Add SocketHandler struct to hold socket interacting functions
 - Fix Path Traversal Exploit O_O
 
-# 1.0.0!
+# 1.0.0
 
 Mar 14, 2022
 
