@@ -50,6 +50,7 @@ pub trait ErrorHandler<State: 'static + Send + Sync> {
     fn handle(&self, ctx: &Context<State>, error: RouteError) -> AnyResult<()>;
 }
 
+// TODO: Allow -> Result<(), whatever>
 impl<State, F> ErrorHandler<State> for F
 where
     State: 'static + Send + Sync,

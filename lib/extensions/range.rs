@@ -12,7 +12,9 @@ use crate::{
     Response, Status,
 };
 
+/// Implements the HTTP Range header as defined in [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#field.range).
 pub struct Range {
+    /// Will reject requests with invalid range headers (416 RangeNotSatisfiable) rather than returning the full response.
     reject_invalid: bool,
 }
 
@@ -64,7 +66,7 @@ impl Range {
         }
     }
 
-    /// Reject requests with invalid range headers.
+    /// Will reject requests with invalid range headers (416 RangeNotSatisfiable) rather than returning the full response.
     /// This is disabled by default.
     pub fn reject_invalid(mut self) -> Self {
         self.reject_invalid = true;
