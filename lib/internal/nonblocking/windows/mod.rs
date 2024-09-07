@@ -9,19 +9,12 @@ use std::{
 
 use sys::{winapi, FdSet, TimeVal};
 
-use crate::trace;
-
 use super::TcpListenerAcceptTimeout;
 
 mod sys;
 
 impl TcpListenerAcceptTimeout for TcpListener {
     fn accept_timeout(&self, timeout: Duration) -> io::Result<(TcpStream, SocketAddr)> {
-        trace!(
-            Level::Debug,
-            "winapi::select: Accepting connection with timeout: {timeout:?}"
-        );
-
         let raw_socket = self.as_raw_socket();
         match select(&[raw_socket], &[], &[], timeout) {
             SelectResult::SocketsReady(_) => self.accept(),

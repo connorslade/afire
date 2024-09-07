@@ -29,11 +29,13 @@ const PATH: &str = r#"..."#;
 const FILE_TYPE: &str = "...";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::<()>::new("localhost", 8082)
-        .workers(4)
-        .error_handler(|ctx: &Context<()>, error: RouteError| {
-            Ok(ctx.text(error.message).send()?)
-        });
+    // let mut server = Server::<()>::new("localhost", 8082)
+    //     .workers(4)
+    //     .error_handler(|ctx: &Context<()>, error: RouteError| {
+    //         Ok(ctx.text(error.message).send()?)
+    //     });
+    let mut server = Server::builder("localhost", 8082, ()).workers(4).build()?;
+
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
 
@@ -236,10 +238,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         //     .status(Status::InternalServerError)?;
 
         let threads = ctx.server.thread_pool.threads();
-        let thread = ctx.server.thread_pool.current_thread().unwrap();
-        ctx.text(format!("Ok!\nThreads: {threads}\nCurrent Thread: {thread}"))
-            .header((HeaderName::ContentType, "text/plain"))
-            .send()?;
+        let thread = ctx.server.thread_pool.current_thread();
+        ctx.text(format!(
+            "Ok!\nThreads: {threads}\nCurrent Thread: {thread:?}"
+        ))
+        .header((HeaderName::ContentType, "text/plain"))
+        .send()?;
 
         Ok(())
     });

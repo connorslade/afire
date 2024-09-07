@@ -41,7 +41,7 @@ where
         "Opening socket {:?}",
         LazyFmt(|| socket.peer_addr())
     );
-    socket.set_timeout(this.socket_timeout).unwrap();
+    socket.set_timeout(this.config.socket_timeout).unwrap();
     drop(socket);
 
     'outer: loop {
@@ -63,7 +63,7 @@ where
         }
 
         if let Ok(req) = &req {
-            keep_alive = req.keep_alive() && this.keep_alive;
+            keep_alive = req.keep_alive() && this.config.keep_alive;
             trace!(
                 Level::Debug,
                 "{} {} {{ keep_alive: {} }}",
@@ -182,7 +182,7 @@ fn write<State: 'static + Send + Sync>(
     };
 
     socket.set_flag(response.flag);
-    if let Err(e) = response.write(socket.clone(), &server.default_headers) {
+    if let Err(e) = response.write(socket.clone(), &server.config.default_headers) {
         trace!(Level::Debug, "Error writing response: {:?}", e);
         socket.set_flag(ResponseFlag::End);
     }
@@ -205,7 +205,7 @@ fn close<State: 'static + Send + Sync>(
         return true;
     }
 
-    if !keep_alive || flag == ResponseFlag::Close || !this.keep_alive {
+    if !keep_alive || flag == ResponseFlag::Close || !this.config.keep_alive {
         trace!(Level::Debug, "Closing socket");
         if let Err(e) = stream.force_lock().shutdown(Shutdown::Both) {
             trace!(Level::Debug, "Error closing socket: {:?}", e);

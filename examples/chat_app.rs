@@ -30,9 +30,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_log_level(Level::Trace);
 
     // Create a server on ivp4 localhost port 8080 with 4 workers
-    let mut server = Server::new(Ipv4Addr::LOCALHOST, 8080)
-        .state(App::new())
-        .workers(4);
+    let mut server = Server::builder(Ipv4Addr::LOCALHOST, 8080, App::new())
+        .workers(4)
+        .build()?;
 
     // Root route to serve the client html + js
     server.route(Method::GET, "/", |ctx| Ok(ctx.text(HTML).send()?));

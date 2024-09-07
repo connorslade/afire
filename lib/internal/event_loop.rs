@@ -1,6 +1,7 @@
 //! The event loop used to handle incoming connections.
 
 use std::{
+    io::ErrorKind,
     net::{SocketAddr, TcpListener},
     sync::{atomic::Ordering, Arc},
     time::Duration,
@@ -28,7 +29,7 @@ pub trait EventLoop<State: Send + Sync> {
     fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()> {
         let listener = TcpListener::bind(addr)?;
         loop {
-            if !server.running.load(Ordering::Relaxed) {
+            if !server.config.running.load(Ordering::Relaxed) {
                 trace!(
                     Level::Debug,
                     "Stopping event loop. No more connections will be accepted."
@@ -47,6 +48,7 @@ pub trait EventLoop<State: Send + Sync> {
                     let event = Arc::new(Socket::new(event.0));
                     server.thread_pool.execute(|| handle(event, this_server));
                 }
+                Err(err) if err.kind() == ErrorKind::TimedOut => continue,
                 Err(err) => trace!(Level::Error, "Error accepting connection: {err}"),
             };
         }

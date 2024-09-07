@@ -211,7 +211,7 @@ impl<T: Send + Sync> ServerSentEventsExt for Context<T> {
         }
 
         self.req.socket.set_raw(true);
-        ServerSentEventStream::from_request(&self.req, &self.server.default_headers)
+        ServerSentEventStream::from_request(&self.req, &self.server.config.default_headers)
     }
 }
 

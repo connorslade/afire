@@ -310,7 +310,7 @@ impl<T: Send + Sync> WebSocketExt for Context<T> {
         }
 
         self.req.socket.set_raw(true);
-        WebSocketStream::from_request(&self.req, &self.server.default_headers)
+        WebSocketStream::from_request(&self.req, &self.server.config.default_headers)
     }
 }
 
