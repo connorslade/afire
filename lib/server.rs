@@ -6,6 +6,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    thread,
     time::Duration,
 };
 
@@ -65,7 +66,13 @@ pub struct Server<State: 'static + Send + Sync = ()> {
 
     /// Weather the server is running.
     /// If this is set to false, the server will stop accepting connections.
-    pub running: AtomicBool,
+    pub running: Arc<AtomicBool>,
+}
+
+#[derive(Clone)]
+pub struct ServerHandle<State: 'static + Send + Sync> {
+    running: Arc<AtomicBool>,
+    state: Option<Arc<State>>,
 }
 
 /// Implementations for Server
@@ -94,27 +101,12 @@ impl<State: Send + Sync> Server<State> {
             socket_timeout: None,
             state: None,
             thread_pool: Arc::new(ThreadPool::new_empty()),
-            running: AtomicBool::new(true),
+            running: Arc::new(AtomicBool::new(true)),
         }
     }
 
-    /// Starts the server without a threadpool.
-    /// This is blocking.
-    /// Will return an error if the server cant bind to the specified address, or of you are using stateful routes and have not set the state. (See [`Server::state`])
-    ///
-    /// ## Example
-    /// ```rust,no_run
-    /// # use afire::{Server, Response, Method, Content};
-    /// // Creates a server on localhost (127.0.0.1) port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
-    ///
-    /// /* Define Routes, Attach Middleware, etc. */
-    ///
-    /// // Starts the server
-    /// // This is blocking
-    /// server.run().unwrap();
-    /// ```
-    pub fn run(mut self) -> Result<()> {
+    /// Basic startup checks that are used for both `run` and `run_async`.
+    fn checks(&mut self) -> Result<()> {
         let threads = self.thread_pool.threads();
         if threads == 0 {
             trace!("Running single threaded, disabling Keep Alive",);
@@ -142,6 +134,28 @@ impl<State: Send + Sync> Server<State> {
             .into());
         }
 
+        Ok(())
+    }
+
+    /// Starts the server with a threadpool.
+    /// This is blocking.
+    /// Will return an error if the server cant bind to the specified address, or of you are using stateful routes and have not set the state. (See [`Server::state`])
+    ///
+    /// ## Example
+    /// ```rust,no_run
+    /// # use afire::{Server, Response, Method, Content};
+    /// // Creates a server on localhost (127.0.0.1) port 8080
+    /// let mut server = Server::<()>::new("localhost", 8080);
+    ///
+    /// /* Define Routes, Attach Middleware, etc. */
+    ///
+    /// // Starts the server
+    /// // This is blocking
+    /// server.run().unwrap();
+    /// ```
+    pub fn run(mut self) -> Result<()> {
+        self.checks()?;
+
         let addr = SocketAddr::new(self.ip, self.port);
         let this = Arc::new(self);
 
@@ -149,6 +163,24 @@ impl<State: Send + Sync> Server<State> {
 
         trace!("{}Server Stopped", emoji("🛑"));
         Ok(())
+    }
+
+    pub fn run_async(mut self) -> Result<ServerHandle<State>> {
+        self.checks()?;
+
+        let handle = ServerHandle {
+            running: self.running.clone(),
+            state: self.state.clone(),
+        };
+
+        let addr = SocketAddr::new(self.ip, self.port);
+        let this = Arc::new(self);
+
+        thread::spawn(move || {
+            this.clone().event_loop.run(this, addr).unwrap();
+        });
+
+        Ok(handle)
     }
 
     /// Sets the number of worker threads to use, it will resize the threadpool immediately.
@@ -352,7 +384,15 @@ impl<State: Send + Sync> Server<State> {
     /// Will complete all current requests before shutting down.
     pub fn shutdown(&self) {
         self.running.store(false, Ordering::Relaxed);
-        let addr = SocketAddr::new(self.ip, self.port);
-        let _ = TcpStream::connect(addr);
+    }
+}
+
+impl<State: Send + Sync + 'static> ServerHandle<State> {
+    pub fn app(&self) -> Arc<State> {
+        self.state.as_ref().unwrap().clone()
+    }
+
+    pub fn shutdown(&self) {
+        self.running.store(false, Ordering::Relaxed);
     }
 }

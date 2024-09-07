@@ -3,6 +3,7 @@
 use std::{
     net::{SocketAddr, TcpListener},
     sync::{atomic::Ordering, Arc},
+    time::Duration,
 };
 
 use crate::{
@@ -10,6 +11,8 @@ use crate::{
     internal::{handle::handle, socket::Socket},
     trace, Server,
 };
+
+use super::nonblocking::TcpListenerAcceptTimeout;
 
 /// afire servers are event-driven.
 /// This trait defines the event loop that will be used to handle incoming connections.
@@ -22,17 +25,9 @@ use crate::{
 pub trait EventLoop<State: Send + Sync> {
     /// Run the event loop.
     /// The event loop should accept connections from `addr` and handle them using `server`.
-    fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()>;
-}
-
-/// The default event loop.
-/// Uses the standard library built-in TCP listener.
-pub struct TcpEventLoop;
-
-impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {
     fn run(&self, server: Arc<Server<State>>, addr: SocketAddr) -> Result<()> {
         let listener = TcpListener::bind(addr)?;
-        for i in listener.incoming() {
+        loop {
             if !server.running.load(Ordering::Relaxed) {
                 trace!(
                     Level::Debug,
@@ -41,10 +36,15 @@ impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {
                 break;
             }
 
-            match i {
+            #[cfg(windows)]
+            let result = listener.accept_timeout(Duration::from_secs(1));
+            #[cfg(not(windows))]
+            let result = listener.accept();
+
+            match result {
                 Ok(event) => {
                     let this_server = server.clone();
-                    let event = Arc::new(Socket::new(event));
+                    let event = Arc::new(Socket::new(event.0));
                     server.thread_pool.execute(|| handle(event, this_server));
                 }
                 Err(err) => trace!(Level::Error, "Error accepting connection: {err}"),
@@ -53,3 +53,9 @@ impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {
         Ok(())
     }
 }
+
+/// The default event loop.
+/// Uses the standard library built-in TCP listener.
+pub struct TcpEventLoop;
+
+impl<State: Send + Sync> EventLoop<State> for TcpEventLoop {}

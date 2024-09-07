@@ -20,8 +20,7 @@ use afire::{
     prelude::*,
     route::{RouteContext, RouteError},
     trace,
-    trace::DefaultFormatter,
-    trace::{set_log_formatter, set_log_level, Formatter, Level},
+    trace::{set_log_formatter, set_log_level, DefaultFormatter, Formatter, Level},
     websocket::TxType,
 };
 
@@ -30,7 +29,7 @@ const PATH: &str = r#"..."#;
 const FILE_TYPE: &str = "...";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut server = Server::<()>::new("localhost", 8081)
+    let mut server = Server::<()>::new("localhost", 8082)
         .workers(4)
         .error_handler(|ctx: &Context<()>, error: RouteError| {
             Ok(ctx.text(error.message).send()?)

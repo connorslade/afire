@@ -7,6 +7,7 @@ pub mod encoding;
 pub mod event_loop;
 pub mod handle;
 pub mod misc;
+pub mod nonblocking;
 pub mod router;
 pub mod socket;
 pub mod sync;
