@@ -1,6 +1,6 @@
 use std::{
     any::type_name,
-    net::{IpAddr, SocketAddr, TcpStream},
+    net::{IpAddr, SocketAddr},
     str,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -165,6 +165,7 @@ impl<State: Send + Sync> Server<State> {
         Ok(())
     }
 
+    /// Starts the server on a separate thread, retuning a handle that allows you to retrieve the server state and shutdown the server.
     pub fn run_async(mut self) -> Result<ServerHandle<State>> {
         self.checks()?;
 

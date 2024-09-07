@@ -1,3 +1,5 @@
+//! Utilities for non-blocking I/O.
+
 use std::{
     io,
     net::{SocketAddr, TcpStream},

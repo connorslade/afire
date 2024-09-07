@@ -25,8 +25,7 @@
 //! });
 //! ```
 use std::{
-    fmt::Display,
-    io::Write,
+    fmt::{self, Display, Write},
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Sender},
@@ -174,23 +173,22 @@ impl Event {
     }
 }
 
-impl ToString for Event {
-    fn to_string(&self) -> String {
-        let mut out = String::new();
-
+impl Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(id) = self.id {
-            out.push_str(&format!("id: {id}\n"));
+            f.write_fmt(format_args!("id: {id}\n"))?;
         }
 
         let event = &self.event;
-        out.push_str(&format!("event: {event}\n"));
+        f.write_fmt(format_args!("event: {event}\n"))?;
 
         for i in self.data.split('\n') {
-            out.push_str(&format!("data: {i}\n"));
+            f.write_fmt(format_args!("data: {i}\n"))?;
         }
 
-        out.push('\n');
-        out
+        f.write_char('\n')?;
+
+        Ok(())
     }
 }
 

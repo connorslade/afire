@@ -105,11 +105,7 @@ impl Logger {
     pub fn file(self, file: impl AsRef<Path>) -> io::Result<Self> {
         Ok(Self {
             file: Some(Mutex::new(
-                OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .append(true)
-                    .open(file)?,
+                OpenOptions::new().create(true).append(true).open(file)?,
             )),
             ..self
         })
