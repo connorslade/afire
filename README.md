@@ -1,6 +1,6 @@
-# 🔥 afire <a href="https://github.com/Basicprogrammer10/afire/actions"><img src="https://github.com/Basicprogrammer10/afire/actions/workflows/rust.yml/badge.svg"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"></a> <a href="https://crates.io/crates/afire"><img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
+# 🔥 afire <a href="https://github.com/connorslade/afire/actions"><img src="https://github.com/connorslade/afire/actions/workflows/rust.yml/badge.svg"></a> <a href="https://crates.io/crates/afire"><img alt="Crates.io" src="https://img.shields.io/crates/v/afire"></a> <a href="https://crates.io/crates/afire"><img src="https://img.shields.io/crates/d/afire?label=Downloads"></a>
 
-# **THIS IS AN ALPHA RELEASE FOR `v3.0.0`** &ndash; Its probably not the best idea to use this in production and it will definitely have a lot of breaking changes in the future.
+# **THIS IS AN ALPHA RELEASE FOR `v3.0.0`** &ndash; Its probably not the best idea to use this in production and it will definitely have a lot of breaking changes in the future
 
 afire is a _blazingly fast_ web server micro framework for rust.
 
@@ -27,14 +27,14 @@ Below you can find links to some afire related resources.
 
 ## 💥 Example
 
-For more examples see the examples directory [here](https://github.com/Basicprogrammer10/afire/tree/main/examples).
+For more examples see the examples directory [here](https://github.com/connorslade/afire/tree/main/examples).
 
 Below is a super simple example so you can see the basics of afire syntax.
 
-```rust no_run
+```rust ignore
 use afire::prelude::*;
 
-let mut server = Server::<()>::new("localhost", 8080);
+let mut server = Server::builder("localhost", 8080, ()).workers(16).build()?;
 
 server.route(Method::GET, "/greet/{name}", |ctx| {
   let name = ctx.param("name");
@@ -46,10 +46,10 @@ server.route(Method::GET, "/greet/{name}", |ctx| {
   Ok(())
 });
 
-server.run().unwrap();
+server.run()?;
 ```
 
 ## 💼 License
 
 afire is licensed under the MIT license so you are free to do basically whatever you want with it as long as you add a copyright notice.
-You can read the full license text [here](https://github.com/Basicprogrammer10/afire/blob/main/LICENSE).
+You can read the full license text [here](https://github.com/connorslade/afire/blob/main/LICENSE).

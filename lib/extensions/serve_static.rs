@@ -65,16 +65,17 @@ impl ServeStatic {
     /// Make a new Static File Server
     /// ## Example
     /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, extensions::ServeStatic, Middleware};
-    ///
+    /// # use afire::{Server, extensions::ServeStatic, Middleware, error::Result};
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static file server and attach it to the afire server
     /// ServeStatic::new("data/static").attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn new(data_path: impl AsRef<str>) -> Self {
         Self {
@@ -96,11 +97,10 @@ impl ServeStatic {
     /// Path is relative to the dir being served
     /// ## Example
     /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, extensions::ServeStatic, Middleware};
-    ///
+    /// # use afire::{Server, extensions::ServeStatic, Middleware, error::Result};
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static server
     /// ServeStatic::new("data/static")
@@ -109,7 +109,9 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn disable(self, file_path: impl AsRef<str>) -> Self {
         let mut disabled = self.disabled_files;
@@ -125,11 +127,10 @@ impl ServeStatic {
     /// Path is relative to the dir being served
     /// ## Example
     /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, extensions::ServeStatic, Middleware};
-    ///
+    /// # use afire::{Server, extensions::ServeStatic, Middleware, error::Result};
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static server
     /// ServeStatic::new("data/static")
@@ -138,7 +139,9 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn disable_vec(self, file_paths: &[impl AsRef<str>]) -> Self {
         let mut disabled = self.disabled_files;
@@ -158,11 +161,10 @@ impl ServeStatic {
     /// The bool in the fn parameters is if the file is blocked.
     /// ## Example
     /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Response, Server, extensions::ServeStatic, Middleware, Status};
-    ///
+    /// # use afire::{Response, Server, extensions::ServeStatic, Middleware, Status, error::Result};
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static server
     /// ServeStatic::new("data/static")
@@ -171,7 +173,9 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn not_found(self, f: fn(Arc<Request>, bool) -> Response) -> Self {
         Self {
@@ -190,11 +194,10 @@ impl ServeStatic {
     /// The value is the MIME type
     /// ## Example
     /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, extensions::ServeStatic, Middleware};
-    ///
+    /// # use afire::{Server, extensions::ServeStatic, Middleware, error::Result};
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static server
     /// ServeStatic::new("data/static")
@@ -203,7 +206,9 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn mime_type(self, key: impl AsRef<str>, value: impl AsRef<str>) -> Self {
         let mut types = self.types;
@@ -221,11 +226,10 @@ impl ServeStatic {
     /// Ex: ("html", "text/html")
     /// ## Example
     /// ```rust,no_run
-    /// // Import Library
-    /// use afire::{Server, extensions::ServeStatic, Middleware};
-    ///
+    /// # use afire::{Server, extensions::ServeStatic, Middleware, error::Result};
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static server
     /// ServeStatic::new("data/static")
@@ -234,7 +238,9 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn mime_types(self, new_types: &[(impl AsRef<str>, impl AsRef<str>)]) -> Self {
         let mut new_types = new_types
@@ -270,10 +276,11 @@ impl ServeStatic {
     /// ## Example
     /// ```rust,no_run
     /// // Import Library
-    /// use afire::{Server, extensions::ServeStatic, Middleware};
+    /// use afire::{Server, extensions::ServeStatic, Middleware, error::Result};
     ///
+    /// # fn run() -> Result<()> {
     /// // Create a server for localhost on port 8080
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// // Make a new static server
     /// ServeStatic::new("data/static")
@@ -282,7 +289,9 @@ impl ServeStatic {
     ///     // Attach it to the afire server
     ///     .attach(&mut server);
     ///
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn path(self, path: impl AsRef<str>) -> Self {
         let serve_path = path.as_ref().to_owned();

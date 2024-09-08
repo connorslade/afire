@@ -77,6 +77,10 @@ Coming Soon
 - Made internal::handle::handle function public for use in custom event loops.
 - Made `error::AnyResult` public
 - Disable keep-alive if only running with one thread
+- Set default worker count to 16
+- Create the Server with a builder
+- Store config fields like host, default headers, etc. in a ServerConfig struct
+- Add Server::run_async to start the server on a separate thread and get a ServerHandle, which can be used to access the server state or shutdown the server.
 
 # 2.2.1
 

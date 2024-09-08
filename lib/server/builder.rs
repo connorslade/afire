@@ -7,8 +7,12 @@ use std::{
 use crate::{
     error::{Result, StartupError},
     header::Headers,
-    internal::{event_loop::TcpEventLoop, misc::ToHostAddress, thread_pool::ThreadPool},
-    route::DefaultErrorHandler,
+    internal::{
+        event_loop::{EventLoop, TcpEventLoop},
+        misc::ToHostAddress,
+        thread_pool::ThreadPool,
+    },
+    route::{DefaultErrorHandler, ErrorHandler},
     Header, HeaderName, VERSION,
 };
 
@@ -23,6 +27,9 @@ pub struct Builder<State> {
     default_headers: Headers,
     socket_timeout: Option<Duration>,
     keep_alive: bool,
+
+    event_loop: Box<dyn EventLoop<State> + Send + Sync>,
+    error_handler: Box<dyn ErrorHandler<State> + Send + Sync>,
 }
 
 impl<State> Builder<State>
@@ -35,13 +42,16 @@ where
             port,
             state,
 
-            workers: 1,
+            workers: 16,
             default_headers: Headers(vec![Header::new(
                 HeaderName::Server,
                 format!("afire/{VERSION}"),
             )]),
             socket_timeout: None,
             keep_alive: false,
+
+            event_loop: Box::new(TcpEventLoop),
+            error_handler: Box::new(DefaultErrorHandler),
         }
     }
 
@@ -105,6 +115,24 @@ where
     /// If you aren't using a threadpool, you may want to set this to false.
     pub fn keep_alive(mut self, keep_alive: bool) -> Self {
         self.keep_alive = keep_alive;
+        self
+    }
+
+    /// Change the server's event loop.
+    /// The default is [`TcpEventLoop`], which uses the standard library's built-in TCP listener.
+    ///
+    /// The [afire_tls](https://github.com/connorslade/afire_tls) crate contains an event loop that uses rustls to handle TLS connections.
+    pub fn event_loop(mut self, event_loop: impl EventLoop<State> + Send + Sync + 'static) -> Self {
+        self.event_loop = Box::new(event_loop);
+        self
+    }
+
+    /// Set the panic handler, which is called if a route or middleware panics.
+    /// This is only available if the `panic_handler` feature is enabled.
+    /// If you don't set it, the default response is 500 "Internal Server Error :/".
+    /// Be sure that your panic handler wont panic, because that will just panic the whole application.
+    pub fn error_handler(mut self, res: impl ErrorHandler<State> + Send + Sync + 'static) -> Self {
+        self.error_handler = Box::new(res);
         self
     }
 }

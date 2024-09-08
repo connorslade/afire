@@ -60,7 +60,7 @@ impl<State: 'static + Send + Sync> Context<State> {
     /// Get a reference to the server's state.
     /// This is the same as `self.server.state.clone().unwrap()`, and as such it **will panic** if the server was not supplied a state.
     pub fn app(&self) -> Arc<State> {
-        self.server.state.clone()
+        self.server.app()
     }
 
     /// Gets a path parameter by name.

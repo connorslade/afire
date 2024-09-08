@@ -64,11 +64,10 @@ impl RateLimiter {
     /// Attach the rate limiter to a server.
     /// ## Example
     /// ```rust,no_run
-    /// // Import Lib
-    /// use afire::{Server, extensions::RateLimiter, Middleware};
-    ///
+    /// # use afire::{Server, extensions::RateLimiter, Middleware, error::Result};
+    /// # fn main() -> Result<()> {
     /// // Create a new server
-    /// let mut server = Server::<()>::new("localhost", 1234);
+    /// let mut server = Server::builder("localhost", 1234, ()).build()?;
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
@@ -79,7 +78,9 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn limit(self, limit: u64) -> RateLimiter {
         RateLimiter {
@@ -91,11 +92,10 @@ impl RateLimiter {
     /// Set the Ratelimit refresh period
     /// ## Example
     /// ```rust,no_run
-    /// // Import Lib
-    /// use afire::{Server, extensions::RateLimiter, Middleware};
-    ///
+    /// # use afire::{Server, extensions::RateLimiter, Middleware, error::Result};
+    /// # fn main() -> Result<()> {
     /// // Create a new server
-    /// let mut server = Server::<()>::new("localhost", 1234);
+    /// let mut server = Server::builder("localhost", 1234, ()).build()?;
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
@@ -106,7 +106,9 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn timeout(self, timeout: u64) -> RateLimiter {
         RateLimiter {
@@ -119,11 +121,10 @@ impl RateLimiter {
     /// If the handler returns None, the request will be processed normally.
     /// ## Example
     /// ```rust,no_run
-    /// // Import Lib
-    /// use afire::{Server, Response, extensions::RateLimiter, Middleware};
-    ///
+    /// # use afire::{Server, Response, extensions::RateLimiter, Middleware, error::Result};
+    /// # fn main() -> Result<()> {
     /// // Create a new server
-    /// let mut server = Server::<()>::new("localhost", 1234);
+    /// let mut server = Server::builder("localhost", 1234, ()).build()?;
     ///
     /// // Add a rate limiter
     /// RateLimiter::new()
@@ -134,7 +135,9 @@ impl RateLimiter {
     ///
     /// // Start Server
     /// // This is blocking
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn handler(self, handler: Handler) -> RateLimiter {
         RateLimiter { handler, ..self }

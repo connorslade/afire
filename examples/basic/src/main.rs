@@ -29,10 +29,10 @@ fn main() -> AnyResult<()> {
     set_log_level(Level::Trace);
 
     // Create a new afire server on localhost:8080 with 4 worker threads, our custom error handler, and the App state.
-    let mut server = Server::<App>::new("localhost", 8080)
+    let mut server = Server::builder("localhost", 8080, App::new())
         .error_handler(error_handler)
         .workers(4)
-        .state(App::new());
+        .build()?;
 
     // Add extension to serve static files from the ./static directory.
     ServeStatic::new("./static").attach(&mut server);

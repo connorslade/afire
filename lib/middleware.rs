@@ -1,6 +1,6 @@
 //! Middleware is code that runs before and after the routes.
 //! They can be used to Log Requests, Ratelimit Requests, add Analytics, etc.
-//! For more information, see the [Middleware Example](https://github.com/Basicprogrammer10/afire/blob/main/examples/basic/middleware.rs).
+//! For more information, see the [Middleware Example](https://github.com/connorslade/afire/blob/main/examples/basic/middleware.rs).
 
 use std::{any::type_name, sync::Arc};
 

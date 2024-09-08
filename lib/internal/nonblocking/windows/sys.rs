@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use std::os::windows::raw::SOCKET;
 
 #[repr(C)]
@@ -9,13 +7,17 @@ pub struct PollFd {
     revents: i16,
 }
 
-pub const EVENT_PRIORITY_READ: i16 = 0x0400;
-pub const EVENT_OOB_READ: i16 = 0x0200;
-pub const EVENT_READ: i16 = 0x0100;
-pub const EVENT_WRITE: i16 = 0x0010;
-pub const EVENT_ERROR: i16 = 0x0001;
-pub const EVENT_DISCONNECT: i16 = 0x0002;
-pub const EVENT_INVALID: i16 = 0x0004;
+pub mod consts {
+    #![allow(unused)]
+
+    pub const EVENT_PRIORITY_READ: i16 = 0x0400;
+    pub const EVENT_OOB_READ: i16 = 0x0200;
+    pub const EVENT_READ: i16 = 0x0100;
+    pub const EVENT_WRITE: i16 = 0x0010;
+    pub const EVENT_ERROR: i16 = 0x0001;
+    pub const EVENT_DISCONNECT: i16 = 0x0002;
+    pub const EVENT_INVALID: i16 = 0x0004;
+}
 
 pub mod winapi {
     use super::*;

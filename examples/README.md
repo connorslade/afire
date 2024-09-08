@@ -19,4 +19,4 @@ Shows the very basics of afire:
 
 A simple pastebin, but a more complete example.
 Shows how to use a database, render templates, create api routes, accept form data, handle shutdowns, and more.
-I have actually made a real pastebin with afire ([plaster-box](https://github.com/Basicprogrammer10/plaster-box)), but because I started on it so long ago I prefer some of the practices used in this example.
+I have actually made a real pastebin with afire ([plaster-box](https://github.com/connorslade/plaster-box)), but because I started on it so long ago I prefer some of the practices used in this example.

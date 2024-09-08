@@ -12,7 +12,7 @@ homepage = "https://connorcode.com/writing/afire"
 keywords = ["afire", "http", "WebFramework", "WebServer"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/Basicprogrammer10/afire"
+repository = "https://github.com/connorslade/afire"
 
 [lib]
 name = "afire"

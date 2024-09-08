@@ -1,7 +1,7 @@
 //! WebSocket support.
 //! # Example
 //!
-//! Note: For a more complete chat app example, including a small web client, see [`examples/chat_app.rs`](https://github.com/Basicprogrammer10/afire/blob/main/examples/chat_app.rs).
+//! Note: For a more complete chat app example, including a small web client, see [`examples/chat_app.rs`](https://github.com/connorslade/afire/blob/main/examples/chat_app.rs).
 //!
 //! ```rust
 //! # use afire::{prelude::*, websocket::TxType};

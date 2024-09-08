@@ -17,10 +17,10 @@ impl TcpListenerAcceptTimeout for TcpListener {
     fn accept_timeout(&self, timeout: Duration) -> io::Result<(TcpStream, SocketAddr)> {
         let raw_socket = self.as_raw_socket();
 
-        let mut descriptors = [PollFd::new(raw_socket as SOCKET, sys::EVENT_READ)];
+        let mut descriptors = [PollFd::new(raw_socket as SOCKET, sys::consts::EVENT_READ)];
         match poll(&mut descriptors, Some(timeout)) {
             SelectResult::SocketsReady(_) => {
-                assert!(descriptors[0].has_revent(sys::EVENT_READ));
+                assert!(descriptors[0].has_revent(sys::consts::EVENT_READ));
                 self.accept()
             }
             SelectResult::TimedOut => {
@@ -43,6 +43,8 @@ pub enum SelectResult {
 
 /// Waits for the status of one or more sockets to change, or for a timeout to occur.
 pub fn poll(descriptors: &mut [PollFd], timeout: Option<Duration>) -> SelectResult {
+    assert!(descriptors.len() <= u32::MAX as usize);
+
     let timeout = timeout.map(|x| x.as_millis() as i32).unwrap_or(-1);
     let result = unsafe {
         winapi::WSAPoll(

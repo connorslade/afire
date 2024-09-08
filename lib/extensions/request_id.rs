@@ -20,15 +20,16 @@ impl RequestId {
     /// Create a new RequestId Middleware
     /// ## Example
     /// ```rust,no_run
-    /// // Import Lib
-    /// use afire::{Server, Middleware, extensions::RequestId};
-    ///
+    /// # use afire::{Server, Middleware, extensions::RequestId, error::Result};
+    /// # fn main() -> Result<()> {
     /// // Create Server & RequestId Middleware
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     /// RequestId::new("X-REQ-ID").attach(&mut server);
     ///
     /// // Start Server
-    /// server.run().unwrap();
+    /// server.run()?;
+    /// # Ok(())
+    /// # }
     ///```
     pub fn new(header: impl Into<HeaderName>) -> Self {
         Self {

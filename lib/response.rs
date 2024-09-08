@@ -161,16 +161,19 @@ impl Response {
     /// This response type is considered dynamic and will be streamed to the client in chunks using `Transfer-Encoding: chunked`.
     /// ## Example
     /// ```rust,no_run
-    /// # use afire::{Response, Method, Server};
+    /// # use afire::{Response, Method, Server, error::Result};
     /// # use std::fs::File;
+    /// # fn run() -> Result<()> {
     /// const PATH: &str = "path/to/file.txt";
-    /// let mut server = Server::<()>::new("localhost", 8080);
+    /// let mut server = Server::builder("localhost", 8080, ()).build()?;
     ///
     /// server.route(Method::GET, "/download-stream", |ctx| {
     ///     let stream = File::open(PATH)?;
     ///     ctx.stream(stream).send()?;
     ///     Ok(())
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn stream(self, stream: impl Read + Send + 'static) -> Self {
         Self {
