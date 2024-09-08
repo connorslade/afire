@@ -1,5 +1,5 @@
 use std::{
-    net::IpAddr,
+    net::{IpAddr, SocketAddr},
     sync::{atomic::AtomicBool, Arc},
     time::Duration,
 };
@@ -15,7 +15,7 @@ use crate::{
 use super::{config::ServerConfig, Server};
 
 pub struct Builder<State> {
-    host: IpAddr,
+    host: Result<IpAddr>,
     port: u16,
     state: State,
 
@@ -31,7 +31,7 @@ where
 {
     pub(super) fn new(host: impl ToHostAddress, port: u16, state: State) -> Self {
         Self {
-            host: host.to_address().unwrap(),
+            host: host.to_address(),
             port,
             state,
 
@@ -58,8 +58,6 @@ where
         }
 
         Ok(Server {
-            port: self.port,
-            host: self.host,
             event_loop: Box::new(TcpEventLoop),
             routes: vec![],
             middleware: vec![],
@@ -67,6 +65,7 @@ where
             error_handler: Box::new(DefaultErrorHandler),
             thread_pool: ThreadPool::new(self.workers),
             config: Arc::new(ServerConfig {
+                host: SocketAddr::new(self.host?, self.port),
                 default_headers: self.default_headers,
                 keep_alive: self.keep_alive,
                 socket_timeout: self.socket_timeout,

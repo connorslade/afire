@@ -23,11 +23,7 @@ pub mod handle;
 /// Defines a server.
 // todo: make not all this public
 pub struct Server<State: 'static + Send + Sync> {
-    /// Port to listen on.
-    pub port: u16,
-
-    /// Ip address to listen on.
-    pub host: IpAddr,
+    pub config: Arc<ServerConfig>,
 
     /// The event loop used to handle incoming connections.
     pub event_loop: Box<dyn EventLoop<State> + Send + Sync>,
@@ -48,8 +44,6 @@ pub struct Server<State: 'static + Send + Sync> {
     /// The threadpool used for handling requests.
     /// You can also run your own tasks and resizes the threadpool.
     pub thread_pool: ThreadPool,
-
-    pub config: Arc<ServerConfig>,
 }
 
 /// Implementations for Server
@@ -77,18 +71,16 @@ impl<State: Send + Sync> Server<State> {
     pub fn run(self) -> Result<()> {
         let threads = self.thread_pool.threads();
         trace!(
-            "{}Starting Server [{}:{}] ({} thread{})",
+            "{}Starting Server [{}] ({} thread{})",
             emoji("✨"),
-            self.host,
-            self.port,
+            self.config.host,
             threads,
             if threads == 1 { "" } else { "s" }
         );
 
-        let addr = SocketAddr::new(self.host, self.port);
+        let host = self.config.host;
         let this = Arc::new(self);
-
-        this.clone().event_loop.run(this, addr)?;
+        this.clone().event_loop.run(this, host)?;
 
         trace!("{}Server Stopped", emoji("🛑"));
         Ok(())
@@ -98,10 +90,9 @@ impl<State: Send + Sync> Server<State> {
     pub fn run_async(self) -> Result<ServerHandle<State>> {
         let threads = self.thread_pool.threads();
         trace!(
-            "{}Starting Server [{}:{}] ({} thread{})",
+            "{}Starting Server [{}] ({} thread{})",
             emoji("✨"),
-            self.host,
-            self.port,
+            self.config.host,
             threads,
             if threads == 1 { "" } else { "s" }
         );
@@ -111,11 +102,11 @@ impl<State: Send + Sync> Server<State> {
             state: self.state.clone(),
         };
 
-        let addr = SocketAddr::new(self.host, self.port);
+        let host = self.config.host;
         let this = Arc::new(self);
 
         thread::spawn(move || {
-            this.clone().event_loop.run(this, addr).unwrap();
+            this.clone().event_loop.run(this, host).unwrap();
         });
 
         Ok(handle)

@@ -1,8 +1,11 @@
-use std::{sync::atomic::AtomicBool, time::Duration};
+use std::{net::SocketAddr, sync::atomic::AtomicBool, time::Duration};
 
-use crate::{header::Headers, Header, HeaderName, VERSION};
+use crate::header::Headers;
 
 pub struct ServerConfig {
+    /// Socket address to bind to.
+    pub host: SocketAddr,
+
     /// Headers automatically added to every response.
     pub default_headers: Headers,
 
@@ -17,18 +20,4 @@ pub struct ServerConfig {
     /// Weather the server is running.
     /// If this is set to false, the server will stop accepting connections.
     pub running: AtomicBool,
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self {
-            default_headers: Headers(vec![Header::new(
-                HeaderName::Server,
-                format!("afire/{VERSION}"),
-            )]),
-            keep_alive: false,
-            socket_timeout: None,
-            running: AtomicBool::new(true),
-        }
-    }
 }

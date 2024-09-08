@@ -1,30 +1,29 @@
-use std::{os::windows::raw::SOCKET, time::Duration};
+#![allow(unused)]
+
+use std::os::windows::raw::SOCKET;
 
 #[repr(C)]
-pub struct FdSet {
-    fd_count: u32,
-    fd_array: [SOCKET; 64],
+pub struct PollFd {
+    socket: SOCKET,
+    events: i16,
+    revents: i16,
 }
 
-#[repr(C)]
-pub struct TimeVal {
-    tv_sec: i64,
-    tv_usec: i64,
-}
+pub const EVENT_PRIORITY_READ: i16 = 0x0400;
+pub const EVENT_OOB_READ: i16 = 0x0200;
+pub const EVENT_READ: i16 = 0x0100;
+pub const EVENT_WRITE: i16 = 0x0010;
+pub const EVENT_ERROR: i16 = 0x0001;
+pub const EVENT_DISCONNECT: i16 = 0x0002;
+pub const EVENT_INVALID: i16 = 0x0004;
 
 pub mod winapi {
     use super::*;
 
     extern "system" {
-        /// The select function determines the status of one or more sockets, waiting if necessary, to perform synchronous I/O.
-        /// See [Win32 Docs](https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-select).
-        pub fn select(
-            n: i32,
-            read: *mut FdSet,
-            write: *mut FdSet,
-            except: *mut FdSet,
-            timeout: *mut TimeVal,
-        ) -> i32;
+        /// The WSAPoll function determines status of one or more sockets.
+        /// See [Win32 Docs](https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-wsapoll).
+        pub fn WSAPoll(fd_array: *mut PollFd, fds: u32, timeout: i32) -> i32;
 
         /// The WSAGetLastError function returns the error status for the last Windows Sockets operation that failed.
         /// See [Win32 Docs](https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsagetlasterror).
@@ -32,28 +31,16 @@ pub mod winapi {
     }
 }
 
-impl FdSet {
-    /// If more than 64 sockets are passed, only the first 64 will be used.
-    pub fn from_slice(slice: &[SOCKET]) -> Self {
-        let mut fd_array = [0; 64];
-        for (i, &socket) in slice.iter().take(64).enumerate() {
-            fd_array[i] = socket;
-        }
-
-        Self {
-            fd_count: slice.len() as u32,
-            fd_array,
+impl PollFd {
+    pub fn new(socket: SOCKET, events: i16) -> PollFd {
+        PollFd {
+            socket,
+            events,
+            revents: 0,
         }
     }
-}
 
-impl TimeVal {
-    pub fn from_duration(duration: Duration) -> Self {
-        let secs = duration.as_secs();
-        let usecs = duration.subsec_micros();
-        Self {
-            tv_sec: secs as i64,
-            tv_usec: usecs as i64,
-        }
+    pub fn has_revent(&self, events: i16) -> bool {
+        self.revents & events != 0
     }
 }

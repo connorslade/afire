@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use sys::{winapi, FdSet, TimeVal};
+use sys::{winapi, PollFd};
 
 use super::TcpListenerAcceptTimeout;
 
@@ -16,8 +16,13 @@ mod sys;
 impl TcpListenerAcceptTimeout for TcpListener {
     fn accept_timeout(&self, timeout: Duration) -> io::Result<(TcpStream, SocketAddr)> {
         let raw_socket = self.as_raw_socket();
-        match select(&[raw_socket], &[], &[], timeout) {
-            SelectResult::SocketsReady(_) => self.accept(),
+
+        let mut descriptors = [PollFd::new(raw_socket as SOCKET, sys::EVENT_READ)];
+        match poll(&mut descriptors, Some(timeout)) {
+            SelectResult::SocketsReady(_) => {
+                assert!(descriptors[0].has_revent(sys::EVENT_READ));
+                self.accept()
+            }
             SelectResult::TimedOut => {
                 Err(Error::new(ErrorKind::TimedOut, "The operation timed out."))
             }
@@ -36,32 +41,21 @@ pub enum SelectResult {
     Error(u32),
 }
 
-/// Waits for one of the sockets to become readable, writable, or in an exceptional state, or for the timeout to expire.
-pub fn select(
-    read: &[SOCKET],
-    write: &[SOCKET],
-    except: &[SOCKET],
-    timeout: Duration,
-) -> SelectResult {
-    let mut timeout = TimeVal::from_duration(timeout);
-
-    let mut read_fds = FdSet::from_slice(read);
-    let mut write_fds = FdSet::from_slice(write);
-    let mut except_fds = FdSet::from_slice(except);
-
+/// Waits for the status of one or more sockets to change, or for a timeout to occur.
+pub fn poll(descriptors: &mut [PollFd], timeout: Option<Duration>) -> SelectResult {
+    let timeout = timeout.map(|x| x.as_millis() as i32).unwrap_or(-1);
     let result = unsafe {
-        winapi::select(
-            0,
-            &mut read_fds,
-            &mut write_fds,
-            &mut except_fds,
-            &mut timeout,
+        winapi::WSAPoll(
+            descriptors.as_ptr() as *mut _,
+            descriptors.len() as u32,
+            timeout,
         )
     };
 
     match result {
-        1.. => SelectResult::SocketsReady(result as u32),
         0 => SelectResult::TimedOut,
-        ..0 => SelectResult::Error(unsafe { winapi::WSAGetLastError() }),
+        1.. => SelectResult::SocketsReady(result as u32),
+        -1 => SelectResult::Error(unsafe { winapi::WSAGetLastError() }),
+        _ => unreachable!(),
     }
 }
