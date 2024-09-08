@@ -77,6 +77,7 @@ Coming Soon
 - Made internal::handle::handle function public for use in custom event loops.
 - Made `error::AnyResult` public
 - Disable keep-alive if only running with one thread
+- Use nonblocking IO on supported platforms to allow shutting down the event loop from other threads
 - Set default worker count to 16
 - Create the Server with a builder
 - Store config fields like host, default headers, etc. in a ServerConfig struct

@@ -95,7 +95,7 @@ impl ThreadPool {
         Self {
             threads: AtomicUsize::new(size),
             sender: Mutex::new(sender),
-            workers: Workers::new(),
+            workers,
             receiver,
         }
     }

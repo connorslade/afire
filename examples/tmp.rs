@@ -238,12 +238,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         //     .status(Status::InternalServerError)?;
 
         let threads = ctx.server.thread_pool.threads();
-        let thread = ctx.server.thread_pool.current_thread();
-        ctx.text(format!(
-            "Ok!\nThreads: {threads}\nCurrent Thread: {thread:?}"
-        ))
-        .header((HeaderName::ContentType, "text/plain"))
-        .send()?;
+        let thread = ctx.server.thread_pool.current_thread().unwrap();
+        ctx.text(format!("Ok!\nThreads: {threads}\nCurrent Thread: {thread}"))
+            .header((HeaderName::ContentType, "text/plain"))
+            .send()?;
 
         Ok(())
     });
