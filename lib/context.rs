@@ -153,9 +153,11 @@ impl<State: 'static + Send + Sync> Context<State> {
             i.post(&self.req.clone(), &mut self.response.force_lock());
         }
 
-        self.response
-            .force_lock()
-            .write(self.req.socket.clone(), &self.server.config.default_headers)?;
+        self.response.force_lock().write(
+            self.req.socket.clone(),
+            &self.server.config.default_headers,
+            true,
+        )?;
         self.flags.set(ContextFlag::ResponseSent);
 
         let res = self.response.force_lock();

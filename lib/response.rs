@@ -295,7 +295,12 @@ impl Response {
 
     /// Writes a Response to a TcpStream.
     /// Will take care of adding default headers and closing the connection if needed.
-    pub fn write(&mut self, raw_stream: Arc<Socket>, default_headers: &[Header]) -> Result<()> {
+    pub fn write(
+        &mut self,
+        raw_stream: Arc<Socket>,
+        default_headers: &[Header],
+        content_length: bool,
+    ) -> Result<()> {
         // Add default headers to response
         // Only the ones that aren't already in the response
         for i in default_headers {
@@ -307,7 +312,7 @@ impl Response {
         let static_body = self.data.is_static();
 
         // Add content-length header to response if we are sending a static body
-        if static_body && !self.headers.has(HeaderName::ContentLength) {
+        if content_length && static_body && !self.headers.has(HeaderName::ContentLength) {
             self.headers.push(self.data.content_len());
         }
 

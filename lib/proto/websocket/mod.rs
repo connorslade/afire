@@ -120,7 +120,7 @@ impl WebSocketStream {
             .header(("Sec-WebSocket-Accept", &accept))
             .header(("Sec-WebSocket-Version", "13"));
 
-        upgrade.write(req.socket.clone(), headers)?;
+        upgrade.write(req.socket.clone(), headers, true)?;
         trace!(Level::Debug, "[WS] Upgraded socket #{}", req.socket.id);
 
         let open = Arc::new(AtomicBool::new(true));

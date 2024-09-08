@@ -117,7 +117,7 @@ impl ServerSentEventStream {
         let mut res = Response::new()
             .header(ContentType::new("text/event-stream"))
             .header(CacheControl::no_cache());
-        res.write(socket.clone(), headers)?;
+        res.write(socket.clone(), headers, false)?;
 
         let (tx, rx) = mpsc::channel::<EventType>();
         thread::Builder::new()
@@ -175,15 +175,15 @@ impl Event {
 
 impl Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(id) = self.id {
-            f.write_fmt(format_args!("id: {id}\n"))?;
-        }
-
         let event = &self.event;
         f.write_fmt(format_args!("event: {event}\n"))?;
 
         for i in self.data.split('\n') {
             f.write_fmt(format_args!("data: {i}\n"))?;
+        }
+
+        if let Some(id) = self.id {
+            f.write_fmt(format_args!("id: {id}\n"))?;
         }
 
         f.write_char('\n')?;

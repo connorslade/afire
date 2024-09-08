@@ -255,7 +255,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             trace!("Sending from another thread");
             Response::new()
                 .text("Hello from another thread")
-                .write(socket, &[])
+                .write(socket, &[], true)
                 .unwrap();
         });
 
@@ -309,7 +309,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         thread::spawn(move || {
             Response::new()
                 .text("Hello from another thread")
-                .write(socket, &[])
+                .write(socket, &[], true)
                 .unwrap();
         });
         Ok(())

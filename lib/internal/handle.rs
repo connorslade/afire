@@ -182,7 +182,7 @@ fn write<State: 'static + Send + Sync>(
     };
 
     socket.set_flag(response.flag);
-    if let Err(e) = response.write(socket.clone(), &server.config.default_headers) {
+    if let Err(e) = response.write(socket.clone(), &server.config.default_headers, true) {
         trace!(Level::Debug, "Error writing response: {:?}", e);
         socket.set_flag(ResponseFlag::End);
     }
