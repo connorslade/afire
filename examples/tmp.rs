@@ -15,10 +15,14 @@ use afire::{
     extensions::{
         Date, Head, Logger, Range, RedirectResponse, RouteShorthands, ServeStatic, SyncRoute, Trace,
     },
-    internal::sync::{ForceLockMutex, ForceLockRwLock},
+    internal::{
+        socket::Socket,
+        sync::{ForceLockMutex, ForceLockRwLock},
+    },
     multipart::MultipartData,
     prelude::*,
-    route::{RouteContext, RouteError},
+    route::RouteContext,
+    server_sent_events::manager::{SseEventHandler, SseManager},
     trace,
     trace::{set_log_formatter, set_log_level, DefaultFormatter, Formatter, Level},
     websocket::TxType,
@@ -28,13 +32,38 @@ use afire::{
 const PATH: &str = r#"..."#;
 const FILE_TYPE: &str = "...";
 
+struct State {
+    sse: SseManager<EventHandler>,
+}
+
+struct EventHandler;
+
+impl SseEventHandler for EventHandler {
+    fn on_connect(&self, manager: &SseManager<Self>, socket: &Socket, _last_id: Option<u32>) {
+        let addr = socket.socket.force_lock().peer_addr().unwrap();
+        let message = format!("Welcome, {addr}!");
+
+        manager.send_all("update", message);
+    }
+
+    fn on_disconnect(&self, _manager: &SseManager<Self>, _socket: &Socket) {}
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // let mut server = Server::<()>::new("localhost", 8082)
     //     .workers(4)
     //     .error_handler(|ctx: &Context<()>, error: RouteError| {
     //         Ok(ctx.text(error.message).send()?)
     //     });
-    let mut server = Server::builder("localhost", 8082, ()).workers(4).build()?;
+    let mut server = Server::builder(
+        "localhost",
+        8082,
+        State {
+            sse: SseManager::new(EventHandler),
+        },
+    )
+    .workers(4)
+    .build()?;
 
     set_log_level(Level::Debug);
     set_log_formatter(LogFormatter);
@@ -324,6 +353,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     server.sync_route(Method::GET, "/sync-test", |_ctx| {
         Ok(Response::new().text("Heyyyy"))
     });
+
+    server.route(Method::GET, "/sse_manager", |ctx| ctx.app().sse.handle(ctx));
 
     Range::new().reject_invalid().attach(&mut server);
     Test.attach(&mut server);

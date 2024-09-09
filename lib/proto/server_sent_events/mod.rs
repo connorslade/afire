@@ -42,6 +42,8 @@ use crate::{
     Context, Error, Header, Request, Response,
 };
 
+pub mod manager;
+
 /// A [server-sent event](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream.
 ///
 /// For more information and usage examples, visit the [module level documentation](index.html).
@@ -107,17 +109,9 @@ impl ServerSentEventStream {
 
     /// Creates a new SSE stream from the given request.
     /// This is called automatically if you use the [`ServerSentEventsExt`] trait's .sse() method.
-    pub fn from_request(this: &Request, headers: &[Header]) -> Result<Self> {
-        let last_index = this
-            .headers
-            .get("Last-Event-ID")
-            .and_then(|id| id.parse::<u32>().ok());
-
+    pub fn from_request(this: &Request, default_headers: &[Header]) -> Result<Self> {
+        let last_index = handshake(this, default_headers)?;
         let socket = this.socket.clone();
-        let mut res = Response::new()
-            .header(ContentType::new("text/event-stream"))
-            .header(CacheControl::no_cache());
-        res.write(socket.clone(), headers, false)?;
 
         let (tx, rx) = mpsc::channel::<EventType>();
         thread::Builder::new()
@@ -210,6 +204,7 @@ impl<T: Send + Sync> ServerSentEventsExt for Context<T> {
             Error::bail("Response already sent.")?;
         }
 
+        self.flags.set(ContextFlag::ResponseSent);
         self.req.socket.set_raw(true);
         ServerSentEventStream::from_request(&self.req, &self.server.config.default_headers)
     }
@@ -219,6 +214,21 @@ impl From<Event> for EventType {
     fn from(event: Event) -> Self {
         Self::Event(event)
     }
+}
+
+pub(crate) fn handshake(request: &Request, default_headers: &[Header]) -> Result<Option<u32>> {
+    let last_index = request
+        .headers
+        .get("Last-Event-ID")
+        .and_then(|id| id.parse::<u32>().ok());
+
+    let socket = request.socket.clone();
+    let mut res = Response::new()
+        .header(ContentType::new("text/event-stream"))
+        .header(CacheControl::no_cache());
+    res.write(socket.clone(), default_headers, false)?;
+
+    Ok(last_index)
 }
 
 #[cfg(test)]

@@ -350,7 +350,7 @@ impl ContextFlags {
     }
 
     /// Set a flag to true.
-    fn set(&self, flag: ContextFlag) {
+    pub(crate) fn set(&self, flag: ContextFlag) {
         self.0.fetch_or(flag as u8, Ordering::Relaxed);
     }
 }
