@@ -192,7 +192,7 @@ impl<State: 'static + Send + Sync> Context<State> {
     ///     thread::spawn(move || {
     ///         Response::new()
     ///             .text("Hello from another thread")
-    ///             .write(socket, &[])
+    ///             .write(socket, &[], true)
     ///             .unwrap();
     ///     });
     ///     Ok(())

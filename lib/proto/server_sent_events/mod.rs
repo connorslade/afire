@@ -241,6 +241,6 @@ mod test {
         assert_eq!(event.to_string(), "event: event\ndata: \n\n");
 
         let event = Event::new("update").id(1).data("Hello");
-        assert_eq!(event.to_string(), "id: 1\nevent: update\ndata: Hello\n\n");
+        assert_eq!(event.to_string(), "event: update\ndata: Hello\nid: 1\n\n");
     }
 }
