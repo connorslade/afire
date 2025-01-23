@@ -1,6 +1,7 @@
 # 🔥 afire Examples
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=394493528&machine=basicLinux32gb&location=EastUs&devcontainer_path=.devcontainer%2Fdevcontainer.json)
+[![Open in Codeanywhere](https://codeanywhere.com/img/open-in-codeanywhere-btn.svg)](https://app.codeanywhere.com/#https://github.com/connorslade/afire/blob/386caad37965747a7c2a93e7f01228e8a7c640a7/examples/README.md)
 
 ## Basic
 
